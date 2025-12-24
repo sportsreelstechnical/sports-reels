@@ -4188,12 +4188,9 @@ Provide the summary as a formal document text.`;
   }
 
   // Get or initialize token balance
-  app.get("/api/tokens/balance", async (req, res) => {
+  app.get("/api/tokens/balance", requireAuth, async (req, res) => {
     try {
-      const userId = req.session.userId;
-      if (!userId) {
-        return res.json({ balance: 0, lifetimePurchased: 0, lifetimeSpent: 0 });
-      }
+      const userId = req.session.userId!;
       let balance = await storage.getTokenBalance(userId);
       
       if (!balance) {
@@ -4225,7 +4222,7 @@ Provide the summary as a formal document text.`;
   });
 
   // Get token transactions
-  app.get("/api/tokens/transactions", async (req, res) => {
+  app.get("/api/tokens/transactions", requireAuth, async (req, res) => {
     try {
       const userId = req.session.userId!;
       const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
@@ -4237,7 +4234,7 @@ Provide the summary as a formal document text.`;
   });
 
   // Get token costs config - role-specific
-  app.get("/api/tokens/costs", (req, res) => {
+  app.get("/api/tokens/costs", requireAuth, (req, res) => {
     const userRole = req.session.userRole || "sporting_director";
     const costs = getTokenCostsForRole(userRole);
     res.json(costs);
@@ -4268,7 +4265,7 @@ Provide the summary as a formal document text.`;
   });
 
   // Spend tokens for an action - role-specific costs
-  app.post("/api/tokens/spend", async (req, res) => {
+  app.post("/api/tokens/spend", requireAuth, async (req, res) => {
     try {
       const userId = req.session.userId!;
       const userRole = req.session.userRole || "sporting_director";
@@ -4328,7 +4325,7 @@ Provide the summary as a formal document text.`;
   });
 
   // Purchase token pack (simulated - Stripe integration needed for real payments)
-  app.post("/api/tokens/purchase", async (req, res) => {
+  app.post("/api/tokens/purchase", requireAuth, async (req, res) => {
     try {
       const userId = req.session.userId!;
       const { packId } = req.body;
@@ -4363,7 +4360,7 @@ Provide the summary as a formal document text.`;
   });
 
   // Confirm purchase (simulated - call after Stripe payment success)
-  app.post("/api/tokens/purchase/:id/confirm", async (req, res) => {
+  app.post("/api/tokens/purchase/:id/confirm", requireAuth, async (req, res) => {
     try {
       const userId = req.session.userId!;
       const purchaseId = req.params.id;
@@ -4418,7 +4415,7 @@ Provide the summary as a formal document text.`;
   });
 
   // Get purchase history
-  app.get("/api/tokens/purchases", async (req, res) => {
+  app.get("/api/tokens/purchases", requireAuth, async (req, res) => {
     try {
       const userId = req.session.userId!;
       const purchases = await storage.getTokenPurchases(userId);
