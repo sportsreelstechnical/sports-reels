@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Shield, Users, Search, Building2, FileCheck } from "lucide-react";
+import { Shield, Users, Search, Building2, FileCheck, Settings } from "lucide-react";
 
 interface RolePickerProps {
   onSelectRole: (role: string) => void;
@@ -34,6 +34,13 @@ const roles = [
     description: "Process letter requests, manage fees, and issue federation documents",
     icon: FileCheck,
     color: "bg-orange-500/10 text-orange-600 dark:text-orange-400",
+  },
+  {
+    id: "admin",
+    title: "Platform Administrator",
+    description: "Manage users, messages, payments, audit logs, and GDPR compliance",
+    icon: Settings,
+    color: "bg-red-500/10 text-red-600 dark:text-red-400",
   },
 ];
 

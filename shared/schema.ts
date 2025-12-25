@@ -1015,3 +1015,222 @@ export type InsertEmbassyNotification = z.infer<typeof insertEmbassyNotification
 export type EmbassyNotification = typeof embassyNotifications.$inferSelect;
 export type InsertDocumentVerification = z.infer<typeof insertDocumentVerificationSchema>;
 export type DocumentVerification = typeof documentVerifications.$inferSelect;
+
+// Document Version Control - tracks all versions of player documents
+export const documentVersions = pgTable("document_versions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  documentId: varchar("document_id").notNull(),
+  versionNumber: integer("version_number").notNull(),
+  originalName: text("original_name").notNull(),
+  mimeType: text("mime_type"),
+  fileSize: integer("file_size"),
+  storageKey: text("storage_key").notNull(),
+  objectPath: text("object_path"),
+  changeReason: text("change_reason"),
+  uploadedBy: varchar("uploaded_by"),
+  isCurrent: boolean("is_current").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Document Audit Logs - tracks all actions on documents for compliance
+export const documentAuditLogs = pgTable("document_audit_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  documentId: varchar("document_id").notNull(),
+  documentType: text("document_type").notNull(),
+  playerId: varchar("player_id"),
+  teamId: varchar("team_id"),
+  action: text("action").notNull(), // 'created', 'viewed', 'downloaded', 'updated', 'verified', 'rejected', 'deleted', 'restored', 'version_created'
+  actorId: varchar("actor_id"),
+  actorName: text("actor_name"),
+  actorRole: text("actor_role"),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  previousValue: jsonb("previous_value"),
+  newValue: jsonb("new_value"),
+  metadata: jsonb("metadata"),
+  timestamp: timestamp("timestamp").defaultNow(),
+});
+
+export const insertDocumentVersionSchema = createInsertSchema(documentVersions).omit({ id: true, createdAt: true });
+export const insertDocumentAuditLogSchema = createInsertSchema(documentAuditLogs).omit({ id: true, timestamp: true });
+
+export type InsertDocumentVersion = z.infer<typeof insertDocumentVersionSchema>;
+export type DocumentVersion = typeof documentVersions.$inferSelect;
+export type InsertDocumentAuditLog = z.infer<typeof insertDocumentAuditLogSchema>;
+export type DocumentAuditLog = typeof documentAuditLogs.$inferSelect;
+
+// ==================== PLATFORM ADMIN PORTAL TABLES ====================
+
+// Password Reset Tokens - for secure password recovery
+export const passwordResetTokens = pgTable("password_reset_tokens", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  token: text("token").notNull().unique(),
+  expiresAt: timestamp("expires_at").notNull(),
+  usedAt: timestamp("used_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Admin Message Inbox - receives scout-to-player messages for offline processing
+export const adminMessageInbox = pgTable("admin_message_inbox", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  originalMessageId: varchar("original_message_id").notNull(),
+  conversationId: varchar("conversation_id").notNull(),
+  playerId: varchar("player_id"),
+  playerName: text("player_name"),
+  senderId: varchar("sender_id").notNull(),
+  senderName: text("sender_name"),
+  senderRole: text("sender_role").notNull(),
+  recipientTeamId: varchar("recipient_team_id"),
+  recipientTeamName: text("recipient_team_name"),
+  subject: text("subject"),
+  content: text("content").notNull(),
+  status: text("status").notNull().default("unread"), // 'unread', 'read', 'replied', 'archived', 'flagged'
+  priority: text("priority").default("normal"), // 'low', 'normal', 'high', 'urgent'
+  adminNotes: text("admin_notes"),
+  processedBy: varchar("processed_by"),
+  processedAt: timestamp("processed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Platform Analytics Metrics - stores daily aggregated platform usage data
+export const platformMetrics = pgTable("platform_metrics", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  metricDate: text("metric_date").notNull(),
+  activeUsersDaily: integer("active_users_daily").default(0),
+  activeUsersMonthly: integer("active_users_monthly").default(0),
+  newUsersDaily: integer("new_users_daily").default(0),
+  totalUsers: integer("total_users").default(0),
+  totalTeams: integer("total_teams").default(0),
+  totalPlayers: integer("total_players").default(0),
+  totalScouts: integer("total_scouts").default(0),
+  totalEmbassyUsers: integer("total_embassy_users").default(0),
+  totalFederationUsers: integer("total_federation_users").default(0),
+  videoUploadsDaily: integer("video_uploads_daily").default(0),
+  videoViewsDaily: integer("video_views_daily").default(0),
+  messagesDaily: integer("messages_daily").default(0),
+  federationRequestsDaily: integer("federation_requests_daily").default(0),
+  paymentsDaily: integer("payments_daily").default(0),
+  revenueDaily: doublePrecision("revenue_daily").default(0),
+  tokensPurchasedDaily: integer("tokens_purchased_daily").default(0),
+  tokensSpentDaily: integer("tokens_spent_daily").default(0),
+  avgSessionDuration: doublePrecision("avg_session_duration"),
+  bounceRate: doublePrecision("bounce_rate"),
+  featureEngagement: jsonb("feature_engagement"),
+  retentionCohort: jsonb("retention_cohort"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// GDPR Privacy Requests - manages data privacy and compliance requests
+export const gdprRequests = pgTable("gdpr_requests", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  requestType: text("request_type").notNull(), // 'data_export', 'data_deletion', 'consent_update', 'access_request'
+  status: text("status").notNull().default("pending"), // 'pending', 'in_progress', 'completed', 'rejected'
+  requestDetails: text("request_details"),
+  dataCategories: text("data_categories").array(),
+  exportFileUrl: text("export_file_url"),
+  processedBy: varchar("processed_by"),
+  processedAt: timestamp("processed_at"),
+  completionNotes: text("completion_notes"),
+  rejectionReason: text("rejection_reason"),
+  dueDate: timestamp("due_date"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// User Consent Records - tracks user consent for GDPR compliance
+export const userConsents = pgTable("user_consents", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  consentType: text("consent_type").notNull(), // 'terms_of_service', 'privacy_policy', 'marketing', 'analytics', 'data_sharing'
+  consentGiven: boolean("consent_given").notNull(),
+  version: text("version").notNull(),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  consentedAt: timestamp("consented_at").defaultNow(),
+  withdrawnAt: timestamp("withdrawn_at"),
+});
+
+// Platform Audit Logs - comprehensive audit trail for all platform activities
+export const platformAuditLogs = pgTable("platform_audit_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  category: text("category").notNull(), // 'user_management', 'payment', 'federation', 'document', 'security', 'gdpr', 'system'
+  action: text("action").notNull(),
+  entityType: text("entity_type"),
+  entityId: varchar("entity_id"),
+  actorId: varchar("actor_id"),
+  actorName: text("actor_name"),
+  actorRole: text("actor_role"),
+  actorEmail: text("actor_email"),
+  description: text("description"),
+  previousState: jsonb("previous_state"),
+  newState: jsonb("new_state"),
+  metadata: jsonb("metadata"),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  severity: text("severity").default("info"), // 'debug', 'info', 'warning', 'error', 'critical'
+  timestamp: timestamp("timestamp").defaultNow(),
+});
+
+// User Sessions - for analytics and security tracking
+export const userSessions = pgTable("user_sessions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  sessionToken: text("session_token").notNull().unique(),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  deviceType: text("device_type"),
+  location: text("location"),
+  startedAt: timestamp("started_at").defaultNow(),
+  lastActivityAt: timestamp("last_activity_at").defaultNow(),
+  endedAt: timestamp("ended_at"),
+  isActive: boolean("is_active").default(true),
+});
+
+// Federation Payment History - aggregate view of all federation-related payments
+export const federationPaymentHistory = pgTable("federation_payment_history", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  federationId: varchar("federation_id").notNull(),
+  federationName: text("federation_name"),
+  federationCountry: text("federation_country"),
+  requestId: varchar("request_id"),
+  teamId: varchar("team_id"),
+  teamName: text("team_name"),
+  feeType: text("fee_type").notNull(), // 'federation_fee', 'service_charge', 'processing_fee'
+  amount: doublePrecision("amount").notNull(),
+  currency: text("currency").default("USD"),
+  status: text("status").notNull().default("pending"), // 'pending', 'completed', 'refunded'
+  paymentMethod: text("payment_method"),
+  transactionRef: text("transaction_ref"),
+  paidAt: timestamp("paid_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Insert Schemas
+export const insertPasswordResetTokenSchema = createInsertSchema(passwordResetTokens).omit({ id: true, createdAt: true });
+export const insertAdminMessageInboxSchema = createInsertSchema(adminMessageInbox).omit({ id: true, createdAt: true });
+export const insertPlatformMetricsSchema = createInsertSchema(platformMetrics).omit({ id: true, createdAt: true });
+export const insertGdprRequestSchema = createInsertSchema(gdprRequests).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertUserConsentSchema = createInsertSchema(userConsents).omit({ id: true, consentedAt: true });
+export const insertPlatformAuditLogSchema = createInsertSchema(platformAuditLogs).omit({ id: true, timestamp: true });
+export const insertUserSessionSchema = createInsertSchema(userSessions).omit({ id: true, startedAt: true });
+export const insertFederationPaymentHistorySchema = createInsertSchema(federationPaymentHistory).omit({ id: true, createdAt: true });
+
+// Types
+export type InsertPasswordResetToken = z.infer<typeof insertPasswordResetTokenSchema>;
+export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
+export type InsertAdminMessageInbox = z.infer<typeof insertAdminMessageInboxSchema>;
+export type AdminMessageInbox = typeof adminMessageInbox.$inferSelect;
+export type InsertPlatformMetrics = z.infer<typeof insertPlatformMetricsSchema>;
+export type PlatformMetrics = typeof platformMetrics.$inferSelect;
+export type InsertGdprRequest = z.infer<typeof insertGdprRequestSchema>;
+export type GdprRequest = typeof gdprRequests.$inferSelect;
+export type InsertUserConsent = z.infer<typeof insertUserConsentSchema>;
+export type UserConsent = typeof userConsents.$inferSelect;
+export type InsertPlatformAuditLog = z.infer<typeof insertPlatformAuditLogSchema>;
+export type PlatformAuditLog = typeof platformAuditLogs.$inferSelect;
+export type InsertUserSession = z.infer<typeof insertUserSessionSchema>;
+export type UserSession = typeof userSessions.$inferSelect;
+export type InsertFederationPaymentHistory = z.infer<typeof insertFederationPaymentHistorySchema>;
+export type FederationPaymentHistory = typeof federationPaymentHistory.$inferSelect;

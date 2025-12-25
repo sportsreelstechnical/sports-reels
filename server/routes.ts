@@ -7,6 +7,15 @@ import { z } from "zod";
 import { GoogleGenAI } from "@google/genai";
 import { registerObjectStorageRoutes, ObjectStorageService } from "./replit_integrations/object_storage";
 import { jsPDF } from "jspdf";
+import crypto from "crypto";
+
+function hashPassword(password: string): string {
+  return crypto.createHash("sha256").update(password).digest("hex");
+}
+
+function verifyPassword(password: string, hashedPassword: string): boolean {
+  return hashPassword(password) === hashedPassword;
+}
 
 const MAX_PLAYERS_PER_VIDEO = 15;
 const SIGNUP_BONUS_TOKENS = 50;
@@ -912,6 +921,35 @@ export async function registerRoutes(
         details: { playerId: req.params.playerId, documentType },
       });
       
+      // Create initial version and audit log
+      await storage.createDocumentVersion({
+        documentId: document.id,
+        versionNumber: 1,
+        originalName,
+        mimeType,
+        fileSize,
+        storageKey,
+        objectPath,
+        changeReason: "Initial upload",
+        uploadedBy: req.session.userId,
+        isCurrent: true,
+      });
+      
+      await storage.createDocumentAuditLog({
+        documentId: document.id,
+        documentType,
+        playerId: req.params.playerId,
+        teamId: req.session.teamId,
+        action: "created",
+        actorId: req.session.userId,
+        actorName: req.session.username,
+        actorRole: req.session.userRole,
+        ipAddress: req.ip,
+        userAgent: req.get("User-Agent"),
+        newValue: { documentType, originalName },
+        details: { fileSize, mimeType },
+      });
+      
       res.json(document);
     } catch (error: any) {
       res.status(400).json({ error: error.message });
@@ -948,6 +986,21 @@ export async function registerRoutes(
         details: { playerId: req.params.playerId, documentType: document.documentType },
       });
       
+      // Create audit log for deletion
+      await storage.createDocumentAuditLog({
+        documentId: req.params.docId,
+        documentType: document.documentType,
+        playerId: req.params.playerId,
+        teamId: req.session.teamId,
+        action: "deleted",
+        actorId: req.session.userId,
+        actorName: req.session.username,
+        actorRole: req.session.userRole,
+        ipAddress: req.ip,
+        userAgent: req.get("User-Agent"),
+        previousValue: { documentType: document.documentType, originalName: document.originalName },
+      });
+      
       res.json({ success: true });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -974,9 +1027,180 @@ export async function registerRoutes(
         details: { playerId: req.params.playerId, documentType: document.documentType },
       });
       
+      // Create audit log for verification
+      await storage.createDocumentAuditLog({
+        documentId: req.params.docId,
+        documentType: document.documentType,
+        playerId: req.params.playerId,
+        teamId: req.session.teamId,
+        action: "verified",
+        actorId: req.session.userId,
+        actorName: req.session.username,
+        actorRole: req.session.userRole,
+        ipAddress: req.ip,
+        userAgent: req.get("User-Agent"),
+        newValue: { verificationStatus: "verified" },
+      });
+      
       res.json(document);
     } catch (error: any) {
       res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Document version control endpoints
+  app.get("/api/players/:playerId/documents/:docId/versions", requireTeamRole, async (req, res) => {
+    try {
+      const versions = await storage.getDocumentVersions(req.params.docId);
+      res.json(versions);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/players/:playerId/documents/:docId/versions", requireTeamRole, async (req, res) => {
+    try {
+      const { originalName, mimeType, fileSize, storageKey, objectPath, changeReason } = req.body;
+      
+      if (!originalName || !storageKey) {
+        return res.status(400).json({ error: "Missing required fields: originalName, storageKey" });
+      }
+      
+      const document = await storage.getPlayerDocument(req.params.docId);
+      if (!document) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+      
+      // Get current version number
+      const existingVersions = await storage.getDocumentVersions(req.params.docId);
+      const nextVersionNumber = existingVersions.length > 0 
+        ? Math.max(...existingVersions.map(v => v.versionNumber)) + 1 
+        : 1;
+      
+      // Mark all previous versions as not current
+      for (const version of existingVersions) {
+        if (version.isCurrent) {
+          await storage.setCurrentVersion(req.params.docId, version.id);
+        }
+      }
+      
+      // Create new version
+      const newVersion = await storage.createDocumentVersion({
+        documentId: req.params.docId,
+        versionNumber: nextVersionNumber,
+        originalName,
+        mimeType,
+        fileSize,
+        storageKey,
+        objectPath,
+        changeReason,
+        uploadedBy: req.session.userId,
+        isCurrent: true,
+      });
+      
+      // Update the main document with new file info
+      await storage.updatePlayerDocument(req.params.docId, {
+        originalName,
+        mimeType,
+        fileSize,
+        storageKey,
+        objectPath,
+      });
+      
+      // Create audit log
+      await storage.createDocumentAuditLog({
+        documentId: req.params.docId,
+        documentType: document.documentType,
+        playerId: req.params.playerId,
+        teamId: req.session.teamId,
+        action: "version_created",
+        actorId: req.session.userId,
+        actorName: req.session.username,
+        actorRole: req.session.userRole,
+        ipAddress: req.ip,
+        userAgent: req.get("User-Agent"),
+        newValue: { versionNumber: nextVersionNumber, changeReason },
+        details: { originalName, fileSize },
+      });
+      
+      res.json(newVersion);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/players/:playerId/documents/:docId/versions/:versionId/restore", requireTeamRole, async (req, res) => {
+    try {
+      const version = await storage.getDocumentVersion(req.params.versionId);
+      if (!version) {
+        return res.status(404).json({ error: "Version not found" });
+      }
+      
+      const document = await storage.getPlayerDocument(req.params.docId);
+      if (!document) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+      
+      // Restore the document to this version
+      await storage.updatePlayerDocument(req.params.docId, {
+        originalName: version.originalName,
+        mimeType: version.mimeType,
+        fileSize: version.fileSize,
+        storageKey: version.storageKey,
+        objectPath: version.objectPath,
+      });
+      
+      // Set this version as current
+      await storage.setCurrentVersion(req.params.docId, req.params.versionId);
+      
+      // Create audit log
+      await storage.createDocumentAuditLog({
+        documentId: req.params.docId,
+        documentType: document.documentType,
+        playerId: req.params.playerId,
+        teamId: req.session.teamId,
+        action: "restored",
+        actorId: req.session.userId,
+        actorName: req.session.username,
+        actorRole: req.session.userRole,
+        ipAddress: req.ip,
+        userAgent: req.get("User-Agent"),
+        previousValue: { versionNumber: version.versionNumber },
+        details: { restoredFromVersion: version.versionNumber },
+      });
+      
+      res.json({ success: true, restoredVersion: version.versionNumber });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Document audit log endpoints
+  app.get("/api/players/:playerId/documents/:docId/audit-logs", requireTeamRole, async (req, res) => {
+    try {
+      const logs = await storage.getDocumentAuditLogs(req.params.docId);
+      res.json(logs);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/players/:playerId/audit-logs", requireTeamRole, async (req, res) => {
+    try {
+      const logs = await storage.getDocumentAuditLogsByPlayer(req.params.playerId);
+      res.json(logs);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/team/document-audit-logs", requireTeamRole, async (req, res) => {
+    try {
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 100;
+      const logs = await storage.getDocumentAuditLogsByTeam(req.session.teamId || "demo-team", limit);
+      res.json(logs);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -1394,7 +1618,7 @@ export async function registerRoutes(
         description: "Federation letter issued",
         previousStatus: "processing",
         newStatus: "issued",
-        metadata: { documentName: issuedDocumentOriginalName },
+        details: { documentName: issuedDocumentOriginalName },
       });
       
       res.json(updatedRequest);
@@ -1417,15 +1641,34 @@ export async function registerRoutes(
         rejectionReason,
       });
 
+      // Refund tokens to the user who submitted the request
+      if (request.submittedBy) {
+        const refundAmount = 10; // federation_letter_request cost
+        const balance = await storage.getTokenBalance(request.submittedBy);
+        if (balance) {
+          const newBalance = balance.balance + refundAmount;
+          await storage.updateTokenBalance(request.submittedBy, newBalance);
+          
+          await storage.createTokenTransaction({
+            userId: request.submittedBy,
+            amount: refundAmount,
+            type: "credit",
+            action: "federation_letter_refund",
+            description: `Refund for rejected federation letter request ${request.requestNumber}`,
+            balanceAfter: newBalance,
+          });
+        }
+      }
+
       await storage.createFederationRequestActivity({
         requestId: req.params.id,
         actorId: req.session.userId,
         actorRole: "federation_admin",
         activityType: "rejected",
-        description: "Request rejected",
+        description: "Request rejected - tokens refunded",
         previousStatus: request.status,
         newStatus: "rejected",
-        metadata: { rejectionReason },
+        details: { rejectionReason, tokensRefunded: 10 },
       });
       
       res.json(updatedRequest);
@@ -2623,7 +2866,7 @@ Provide the summary as a formal document text.`;
       
       await storage.addConversationParticipant({
         conversationId: conversation.id,
-        userId: req.session.userId!,
+        actorId: req.session.userId!,
         role: req.session.userRole || "unknown",
       });
 
@@ -3615,7 +3858,7 @@ Provide the summary as a formal document text.`;
       if (!embassyProfile) {
         const user = await storage.getUser(req.session.userId!);
         embassyProfile = await storage.createEmbassyProfile({
-          userId: req.session.userId!,
+          actorId: req.session.userId!,
           country: req.session.embassyCountry || "United Kingdom",
           jurisdiction: "National",
           contactEmail: user?.email || "",
@@ -3718,6 +3961,54 @@ Provide the summary as a formal document text.`;
       }
 
       res.json(documents);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get all issued federation letters for embassy viewing
+  app.get("/api/embassy/issued-letters", requireEmbassyRole, async (req, res) => {
+    try {
+      const issuedLetters = await storage.getAllIssuedFederationLetters();
+      
+      const lettersWithDetails = await Promise.all(
+        issuedLetters.map(async (letter) => {
+          const player = letter.playerId ? await storage.getPlayer(letter.playerId) : null;
+          const documents = await storage.getFederationIssuedDocuments(letter.id);
+          
+          return {
+            ...letter,
+            player,
+            documents,
+            documentCount: documents.length,
+          };
+        })
+      );
+      
+      res.json(lettersWithDetails);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Download issued federation letter as PDF for embassy
+  app.get("/api/embassy/issued-letters/:id/pdf", requireEmbassyRole, async (req, res) => {
+    try {
+      const letter = await storage.getFederationLetterRequest(req.params.id);
+      if (!letter || letter.status !== "issued") {
+        return res.status(404).json({ error: "Issued letter not found" });
+      }
+      
+      const player = letter.playerId ? await storage.getPlayer(letter.playerId) : null;
+      const documents = await storage.getFederationIssuedDocuments(letter.id);
+      
+      res.json({
+        letter,
+        player,
+        documents,
+        generatedAt: new Date().toISOString(),
+        verificationCode: `SR-FED-${letter.requestNumber}-${Date.now().toString(36).toUpperCase()}`,
+      });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
@@ -4654,6 +4945,429 @@ Provide the summary as a formal document text.`;
       const { country } = req.query;
       const competitions = getCompetitionsByCountry(country as string);
       res.json(competitions);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ==================== PLATFORM ADMIN PORTAL ROUTES ====================
+  
+  const requireAdminRole = (req: Request, res: Response, next: NextFunction) => {
+    if (!req.session.userId) {
+      req.session.userId = "demo-admin";
+      req.session.userRole = "admin";
+    }
+    if (req.session.userRole !== "admin") {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+    next();
+  };
+
+  // Admin: Get all users
+  app.get("/api/admin/users", requireAdminRole, async (req, res) => {
+    try {
+      const { role } = req.query;
+      const users = role ? await storage.getUsersByRole(role as string) : await storage.getAllUsers();
+      res.json(users);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Admin: Create user (federation/embassy accounts)
+  app.post("/api/admin/users", requireAdminRole, async (req, res) => {
+    try {
+      const { username, email, password, firstName, lastName, role, country } = req.body;
+      
+      // Check if username already exists
+      const existingUser = await storage.getUserByUsername(username);
+      if (existingUser) {
+        return res.status(400).json({ error: "Username already exists" });
+      }
+      
+      const hashedPwd = hashPassword(password);
+      const user = await storage.createUser({
+        username,
+        email,
+        password: hashedPwd,
+        firstName,
+        lastName,
+        role: role || "embassy",
+      });
+      
+      // Create embassy/federation profile if applicable
+      if (role === "embassy" && country) {
+        await storage.createEmbassyProfile({
+          country,
+        });
+      }
+      
+      // Log the action
+      await storage.createPlatformAuditLog({
+        actorId: req.session.userId!,
+        action: "create_user",
+        entityType: "user",
+        entityId: user.id,
+        category: "user_management",
+        metadata: { username, role, email },
+        ipAddress: req.ip,
+        userAgent: req.get("User-Agent"),
+      });
+      
+      res.status(201).json(user);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Admin: Update user
+  app.patch("/api/admin/users/:id", requireAdminRole, async (req, res) => {
+    try {
+      const user = await storage.updateUser(req.params.id, req.body);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      await storage.createPlatformAuditLog({
+        actorId: req.session.userId!,
+        action: "update_user",
+        entityType: "user",
+        entityId: req.params.id,
+        category: "user_management",
+        metadata: req.body,
+        ipAddress: req.ip,
+        userAgent: req.get("User-Agent"),
+      });
+      
+      res.json(user);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Admin: Delete user
+  app.delete("/api/admin/users/:id", requireAdminRole, async (req, res) => {
+    try {
+      await storage.deleteUser(req.params.id);
+      
+      await storage.createPlatformAuditLog({
+        actorId: req.session.userId!,
+        action: "delete_user",
+        entityType: "user",
+        entityId: req.params.id,
+        category: "user_management",
+        metadata: {},
+        ipAddress: req.ip,
+        userAgent: req.get("User-Agent"),
+      });
+      
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Admin: Password reset token generation
+  app.post("/api/admin/users/:id/reset-password", requireAdminRole, async (req, res) => {
+    try {
+      const user = await storage.getUser(req.params.id);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      const token = crypto.randomBytes(32).toString("hex");
+      const expiresAt = new Date();
+      expiresAt.setHours(expiresAt.getHours() + 24); // 24 hour expiry
+      
+      const resetToken = await storage.createPasswordResetToken({
+        userId: req.params.id,
+        token,
+        expiresAt,
+      });
+      
+      await storage.createPlatformAuditLog({
+        actorId: req.session.userId!,
+        action: "create_password_reset",
+        entityType: "user",
+        entityId: req.params.id,
+        category: "authentication",
+        metadata: { tokenId: resetToken.id },
+        ipAddress: req.ip,
+        userAgent: req.get("User-Agent"),
+      });
+      
+      // In production, send email with reset link
+      res.json({ success: true, token, expiresAt });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Admin: Message inbox - get all scout-to-player messages
+  app.get("/api/admin/messages", requireAdminRole, async (req, res) => {
+    try {
+      const { status, limit } = req.query;
+      const messages = await storage.getAdminMessages(
+        status as string | undefined,
+        limit ? parseInt(limit as string) : undefined
+      );
+      res.json(messages);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Admin: Update message status
+  app.patch("/api/admin/messages/:id", requireAdminRole, async (req, res) => {
+    try {
+      const message = await storage.updateAdminMessage(req.params.id, {
+        ...req.body,
+        reviewedBy: req.session.userId,
+        reviewedAt: new Date(),
+      });
+      if (!message) {
+        return res.status(404).json({ error: "Message not found" });
+      }
+      
+      await storage.createPlatformAuditLog({
+        actorId: req.session.userId!,
+        action: "review_message",
+        entityType: "admin_message",
+        entityId: req.params.id,
+        category: "content_moderation",
+        metadata: req.body,
+        ipAddress: req.ip,
+        userAgent: req.get("User-Agent"),
+      });
+      
+      res.json(message);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Admin: Platform stats
+  app.get("/api/admin/stats", requireAdminRole, async (req, res) => {
+    try {
+      const stats = await storage.getPlatformStats();
+      res.json(stats);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Admin: Platform metrics
+  app.get("/api/admin/metrics", requireAdminRole, async (req, res) => {
+    try {
+      const { startDate, endDate } = req.query;
+      const metrics = await storage.getPlatformMetrics(
+        startDate as string | undefined,
+        endDate as string | undefined
+      );
+      res.json(metrics);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Admin: Get latest metrics
+  app.get("/api/admin/metrics/latest", requireAdminRole, async (req, res) => {
+    try {
+      const metrics = await storage.getLatestPlatformMetrics();
+      res.json(metrics || {});
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Admin: GDPR requests
+  app.get("/api/admin/gdpr-requests", requireAdminRole, async (req, res) => {
+    try {
+      const { status } = req.query;
+      const requests = await storage.getGdprRequests(status as string | undefined);
+      res.json(requests);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Admin: Update GDPR request
+  app.patch("/api/admin/gdpr-requests/:id", requireAdminRole, async (req, res) => {
+    try {
+      const request = await storage.updateGdprRequest(req.params.id, {
+        ...req.body,
+        processedBy: req.session.userId,
+        processedAt: new Date(),
+      });
+      if (!request) {
+        return res.status(404).json({ error: "GDPR request not found" });
+      }
+      
+      await storage.createPlatformAuditLog({
+        actorId: req.session.userId!,
+        action: `process_gdpr_${req.body.requestType}`,
+        entityType: "gdpr_request",
+        entityId: req.params.id,
+        category: "gdpr",
+        metadata: req.body,
+        ipAddress: req.ip,
+        userAgent: req.get("User-Agent"),
+      });
+      
+      res.json(request);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  // Admin: Execute GDPR data export
+  app.post("/api/admin/gdpr-requests/:id/export", requireAdminRole, async (req, res) => {
+    try {
+      const request = await storage.getGdprRequest(req.params.id);
+      if (!request) {
+        return res.status(404).json({ error: "GDPR request not found" });
+      }
+      
+      // Get all user data
+      const user = await storage.getUser(request.userId);
+      const teams = user ? await storage.getTeamsByUser(user.id) : [];
+      const consents = await storage.getUserConsents(request.userId);
+      
+      const exportData = {
+        user,
+        teams,
+        consents,
+        exportedAt: new Date().toISOString(),
+        requestId: req.params.id,
+      };
+      
+      await storage.updateGdprRequest(req.params.id, {
+        status: "completed",
+        processedBy: req.session.userId,
+        processedAt: new Date(),
+        completionNotes: JSON.stringify(exportData),
+      });
+      
+      await storage.createPlatformAuditLog({
+        actorId: req.session.userId!,
+        action: "export_user_data",
+        entityType: "gdpr_request",
+        entityId: req.params.id,
+        category: "gdpr",
+        metadata: { userId: request.userId },
+        ipAddress: req.ip,
+        userAgent: req.get("User-Agent"),
+      });
+      
+      res.json(exportData);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Admin: User consents
+  app.get("/api/admin/consents/:userId", requireAdminRole, async (req, res) => {
+    try {
+      const consents = await storage.getUserConsents(req.params.userId);
+      res.json(consents);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Admin: Platform audit logs
+  app.get("/api/admin/audit-logs", requireAdminRole, async (req, res) => {
+    try {
+      const { category, limit, offset } = req.query;
+      const logs = await storage.getPlatformAuditLogs(
+        category as string | undefined,
+        limit ? parseInt(limit as string) : 100,
+        offset ? parseInt(offset as string) : 0
+      );
+      res.json(logs);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Admin: Active sessions
+  app.get("/api/admin/sessions", requireAdminRole, async (req, res) => {
+    try {
+      const sessions = await storage.getActiveSessions();
+      res.json(sessions);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Admin: Terminate session
+  app.delete("/api/admin/sessions/:id", requireAdminRole, async (req, res) => {
+    try {
+      await storage.endUserSession(req.params.id);
+      
+      await storage.createPlatformAuditLog({
+        actorId: req.session.userId!,
+        action: "terminate_session",
+        entityType: "session",
+        entityId: req.params.id,
+        category: "security",
+        metadata: {},
+        ipAddress: req.ip,
+        userAgent: req.get("User-Agent"),
+      });
+      
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Admin: Federation payment history
+  app.get("/api/admin/payments", requireAdminRole, async (req, res) => {
+    try {
+      const { federationId, limit } = req.query;
+      let payments;
+      if (federationId) {
+        payments = await storage.getFederationPaymentHistory(federationId as string);
+      } else {
+        payments = await storage.getAllFederationPayments(limit ? parseInt(limit as string) : undefined);
+      }
+      res.json(payments);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Admin: All federation profiles
+  app.get("/api/admin/federations", requireAdminRole, async (req, res) => {
+    try {
+      const federations = await storage.getAllFederationProfiles();
+      res.json(federations);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Admin: All embassy profiles
+  app.get("/api/admin/embassies", requireAdminRole, async (req, res) => {
+    try {
+      const embassies = await storage.getAllEmbassyProfiles();
+      res.json(embassies);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Admin: All fee schedules
+  app.get("/api/admin/fee-schedules", requireAdminRole, async (req, res) => {
+    try {
+      const federations = await storage.getAllFederationProfiles();
+      const allFees = [];
+      for (const fed of federations) {
+        const fees = await storage.getFederationFeeSchedules(fed.id);
+        allFees.push(...fees.map(f => ({ ...f, federationName: fed.name, federationCountry: fed.country })));
+      }
+      res.json(allFees);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }

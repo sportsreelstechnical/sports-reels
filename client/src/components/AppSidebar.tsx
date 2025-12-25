@@ -30,6 +30,8 @@ import {
   ClipboardList,
   FileCheck,
   Coins,
+  DollarSign,
+  Activity,
 } from "lucide-react";
 import logoImage from "@assets/WhatsApp_Image_2025-12-17_at_12.49.33_1766008177672.jpeg";
 
@@ -85,10 +87,21 @@ export default function AppSidebar({
     { title: "Settings", url: "/settings", icon: Settings },
   ];
 
+  const platformAdminNavItems = [
+    { title: "Dashboard", url: "/", icon: LayoutDashboard },
+    { title: "User Management", url: "/admin/users", icon: Users },
+    { title: "Message Inbox", url: "/admin/messages", icon: MessageSquare },
+    { title: "Financial Analytics", url: "/admin/payments", icon: DollarSign },
+    { title: "Audit Logs", url: "/admin/audit-logs", icon: Activity },
+    { title: "GDPR Requests", url: "/admin/gdpr", icon: Shield },
+    { title: "Settings", url: "/settings", icon: Settings },
+  ];
+
   const isEmbassy = userRoleRaw === "embassy";
   const isScout = userRoleRaw === "scout" || userRoleRaw === "agent";
   const isFederationAdmin = userRoleRaw === "federation_admin";
-  const mainNavItems = isFederationAdmin ? federationAdminNavItems : isEmbassy ? embassyNavItems : isScout ? scoutNavItems : teamNavItems;
+  const isPlatformAdmin = userRoleRaw === "admin";
+  const mainNavItems = isPlatformAdmin ? platformAdminNavItems : isFederationAdmin ? federationAdminNavItems : isEmbassy ? embassyNavItems : isScout ? scoutNavItems : teamNavItems;
 
   const isActive = (url: string) => {
     if (url === "/") return location === "/";
@@ -134,7 +147,7 @@ export default function AppSidebar({
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {!isEmbassy && !isScout && !isFederationAdmin && (
+        {!isEmbassy && !isScout && !isFederationAdmin && !isPlatformAdmin && (
           <SidebarGroup>
             <SidebarGroupLabel>Administration</SidebarGroupLabel>
             <SidebarGroupContent>

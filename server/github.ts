@@ -2,6 +2,21 @@ import { Octokit } from '@octokit/rest'
 
 let connectionSettings: any;
 
+async function fetchWithRetry(url: string, options: RequestInit, retries = 3): Promise<Response> {
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await fetch(url, options);
+    } catch (err: any) {
+      if ((err.code === 'EAI_AGAIN' || err.code === 'ENOTFOUND') && i < retries - 1) {
+        await new Promise(r => setTimeout(r, 1000 * (i + 1)));
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw new Error('Max retries exceeded');
+}
+
 async function getAccessToken() {
   if (connectionSettings && connectionSettings.settings.expires_at && new Date(connectionSettings.settings.expires_at).getTime() > Date.now()) {
     return connectionSettings.settings.access_token;
@@ -18,7 +33,7 @@ async function getAccessToken() {
     throw new Error('X_REPLIT_TOKEN not found for repl/depl');
   }
 
-  connectionSettings = await fetch(
+  connectionSettings = await fetchWithRetry(
     'https://' + hostname + '/api/v2/connection?include_secrets=true&connector_names=github',
     {
       headers: {

@@ -34,6 +34,29 @@ import TokenBank from "@/pages/token-bank";
 import TokenBalanceIndicator from "@/components/TokenBalanceIndicator";
 import VideoReels from "@/pages/video-reels";
 import SharedPlayerProfile from "@/pages/shared-player-profile";
+import AdminDashboard from "@/pages/admin-dashboard";
+import AdminUsers from "@/pages/admin-users";
+import AdminMessages from "@/pages/admin-messages";
+import AdminPayments from "@/pages/admin-payments";
+import AdminAuditLogs from "@/pages/admin-audit-logs";
+import AdminGdpr from "@/pages/admin-gdpr";
+
+function AdminRouter() {
+  return (
+    <Switch>
+      <Route path="/" component={AdminDashboard} />
+      <Route path="/admin" component={AdminDashboard} />
+      <Route path="/admin/users" component={AdminUsers} />
+      <Route path="/admin/users/new" component={AdminUsers} />
+      <Route path="/admin/messages" component={AdminMessages} />
+      <Route path="/admin/payments" component={AdminPayments} />
+      <Route path="/admin/audit-logs" component={AdminAuditLogs} />
+      <Route path="/admin/gdpr" component={AdminGdpr} />
+      <Route path="/settings" component={SettingsPage} />
+      <Route component={NotFound} />
+    </Switch>
+  );
+}
 
 function TeamRouter() {
   return (
@@ -96,6 +119,9 @@ function FederationAdminRouter() {
 }
 
 function Router({ userRole }: { userRole: string }) {
+  if (userRole === "admin") {
+    return <AdminRouter />;
+  }
   if (userRole === "embassy") {
     return <EmbassyRouter />;
   }
@@ -124,7 +150,8 @@ function MainLayout({ userRole, onChangeRole }: { userRole: string; onChangeRole
     : userRole === "federation_admin" ? "Federation Administrator"
     : "User";
 
-  const teamName = userRole === "embassy" ? "Embassy Portal" 
+  const teamName = userRole === "admin" ? "Platform Admin Portal"
+    : userRole === "embassy" ? "Embassy Portal" 
     : userRole === "scout" || userRole === "agent" ? "Scout Network"
     : userRole === "federation_admin" ? "Federation Admin Portal"
     : "Demo Club FC";

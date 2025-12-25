@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Link } from "wouter";
-import { FileText, User, Shield, Download, Clock, AlertTriangle, CheckCircle2, FileCheck, FileWarning, Eye } from "lucide-react";
+import { FileText, User, Shield, Download, Clock, AlertTriangle, CheckCircle2, FileCheck, FileWarning, Eye, Building2 } from "lucide-react";
 import { LoadingSpinner } from "@/components/LoadingScreen";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -75,6 +75,7 @@ interface EmbassyDocument {
   issuingClubCountry?: string | null;
 }
 
+
 function VerificationBadge({ verification, label }: { verification: DocumentVerification | null | undefined; label: string }) {
   if (!verification) return null;
 
@@ -114,6 +115,7 @@ export default function EmbassyDashboard() {
   const { data: documents = [], isLoading } = useQuery<EmbassyDocument[]>({
     queryKey: ["/api/embassy/documents"],
   });
+
 
   const verifyMutation = useMutation({
     mutationFn: async ({ documentType, documentId }: { documentType: string; documentId: string }) => {

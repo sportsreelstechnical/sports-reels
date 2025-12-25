@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1766616821320,
+      "tag": "0000_brief_sally_floyd",
+      "breakpoints": true
+    }
+  ]
+}

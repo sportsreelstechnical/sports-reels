@@ -45,6 +45,16 @@ import {
   type PlayerShareLink, type InsertPlayerShareLink,
   type EmbassyNotification, type InsertEmbassyNotification,
   type DocumentVerification, type InsertDocumentVerification,
+  type DocumentVersion, type InsertDocumentVersion,
+  type DocumentAuditLog, type InsertDocumentAuditLog,
+  type PasswordResetToken, type InsertPasswordResetToken,
+  type AdminMessageInbox, type InsertAdminMessageInbox,
+  type PlatformMetrics, type InsertPlatformMetrics,
+  type GdprRequest, type InsertGdprRequest,
+  type UserConsent, type InsertUserConsent,
+  type PlatformAuditLog, type InsertPlatformAuditLog,
+  type UserSession, type InsertUserSession,
+  type FederationPaymentHistory, type InsertFederationPaymentHistory,
   users, teams, players, playerMetrics, videos, videoInsights,
   eligibilityScores, transferEligibilityAssessments, transferReports, complianceOrders, complianceDocuments,
   embassyVerifications, scoutingInquiries, payments, clubs,
@@ -55,7 +65,9 @@ import {
   federationLetterRequests, federationProfiles, federationFeeSchedules, federationRequestActivities,
   federationRequestMessages, federationIssuedDocuments, scoutShortlists,
   tokenBalances, tokenTransactions, tokenPacks, tokenPurchases, playerShareLinks,
-  embassyNotifications, documentVerifications
+  embassyNotifications, documentVerifications, documentVersions, documentAuditLogs,
+  passwordResetTokens, adminMessageInbox, platformMetrics, gdprRequests,
+  userConsents, platformAuditLogs, userSessions, federationPaymentHistory
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, sql, or, ilike } from "drizzle-orm";
@@ -245,6 +257,88 @@ export interface IStorage {
   createDocumentVerification(verification: InsertDocumentVerification): Promise<DocumentVerification>;
   getDocumentVerification(documentType: string, documentId: string): Promise<DocumentVerification | undefined>;
   updateDocumentVerification(id: string, updates: Partial<InsertDocumentVerification>): Promise<DocumentVerification | undefined>;
+  
+  // Document version control
+  getDocumentVersions(documentId: string): Promise<DocumentVersion[]>;
+  getDocumentVersion(id: string): Promise<DocumentVersion | undefined>;
+  getCurrentDocumentVersion(documentId: string): Promise<DocumentVersion | undefined>;
+  createDocumentVersion(version: InsertDocumentVersion): Promise<DocumentVersion>;
+  setCurrentVersion(documentId: string, versionId: string): Promise<void>;
+  
+  // Document audit logs
+  getDocumentAuditLogs(documentId: string): Promise<DocumentAuditLog[]>;
+  getDocumentAuditLogsByPlayer(playerId: string): Promise<DocumentAuditLog[]>;
+  getDocumentAuditLogsByTeam(teamId: string, limit?: number): Promise<DocumentAuditLog[]>;
+  createDocumentAuditLog(log: InsertDocumentAuditLog): Promise<DocumentAuditLog>;
+  
+  // ==================== PLATFORM ADMIN PORTAL ====================
+  
+  // User Management
+  getAllUsers(): Promise<User[]>;
+  getUsersByRole(role: string): Promise<User[]>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  deleteUser(id: string): Promise<void>;
+  
+  // Password Reset
+  createPasswordResetToken(token: InsertPasswordResetToken): Promise<PasswordResetToken>;
+  getPasswordResetToken(token: string): Promise<PasswordResetToken | undefined>;
+  markPasswordResetTokenUsed(id: string): Promise<void>;
+  
+  // Admin Message Inbox
+  getAdminMessages(status?: string, limit?: number): Promise<AdminMessageInbox[]>;
+  getAdminMessage(id: string): Promise<AdminMessageInbox | undefined>;
+  createAdminMessage(message: InsertAdminMessageInbox): Promise<AdminMessageInbox>;
+  updateAdminMessage(id: string, updates: Partial<InsertAdminMessageInbox>): Promise<AdminMessageInbox | undefined>;
+  
+  // Platform Metrics
+  getPlatformMetrics(startDate?: string, endDate?: string): Promise<PlatformMetrics[]>;
+  getLatestPlatformMetrics(): Promise<PlatformMetrics | undefined>;
+  createPlatformMetrics(metrics: InsertPlatformMetrics): Promise<PlatformMetrics>;
+  
+  // GDPR Requests
+  getGdprRequests(status?: string): Promise<GdprRequest[]>;
+  getGdprRequest(id: string): Promise<GdprRequest | undefined>;
+  getGdprRequestsByUser(userId: string): Promise<GdprRequest[]>;
+  createGdprRequest(request: InsertGdprRequest): Promise<GdprRequest>;
+  updateGdprRequest(id: string, updates: Partial<InsertGdprRequest>): Promise<GdprRequest | undefined>;
+  
+  // User Consents
+  getUserConsents(userId: string): Promise<UserConsent[]>;
+  createUserConsent(consent: InsertUserConsent): Promise<UserConsent>;
+  updateUserConsentWithdrawn(id: string): Promise<UserConsent | undefined>;
+  
+  // Platform Audit Logs
+  getPlatformAuditLogs(category?: string, limit?: number, offset?: number): Promise<PlatformAuditLog[]>;
+  createPlatformAuditLog(log: InsertPlatformAuditLog): Promise<PlatformAuditLog>;
+  
+  // User Sessions
+  getUserSessions(userId: string): Promise<UserSession[]>;
+  getActiveSessions(): Promise<UserSession[]>;
+  createUserSession(session: InsertUserSession): Promise<UserSession>;
+  updateUserSessionActivity(id: string): Promise<UserSession | undefined>;
+  endUserSession(id: string): Promise<void>;
+  
+  // Federation Payment History
+  getFederationPaymentHistory(federationId?: string): Promise<FederationPaymentHistory[]>;
+  getAllFederationPayments(limit?: number): Promise<FederationPaymentHistory[]>;
+  createFederationPayment(payment: InsertFederationPaymentHistory): Promise<FederationPaymentHistory>;
+  updateFederationPayment(id: string, updates: Partial<InsertFederationPaymentHistory>): Promise<FederationPaymentHistory | undefined>;
+  
+  // All Federations
+  getAllFederationProfiles(): Promise<FederationProfile[]>;
+  
+  // All Embassy Profiles
+  getAllEmbassyProfiles(): Promise<EmbassyProfile[]>;
+  
+  // Platform Stats
+  getPlatformStats(): Promise<{
+    totalUsers: number;
+    totalTeams: number;
+    totalPlayers: number;
+    totalScouts: number;
+    totalEmbassyUsers: number;
+    totalFederationUsers: number;
+  }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -856,6 +950,12 @@ export class DatabaseStorage implements IStorage {
     ).orderBy(desc(federationLetterRequests.issuedAt));
   }
 
+  async getAllIssuedFederationLetters(): Promise<FederationLetterRequest[]> {
+    return db.select().from(federationLetterRequests).where(
+      eq(federationLetterRequests.status, "issued")
+    ).orderBy(desc(federationLetterRequests.issuedAt));
+  }
+
   async getFederationLetterRequestsByStatus(status: string): Promise<FederationLetterRequest[]> {
     return db.select().from(federationLetterRequests).where(eq(federationLetterRequests.status, status)).orderBy(desc(federationLetterRequests.createdAt));
   }
@@ -1197,6 +1297,331 @@ export class DatabaseStorage implements IStorage {
   async updateDocumentVerification(id: string, updates: Partial<InsertDocumentVerification>): Promise<DocumentVerification | undefined> {
     const [updated] = await db.update(documentVerifications).set(updates).where(eq(documentVerifications.id, id)).returning();
     return updated;
+  }
+
+  // Document Version Control
+  async getDocumentVersions(documentId: string): Promise<DocumentVersion[]> {
+    return db.select().from(documentVersions)
+      .where(eq(documentVersions.documentId, documentId))
+      .orderBy(desc(documentVersions.versionNumber));
+  }
+
+  async getDocumentVersion(id: string): Promise<DocumentVersion | undefined> {
+    const [version] = await db.select().from(documentVersions).where(eq(documentVersions.id, id));
+    return version;
+  }
+
+  async getCurrentDocumentVersion(documentId: string): Promise<DocumentVersion | undefined> {
+    const [version] = await db.select().from(documentVersions)
+      .where(and(
+        eq(documentVersions.documentId, documentId),
+        eq(documentVersions.isCurrent, true)
+      ));
+    return version;
+  }
+
+  async createDocumentVersion(version: InsertDocumentVersion): Promise<DocumentVersion> {
+    const [newVersion] = await db.insert(documentVersions).values(version).returning();
+    return newVersion;
+  }
+
+  async setCurrentVersion(documentId: string, versionId: string): Promise<void> {
+    await db.update(documentVersions)
+      .set({ isCurrent: false })
+      .where(eq(documentVersions.documentId, documentId));
+    await db.update(documentVersions)
+      .set({ isCurrent: true })
+      .where(eq(documentVersions.id, versionId));
+  }
+
+  // Document Audit Logs
+  async getDocumentAuditLogs(documentId: string): Promise<DocumentAuditLog[]> {
+    return db.select().from(documentAuditLogs)
+      .where(eq(documentAuditLogs.documentId, documentId))
+      .orderBy(desc(documentAuditLogs.timestamp));
+  }
+
+  async getDocumentAuditLogsByPlayer(playerId: string): Promise<DocumentAuditLog[]> {
+    return db.select().from(documentAuditLogs)
+      .where(eq(documentAuditLogs.playerId, playerId))
+      .orderBy(desc(documentAuditLogs.timestamp));
+  }
+
+  async getDocumentAuditLogsByTeam(teamId: string, limit?: number): Promise<DocumentAuditLog[]> {
+    const query = db.select().from(documentAuditLogs)
+      .where(eq(documentAuditLogs.teamId, teamId))
+      .orderBy(desc(documentAuditLogs.timestamp));
+    
+    if (limit) {
+      return query.limit(limit);
+    }
+    return query;
+  }
+
+  async createDocumentAuditLog(log: InsertDocumentAuditLog): Promise<DocumentAuditLog> {
+    const [newLog] = await db.insert(documentAuditLogs).values(log).returning();
+    return newLog;
+  }
+  
+  // ==================== PLATFORM ADMIN PORTAL ====================
+  
+  // User Management
+  async getAllUsers(): Promise<User[]> {
+    return db.select().from(users).orderBy(desc(users.createdAt));
+  }
+  
+  async getUsersByRole(role: string): Promise<User[]> {
+    return db.select().from(users).where(eq(users.role, role)).orderBy(desc(users.createdAt));
+  }
+  
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user;
+  }
+  
+  async deleteUser(id: string): Promise<void> {
+    await db.delete(users).where(eq(users.id, id));
+  }
+  
+  // Password Reset
+  async createPasswordResetToken(token: InsertPasswordResetToken): Promise<PasswordResetToken> {
+    const [newToken] = await db.insert(passwordResetTokens).values(token).returning();
+    return newToken;
+  }
+  
+  async getPasswordResetToken(token: string): Promise<PasswordResetToken | undefined> {
+    const [resetToken] = await db.select().from(passwordResetTokens)
+      .where(eq(passwordResetTokens.token, token));
+    return resetToken;
+  }
+  
+  async markPasswordResetTokenUsed(id: string): Promise<void> {
+    await db.update(passwordResetTokens)
+      .set({ usedAt: new Date() })
+      .where(eq(passwordResetTokens.id, id));
+  }
+  
+  // Admin Message Inbox
+  async getAdminMessages(status?: string, limit?: number): Promise<AdminMessageInbox[]> {
+    let query = db.select().from(adminMessageInbox).orderBy(desc(adminMessageInbox.createdAt));
+    if (status) {
+      query = db.select().from(adminMessageInbox)
+        .where(eq(adminMessageInbox.status, status))
+        .orderBy(desc(adminMessageInbox.createdAt));
+    }
+    if (limit) {
+      return query.limit(limit);
+    }
+    return query;
+  }
+  
+  async getAdminMessage(id: string): Promise<AdminMessageInbox | undefined> {
+    const [message] = await db.select().from(adminMessageInbox).where(eq(adminMessageInbox.id, id));
+    return message;
+  }
+  
+  async createAdminMessage(message: InsertAdminMessageInbox): Promise<AdminMessageInbox> {
+    const [newMessage] = await db.insert(adminMessageInbox).values(message).returning();
+    return newMessage;
+  }
+  
+  async updateAdminMessage(id: string, updates: Partial<InsertAdminMessageInbox>): Promise<AdminMessageInbox | undefined> {
+    const [updated] = await db.update(adminMessageInbox).set(updates).where(eq(adminMessageInbox.id, id)).returning();
+    return updated;
+  }
+  
+  // Platform Metrics
+  async getPlatformMetrics(startDate?: string, endDate?: string): Promise<PlatformMetrics[]> {
+    if (startDate && endDate) {
+      return db.select().from(platformMetrics)
+        .where(and(
+          sql`${platformMetrics.metricDate} >= ${startDate}`,
+          sql`${platformMetrics.metricDate} <= ${endDate}`
+        ))
+        .orderBy(desc(platformMetrics.metricDate));
+    }
+    return db.select().from(platformMetrics).orderBy(desc(platformMetrics.metricDate)).limit(30);
+  }
+  
+  async getLatestPlatformMetrics(): Promise<PlatformMetrics | undefined> {
+    const [metrics] = await db.select().from(platformMetrics).orderBy(desc(platformMetrics.metricDate)).limit(1);
+    return metrics;
+  }
+  
+  async createPlatformMetrics(metrics: InsertPlatformMetrics): Promise<PlatformMetrics> {
+    const [newMetrics] = await db.insert(platformMetrics).values(metrics).returning();
+    return newMetrics;
+  }
+  
+  // GDPR Requests
+  async getGdprRequests(status?: string): Promise<GdprRequest[]> {
+    if (status) {
+      return db.select().from(gdprRequests)
+        .where(eq(gdprRequests.status, status))
+        .orderBy(desc(gdprRequests.createdAt));
+    }
+    return db.select().from(gdprRequests).orderBy(desc(gdprRequests.createdAt));
+  }
+  
+  async getGdprRequest(id: string): Promise<GdprRequest | undefined> {
+    const [request] = await db.select().from(gdprRequests).where(eq(gdprRequests.id, id));
+    return request;
+  }
+  
+  async getGdprRequestsByUser(userId: string): Promise<GdprRequest[]> {
+    return db.select().from(gdprRequests)
+      .where(eq(gdprRequests.userId, userId))
+      .orderBy(desc(gdprRequests.createdAt));
+  }
+  
+  async createGdprRequest(request: InsertGdprRequest): Promise<GdprRequest> {
+    const [newRequest] = await db.insert(gdprRequests).values(request).returning();
+    return newRequest;
+  }
+  
+  async updateGdprRequest(id: string, updates: Partial<InsertGdprRequest>): Promise<GdprRequest | undefined> {
+    const [updated] = await db.update(gdprRequests).set(updates).where(eq(gdprRequests.id, id)).returning();
+    return updated;
+  }
+  
+  // User Consents
+  async getUserConsents(userId: string): Promise<UserConsent[]> {
+    return db.select().from(userConsents)
+      .where(eq(userConsents.userId, userId))
+      .orderBy(desc(userConsents.consentedAt));
+  }
+  
+  async createUserConsent(consent: InsertUserConsent): Promise<UserConsent> {
+    const [newConsent] = await db.insert(userConsents).values(consent).returning();
+    return newConsent;
+  }
+  
+  async updateUserConsentWithdrawn(id: string): Promise<UserConsent | undefined> {
+    const [updated] = await db.update(userConsents)
+      .set({ withdrawnAt: new Date() })
+      .where(eq(userConsents.id, id))
+      .returning();
+    return updated;
+  }
+  
+  // Platform Audit Logs
+  async getPlatformAuditLogs(category?: string, limit?: number, offset?: number): Promise<PlatformAuditLog[]> {
+    let query;
+    if (category) {
+      query = db.select().from(platformAuditLogs)
+        .where(eq(platformAuditLogs.category, category))
+        .orderBy(desc(platformAuditLogs.timestamp));
+    } else {
+      query = db.select().from(platformAuditLogs).orderBy(desc(platformAuditLogs.timestamp));
+    }
+    if (limit) {
+      query = query.limit(limit);
+    }
+    if (offset) {
+      query = query.offset(offset);
+    }
+    return query;
+  }
+  
+  async createPlatformAuditLog(log: InsertPlatformAuditLog): Promise<PlatformAuditLog> {
+    const [newLog] = await db.insert(platformAuditLogs).values(log).returning();
+    return newLog;
+  }
+  
+  // User Sessions
+  async getUserSessions(userId: string): Promise<UserSession[]> {
+    return db.select().from(userSessions)
+      .where(eq(userSessions.userId, userId))
+      .orderBy(desc(userSessions.startedAt));
+  }
+  
+  async getActiveSessions(): Promise<UserSession[]> {
+    return db.select().from(userSessions)
+      .where(eq(userSessions.isActive, true))
+      .orderBy(desc(userSessions.lastActivityAt));
+  }
+  
+  async createUserSession(session: InsertUserSession): Promise<UserSession> {
+    const [newSession] = await db.insert(userSessions).values(session).returning();
+    return newSession;
+  }
+  
+  async updateUserSessionActivity(id: string): Promise<UserSession | undefined> {
+    const [updated] = await db.update(userSessions)
+      .set({ lastActivityAt: new Date() })
+      .where(eq(userSessions.id, id))
+      .returning();
+    return updated;
+  }
+  
+  async endUserSession(id: string): Promise<void> {
+    await db.update(userSessions)
+      .set({ endedAt: new Date(), isActive: false })
+      .where(eq(userSessions.id, id));
+  }
+  
+  // Federation Payment History
+  async getFederationPaymentHistory(federationId?: string): Promise<FederationPaymentHistory[]> {
+    if (federationId) {
+      return db.select().from(federationPaymentHistory)
+        .where(eq(federationPaymentHistory.federationId, federationId))
+        .orderBy(desc(federationPaymentHistory.createdAt));
+    }
+    return db.select().from(federationPaymentHistory).orderBy(desc(federationPaymentHistory.createdAt));
+  }
+  
+  async getAllFederationPayments(limit?: number): Promise<FederationPaymentHistory[]> {
+    const query = db.select().from(federationPaymentHistory).orderBy(desc(federationPaymentHistory.createdAt));
+    if (limit) {
+      return query.limit(limit);
+    }
+    return query;
+  }
+  
+  async createFederationPayment(payment: InsertFederationPaymentHistory): Promise<FederationPaymentHistory> {
+    const [newPayment] = await db.insert(federationPaymentHistory).values(payment).returning();
+    return newPayment;
+  }
+  
+  async updateFederationPayment(id: string, updates: Partial<InsertFederationPaymentHistory>): Promise<FederationPaymentHistory | undefined> {
+    const [updated] = await db.update(federationPaymentHistory).set(updates).where(eq(federationPaymentHistory.id, id)).returning();
+    return updated;
+  }
+  
+  // All Federations
+  async getAllFederationProfiles(): Promise<FederationProfile[]> {
+    return db.select().from(federationProfiles).orderBy(desc(federationProfiles.createdAt));
+  }
+  
+  // All Embassy Profiles
+  async getAllEmbassyProfiles(): Promise<EmbassyProfile[]> {
+    return db.select().from(embassyProfiles).orderBy(desc(embassyProfiles.createdAt));
+  }
+  
+  // Platform Stats
+  async getPlatformStats(): Promise<{
+    totalUsers: number;
+    totalTeams: number;
+    totalPlayers: number;
+    totalScouts: number;
+    totalEmbassyUsers: number;
+    totalFederationUsers: number;
+  }> {
+    const [userStats] = await db.select({ count: sql<number>`count(*)` }).from(users);
+    const [teamStats] = await db.select({ count: sql<number>`count(*)` }).from(teams);
+    const [playerStats] = await db.select({ count: sql<number>`count(*)` }).from(players);
+    const [scoutStats] = await db.select({ count: sql<number>`count(*)` }).from(users).where(eq(users.role, 'scout'));
+    const [embassyStats] = await db.select({ count: sql<number>`count(*)` }).from(users).where(eq(users.role, 'embassy'));
+    const [federationStats] = await db.select({ count: sql<number>`count(*)` }).from(users).where(eq(users.role, 'federation'));
+    
+    return {
+      totalUsers: Number(userStats.count),
+      totalTeams: Number(teamStats.count),
+      totalPlayers: Number(playerStats.count),
+      totalScouts: Number(scoutStats.count),
+      totalEmbassyUsers: Number(embassyStats.count),
+      totalFederationUsers: Number(federationStats.count),
+    };
   }
 }
 

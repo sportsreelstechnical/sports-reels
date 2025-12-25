@@ -11,11 +11,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { ArrowLeft, User, Globe, Clock, Activity, Ruler, Weight, Flag, CheckCircle, FileText, Video, Play, Calendar, Share2, Eye, Coins, Link2, Copy, ExternalLink } from "lucide-react";
+import { ArrowLeft, User, Globe, Clock, Activity, Ruler, Weight, Flag, CheckCircle, FileText, Video, Play, Calendar, Share2, Eye, Coins, Link2, Copy, ExternalLink, Download, Award } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useCheckTokens } from "@/hooks/use-tokens";
-import type { Player, Video as VideoType, PlayerShareLink } from "@shared/schema";
+import type { Player, Video as VideoType, PlayerShareLink, FederationLetterRequest } from "@shared/schema";
 
 interface PlayerProfileProps {
   params?: { id?: string };
@@ -64,6 +65,16 @@ export default function PlayerProfile({ params, isScoutView }: PlayerProfileProp
       return res.json();
     },
     enabled: !!playerId,
+  });
+
+  const { data: issuedFederationLetters = [] } = useQuery<FederationLetterRequest[]>({
+    queryKey: ["/api/players", playerId, "issued-federation-letters"],
+    queryFn: async () => {
+      const res = await fetch(`/api/players/${playerId}/issued-federation-letters`);
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!playerId && !isScout,
   });
 
   const publishMutation = useMutation({
@@ -467,10 +478,112 @@ export default function PlayerProfile({ params, isScoutView }: PlayerProfileProp
         </TabsContent>
 
         <TabsContent value="documents" className="mt-6">
-          <PlayerDocumentManager 
-            playerId={player.id} 
-            playerName={`${player.firstName} ${player.lastName}`} 
-          />
+          <div className="space-y-6">
+            <PlayerDocumentManager 
+              playerId={player.id} 
+              playerName={`${player.firstName} ${player.lastName}`} 
+            />
+            
+            {!isScout && (
+              <>
+                <Separator />
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold flex items-center gap-2">
+                    <Award className="h-5 w-5" />
+                    Issued Federation Letters
+                  </h3>
+                  
+                  {issuedFederationLetters.length === 0 ? (
+                    <Card>
+                      <CardContent className="py-8 text-center">
+                        <Award className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+                        <p className="text-muted-foreground">No federation letters have been issued for this player.</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Federation letters will appear here once approved and issued.
+                        </p>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <div className="grid gap-4">
+                      {issuedFederationLetters.map((letter) => (
+                        <Card key={letter.id} data-testid={`card-federation-letter-${letter.id}`}>
+                          <CardHeader className="pb-2">
+                            <div className="flex items-start justify-between gap-4 flex-wrap">
+                              <div className="flex items-center gap-3">
+                                <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center">
+                                  <Award className="h-5 w-5 text-green-600" />
+                                </div>
+                                <div>
+                                  <CardTitle className="text-base">{letter.requestNumber}</CardTitle>
+                                  <p className="text-sm text-muted-foreground">
+                                    {letter.federationName || "Federation"} - {letter.federationCountry || "Unknown"}
+                                  </p>
+                                </div>
+                              </div>
+                              <Badge variant="default" className="bg-green-500/10 text-green-600 border-green-200">
+                                <CheckCircle className="h-3 w-3 mr-1" />
+                                Issued
+                              </Badge>
+                            </div>
+                          </CardHeader>
+                          <CardContent className="space-y-4">
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                              <div>
+                                <p className="text-muted-foreground">Target Club</p>
+                                <p className="font-medium">{letter.targetClubName}</p>
+                              </div>
+                              <div>
+                                <p className="text-muted-foreground">Country</p>
+                                <p className="font-medium">{letter.targetClubCountry}</p>
+                              </div>
+                              <div>
+                                <p className="text-muted-foreground">Transfer Type</p>
+                                <p className="font-medium capitalize">{letter.transferType?.replace(/_/g, ' ')}</p>
+                              </div>
+                              <div>
+                                <p className="text-muted-foreground">Issued Date</p>
+                                <p className="font-medium">
+                                  {letter.issuedAt ? new Date(letter.issuedAt).toLocaleDateString() : "N/A"}
+                                </p>
+                              </div>
+                            </div>
+                            
+                            {letter.issuedDocumentObjectPath && (
+                              <div className="flex items-center gap-2 pt-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => window.open(letter.issuedDocumentObjectPath!, '_blank')}
+                                  data-testid={`button-view-letter-${letter.id}`}
+                                >
+                                  <Eye className="h-4 w-4 mr-2" />
+                                  View Document
+                                </Button>
+                                <Button
+                                  variant="default"
+                                  size="sm"
+                                  onClick={() => {
+                                    const link = document.createElement('a');
+                                    link.href = letter.issuedDocumentObjectPath!;
+                                    link.download = letter.issuedDocumentOriginalName || `Federation_Letter_${letter.requestNumber}.pdf`;
+                                    link.click();
+                                  }}
+                                  data-testid={`button-download-letter-${letter.id}`}
+                                >
+                                  <Download className="h-4 w-4 mr-2" />
+                                  Download
+                                </Button>
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
         </TabsContent>
       </Tabs>
 
