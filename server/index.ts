@@ -18,21 +18,23 @@ app.use(
     verify: (req, _res, buf) => {
       req.rawBody = buf;
     },
-  }),
+  })
 );
 
 app.use(express.urlencoded({ extended: false }));
 
-app.use(session({
-  secret: process.env.SESSION_SECRET || "sports-reels-secret-key",
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: process.env.NODE_ENV === "production",
-    httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000,
-  },
-}));
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET || "sports-reels-secret-key",
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: process.env.NODE_ENV === "production",
+      httpOnly: true,
+      maxAge: 24 * 60 * 60 * 1000,
+    },
+  })
+);
 
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
@@ -101,10 +103,9 @@ app.use((req, res, next) => {
     {
       port,
       host: "0.0.0.0",
-      reusePort: true,
     },
     () => {
       log(`serving on port ${port}`);
-    },
+    }
   );
 })();
