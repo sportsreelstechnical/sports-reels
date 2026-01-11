@@ -1,0 +1,994 @@
+{
+  "football": {
+    "positions": [
+      "Goalkeeper",
+      "Right Back",
+      "Left Back",
+      "Center Back",
+      "Defensive Midfielder",
+      "Central Midfielder",
+      "Attacking Midfielder",
+      "Right Winger",
+      "Left Winger",
+      "Striker",
+      "Second Striker"
+    ],
+    "female_positions": [
+      "Goalkeeper",
+      "Right Back",
+      "Left Back",
+      "Center Back",
+      "Defensive Midfielder",
+      "Central Midfielder",
+      "Attacking Midfielder",
+      "Right Winger",
+      "Left Winger",
+      "Striker",
+      "Second Striker"
+    ],
+    "leagues": [
+      "NPFL Youth League",
+      "NLO (National League One)",
+      "Nigeria Amateur League",
+      "NNL (Nigeria National League)",
+      "Aiteo Cup (Federation Cup)",
+      "Value Jet Cup",
+      "Discovery Cup",
+      "ProathleticX League",
+      "African Games",
+      "Zone 2 Youth Games",
+      "West African School Games",
+      "Elite League",
+      "TCC League",
+      "Lagos FA Cup",
+      "Division Two League Ghana",
+      "Kofafa Amateur League",
+      "Ghana Football Association Regional League",
+      "Benin Second Division League",
+      "WAFU A Tournament",
+      "WAFU B Tournament",
+      "WAFU School Championship",
+      "Egyptian Second Division League",
+      "Egyptian Third Division League",
+      "Amateur National Championship",
+      "Future Stars Challenge",
+      "Amateurs 1 Morocco",
+      "NLO Division 1",
+      "NLO Division 2",
+      "N Youth League",
+      "NPFL/La Liga U15 Youth League",
+      "Grassroots Youth Football Development League",
+      "Ligue de Football",
+      "Amateur LFA",
+      "Ligue 3",
+      "CAFO Football Academy Tournaments",
+      "Championnat National Juniors",
+      "Departmental Football Championships",
+      "Division One League Ghana",
+      "Regional Football Association League",
+      "Greater Accra RFA Division Two League",
+      "Ashanti RFA Division Two League",
+      "Central RFA Division Two League",
+      "Eastern RFA Division Two League",
+      "Brong-Ahafo Division Two League",
+      "Western RFA Division Two League",
+      "Volta RFA Division Two League",
+      "Northern RFA Division Two League",
+      "Upper East RFA Division Two League",
+      "Upper West RFA Division Two League",
+      "KGL Foundation Inter-Regional U17 Championship",
+      "District and Regional Colts League",
+      "Greater Accra Colts League",
+      "Ashanti Regional Colts League",
+      "Ikeja Divisional Football League",
+      "CECAFA U20 Challenge Cup",
+      "CECAFA U17 Championship",
+      "COSAFA U20 Challenge Cup",
+      "COSAFA U17 Championship",
+      "National U17",
+      "National U20",
+      "National U15",
+      "CAF School Football Competition",
+      "English Premier League",
+      "La Liga",
+      "Serie A",
+      "Bundesliga",
+      "Ligue 1",
+      "UEFA Champions League",
+      "FIFA World Cup",
+      "AFCON",
+      "Copa América"
+    ],
+    "female_leagues": [
+      "Nigeria Women Football League (NWFL)",
+      "WAFA League",
+      "Women Amateur Football Association League",
+      "Aya Women's Soccer League",
+      "FA Women's Super League",
+      "UEFA Women's Champions League",
+      "FIFA Women's World Cup",
+      "NWSL",
+      "CAF Women's Champions League"
+    ],
+    "titles": [
+      "FIFA World Cup",
+      "Ballon d'Or",
+      "UEFA Champions League Winner",
+      "Golden Boot",
+      "AFCON Champion"
+    ],
+    "female_titles": [
+      "FIFA Women's World Cup",
+      "The Best FIFA Women's Player",
+      "UEFA Women's Champions League Winner",
+      "Golden Boot (Women)"
+    ],
+    "associations": [
+      "Nigeria Football Federation (NFF)",
+      "Lagos State Football Association",
+      "Ogun State Football Association",
+      "Oyo State Football Association",
+      "Rivers State Football Association",
+      "Delta State Football Association",
+      "FCT Football Association",
+      "Ghana Football Association (GFA)",
+      "Kenya Football Federation (KFF)",
+      "Football Kenya Federation (FKF)",
+      "South African Football Association (SAFA)",
+      "Egyptian Football Association (EFA)",
+      "Rwanda Football Federation (FERWAFA)",
+      "Senegalese Football Federation (FSF)",
+      "Angolan Football Federation (FAF)",
+      "Tunisian Football Federation (FTF)",
+      "Cameroonian Football Federation (FECAFOOT)",
+      "Côte d'Ivoire Football Federation (FIF)",
+      "Benin Football Federation (FBF)",
+      "Uganda Football Association (FUFA)",
+      "Tanzania Football Federation (TFF)",
+      "Zambia Football Association (FAZ)",
+      "Botswana Football Association (BFA)",
+      "Malawi Football Association (FAM)",
+      "Mozambique Football Federation (FMF)",
+      "Zimbabwe Football Association (ZIFA)",
+      "Ethiopia Football Federation (EFF)",
+      "Sudan Football Association (SFA)",
+      "South Sudan Football Association (SSFA)",
+      "Sierra Leone Football Association (SLFA)",
+      "Liberia Football Association (LFA)",
+      "Gambia Football Federation (GFF)",
+      "Cape Verde Football Federation (FCF)",
+      "DR Congo Football Federation (FECOFA)",
+      "Republic of Congo Football Federation (FECOFOOT)",
+      "Gabon Football Federation (FEGAFOOT)",
+      "Niger Football Federation (FENIFOOT)",
+      "Burkina Faso Football Federation (FBF)",
+      "Mali Football Federation (FEMAFOOT)",
+      "Central African Football Federation (FCF)",
+      "Togo Football Federation (FTF)",
+      "Chad Football Federation (FTFA)",
+      "Namibia Football Association (NFA)",
+      "Eswatini Football Association (EFA)",
+      "Lesotho Football Association (LEFA)",
+      "Mauritius Football Association (MFA)",
+      "Seychelles Football Federation (SFF)",
+      "Algeria Football Federation (FAF)",
+      "Morocco Football Federation (FRMF)",
+      "Libya Football Federation (LFF)",
+      "CAF (Confederation of African Football)",
+      "WAFU (West African Football Union)",
+      "WAFU Zone A",
+      "WAFU Zone B",
+      "CECAFA (Council for East and Central Africa Football Associations)",
+      "COSAFA (Council of Southern Africa Football Associations)",
+      "UNAF (Union of North African Football)",
+      "UNIFFAC (Central African Football Federations' Union)",
+      "CAF Youth Football Development Department",
+      "CAF Women's Football Division",
+      "FIFA (Fédération Internationale de Football Association)",
+      "FIFA Africa Development Office",
+      "NPFL Club Owners Association",
+      "Nigeria Referees Association (NRA)",
+      "Nigerian Coaches Association (NCA)",
+      "African Football Agents Association (AFAA)",
+      "African Women's Football Association",
+      "African Schools Football Association",
+      "CAF Referees Committee",
+      "CAF Technical Development Committee",
+      "African Minifootball Federation (AMF)",
+      "Pan-African Football Development Association"
+    ],
+    "female_associations": [
+      "Nigeria Football Federation (NFF)",
+      "CAF Women's Football Division",
+      "African Women's Football Association",
+      "Ghana Football Association (GFA)",
+      "South African Football Association (SAFA)",
+      "Egyptian Football Association (EFA)",
+      "FIFA (Fédération Internationale de Football Association)"
+    ]
+  },
+  "american_football": {
+    "positions": [
+      "Quarterback",
+      "Running Back",
+      "Wide Receiver",
+      "Tight End",
+      "Offensive Lineman",
+      "Defensive Lineman",
+      "Linebacker",
+      "Cornerback",
+      "Safety",
+      "Kicker",
+      "Punter"
+    ],
+    "female_positions": [
+      "Quarterback",
+      "Running Back",
+      "Wide Receiver",
+      "Tight End",
+      "Offensive Lineman",
+      "Defensive Lineman",
+      "Linebacker",
+      "Cornerback",
+      "Safety",
+      "Kicker",
+      "Punter"
+    ],
+    "leagues": [
+      "NFL",
+      "NCAA",
+      "Super Bowl"
+    ],
+    "female_leagues": [
+      "Women's Football Alliance",
+      "Legends Football League"
+    ],
+    "titles": [
+      "Super Bowl Champion",
+      "NFL MVP"
+    ],
+    "female_titles": [
+      "WFA Champion"
+    ]
+  },
+  "basketball": {
+    "positions": [
+      "Point Guard",
+      "Shooting Guard",
+      "Small Forward",
+      "Power Forward",
+      "Center"
+    ],
+    "female_positions": [
+      "Point Guard",
+      "Shooting Guard",
+      "Small Forward",
+      "Power Forward",
+      "Center"
+    ],
+    "leagues": [
+      "Nigeria Premier Basketball League (Men)",
+      "NBBF National Division One",
+      "NBBF National Division Two",
+      "Crown Elite Basketball Championship",
+      "Milo Basketball Tournament",
+      "OBN Basketball League",
+      "Mark D Ball Basketball Championship",
+      "Nestlé Milo Secondary School Championship",
+      "Total/NBBF National Invitational Tournament",
+      "Savannah Conference League",
+      "Atlantic Conference League",
+      "Basketball Africa League (BAL)",
+      "FIBA Africa Champions Cup",
+      "FIBA AfroBasket (Men)",
+      "FIBA U18 AfroBasket",
+      "FIBA U16 AfroBasket",
+      "FIBA African Championship for Clubs (Men)",
+      "Angolan Basketball League (BIC Basket)",
+      "Taça de Angola",
+      "Supertaça de Angola",
+      "Egyptian Basketball Super League (Men)",
+      "Egyptian Cup",
+      "Alexandria Basketball Tournament",
+      "Rwanda Basketball League (RBL)",
+      "Genocide Memorial Basketball Tournament (GMT)",
+      "Nationale 1 Masculin (Senegal)",
+      "Coupe du Sénégal",
+      "Championnat National A (Tunisia)",
+      "Coupe de Tunisie",
+      "Elite Basketball League (Cameroon)",
+      "Coupe du Cameroun",
+      "Accra Basketball League (Ghana)",
+      "UPAC Championship",
+      "Sprite Ball Championship",
+      "Kenya Basketball Federation Premier League",
+      "Nairobi Basketball League",
+      "Stanchart 3x3 Challenge",
+      "Basketball National League (South Africa)",
+      "SA Schools Basketball Tournament",
+      "Ashraf Cassiem Basketball Tournament",
+      "National Basketball Championship (Côte d'Ivoire)",
+      "Coupe de Côte d'Ivoire",
+      "FIBA Africa U18 Championship",
+      "FIBA Africa U16 Championship",
+      "BAL Youth Camps",
+      "Jr. NBA Africa Leagues",
+      "Milo Africa Schools Basketball Championship",
+      "NBA",
+      "EuroLeague",
+      "FIBA World Cup",
+      "Olympics"
+    ],
+    "female_leagues": [
+      "Zenith Bank Women's Basketball League",
+      "FIBA Women's AfroBasket",
+      "FIBA African Championship for Clubs (Women)",
+      "Egyptian Basketball Premier League (Women)",
+      "Rwanda Women's Basketball League",
+      "Nationale 1 Féminin (Senegal)",
+      "Championnat National A Féminin",
+      "WNBA",
+      "EuroLeague Women",
+      "FIBA Women's Basketball World Cup"
+    ],
+    "titles": [
+      "NBA Champion",
+      "NBA MVP",
+      "NBA Finals MVP",
+      "Olympic Gold Medalist"
+    ],
+    "female_titles": [
+      "WNBA Champion",
+      "WNBA MVP",
+      "Olympic Gold Medalist (Women)"
+    ],
+    "associations": [
+      "Nigeria Basketball Federation (NBBF)",
+      "Lagos State Basketball Association",
+      "Ogun State Basketball Association",
+      "Oyo State Basketball Association",
+      "Rivers State Basketball Association",
+      "Delta State Basketball Association",
+      "FCT Basketball Association",
+      "Ghana Basketball Association (GBBA)",
+      "Accra Basketball Association",
+      "Kenya Basketball Federation (KBF)",
+      "South African Basketball Association (SABA)",
+      "Basketball South Africa (BSA)",
+      "Egyptian Basketball Federation (EBF)",
+      "Rwanda Basketball Federation (FERWABA)",
+      "Senegalese Basketball Federation (FSBB)",
+      "Angolan Basketball Federation (FAB)",
+      "Tunisian Basketball Federation (FTBB)",
+      "Cameroonian Basketball Federation (Fécabasket)",
+      "Côte d'Ivoire Basketball Federation (FIBB)",
+      "Benin Basketball Federation (FBBB)",
+      "Uganda Basketball Federation (FUBA)",
+      "Tanzania Basketball Federation (TBF)",
+      "Zambia Basketball Federation (ZBF)",
+      "Botswana Basketball Association (BBA)",
+      "Malawi Basketball Association (MBA)",
+      "Mozambique Basketball Federation (FMB)",
+      "Zimbabwe Basketball Union (ZBU)",
+      "Ethiopia Basketball Federation (EBF)",
+      "Sudan Basketball Association",
+      "Sierra Leone Basketball Federation",
+      "Liberia Basketball Federation",
+      "Gambia Basketball Association",
+      "Cape Verde Basketball Federation",
+      "DR Congo Basketball Federation (FEBACO)",
+      "Republic of Congo Basketball Federation",
+      "Gabon Basketball Federation",
+      "Niger Basketball Federation",
+      "Burkina Faso Basketball Federation",
+      "Mali Basketball Federation",
+      "Central African Basketball Federation (FCBB)",
+      "Togo Basketball Federation",
+      "Chad Basketball Federation",
+      "Namibia Basketball Federation",
+      "Eswatini Basketball Association",
+      "Lesotho Basketball Association",
+      "Mauritius Basketball Federation",
+      "Seychelles Basketball Federation",
+      "Algeria Basketball Federation",
+      "Morocco Basketball Federation (FRMBB)",
+      "Libya Basketball Federation",
+      "FIBA Africa",
+      "FIBA Africa Zone 1",
+      "FIBA Africa Zone 2",
+      "FIBA Africa Zone 3",
+      "FIBA Africa Zone 4",
+      "FIBA Africa Zone 5",
+      "FIBA Africa Zone 6",
+      "FIBA Africa Zone 7",
+      "NBA Africa",
+      "Jr. NBA Africa",
+      "Africa Minibasket Association",
+      "African Basketball Confederation (CABB)"
+    ],
+    "female_associations": [
+      "Nigeria Basketball Federation (NBBF)",
+      "Ghana Basketball Association (GBBA)",
+      "Kenya Basketball Federation (KBF)",
+      "South African Basketball Association (SABA)",
+      "Egyptian Basketball Federation (EBF)",
+      "Rwanda Basketball Federation (FERWABA)",
+      "FIBA Africa",
+      "NBA Africa"
+    ]
+  },
+  "baseball": {
+    "positions": [
+      "Pitcher",
+      "Catcher",
+      "First Baseman",
+      "Second Baseman",
+      "Third Baseman",
+      "Shortstop",
+      "Left Fielder",
+      "Center Fielder",
+      "Right Fielder",
+      "Designated Hitter"
+    ],
+    "female_positions": [
+      "Pitcher",
+      "Catcher",
+      "First Baseman",
+      "Second Baseman",
+      "Third Baseman",
+      "Shortstop",
+      "Left Fielder",
+      "Center Fielder",
+      "Right Fielder",
+      "Designated Hitter"
+    ],
+    "leagues": [
+      "MLB",
+      "Nippon Professional Baseball",
+      "World Baseball Classic"
+    ],
+    "female_leagues": [
+      "Women's Baseball World Cup"
+    ],
+    "titles": [
+      "World Series Champion",
+      "MLB MVP"
+    ],
+    "female_titles": [
+      "Women's Baseball World Cup Champion"
+    ]
+  },
+  "volleyball": {
+    "positions": [
+      "Outside Hitter",
+      "Opposite Hitter",
+      "Middle Blocker",
+      "Setter",
+      "Libero",
+      "Defensive Specialist"
+    ],
+    "female_positions": [
+      "Outside Hitter",
+      "Opposite Hitter",
+      "Middle Blocker",
+      "Setter",
+      "Libero",
+      "Defensive Specialist"
+    ],
+    "leagues": [
+      "FIVB Volleyball World League",
+      "Olympics",
+      "CEV Champions League"
+    ],
+    "female_leagues": [
+      "FIVB Volleyball Women's Nations League",
+      "Olympics (Women)",
+      "CEV Women's Champions League"
+    ],
+    "titles": [
+      "Olympic Gold Medal",
+      "FIVB World League Winner"
+    ],
+    "female_titles": [
+      "Olympic Gold Medal (Women)",
+      "FIVB Nations League Winner (Women)"
+    ]
+  },
+  "tennis": {
+    "positions": [
+      "Singles",
+      "Doubles",
+      "Mixed Doubles"
+    ],
+    "female_positions": [
+      "Singles",
+      "Doubles",
+      "Mixed Doubles"
+    ],
+    "leagues": [
+      "ATP Tour",
+      "Grand Slams",
+      "Davis Cup",
+      "Olympics"
+    ],
+    "female_leagues": [
+      "WTA Tour",
+      "Grand Slams",
+      "Billie Jean King Cup",
+      "Olympics"
+    ],
+    "titles": [
+      "Wimbledon",
+      "US Open",
+      "French Open",
+      "Australian Open",
+      "Olympic Gold"
+    ],
+    "female_titles": [
+      "Wimbledon (Women)",
+      "US Open (Women)",
+      "French Open (Women)",
+      "Australian Open (Women)",
+      "Olympic Gold (Women)"
+    ]
+  },
+  "rugby": {
+    "positions": [
+      "Loosehead Prop",
+      "Hooker",
+      "Tighthead Prop",
+      "Lock",
+      "Flanker",
+      "Number Eight",
+      "Scrum-half",
+      "Fly-half",
+      "Centre",
+      "Wing",
+      "Fullback"
+    ],
+    "female_positions": [
+      "Loosehead Prop",
+      "Hooker",
+      "Tighthead Prop",
+      "Lock",
+      "Flanker",
+      "Number Eight",
+      "Scrum-half",
+      "Fly-half",
+      "Centre",
+      "Wing",
+      "Fullback"
+    ],
+    "leagues": [
+      "Rugby World Cup",
+      "Six Nations",
+      "The Rugby Championship",
+      "United Rugby Championship"
+    ],
+    "female_leagues": [
+      "Women's Rugby World Cup",
+      "Women's Six Nations",
+      "Premier 15s"
+    ],
+    "titles": [
+      "Rugby World Cup",
+      "Six Nations Champion",
+      "Olympic Gold (7s)"
+    ],
+    "female_titles": [
+      "Women's Rugby World Cup",
+      "Women's Six Nations Champion",
+      "Olympic Gold (Women\u2019s 7s)"
+    ]
+  },
+  "cricket": {
+    "positions": [
+      "Batsman",
+      "Bowler",
+      "Wicket-Keeper",
+      "All-Rounder",
+      "Fielder"
+    ],
+    "female_positions": [
+      "Batsman",
+      "Bowler",
+      "Wicket-Keeper",
+      "All-Rounder",
+      "Fielder"
+    ],
+    "leagues": [
+      "ICC World Cup",
+      "IPL",
+      "The Ashes",
+      "Big Bash League"
+    ],
+    "female_leagues": [
+      "Women's Cricket World Cup",
+      "Women's Big Bash League"
+    ],
+    "titles": [
+      "ICC Cricket World Cup",
+      "IPL Champion"
+    ],
+    "female_titles": [
+      "Women's World Cup Champion"
+    ]
+  },
+  "hockey": {
+    "positions": [
+      "Goalkeeper",
+      "Defender",
+      "Midfielder",
+      "Forward"
+    ],
+    "female_positions": [
+      "Goalkeeper",
+      "Defender",
+      "Midfielder",
+      "Forward"
+    ],
+    "leagues": [
+      "NHL",
+      "IIHF World Championship",
+      "Olympics"
+    ],
+    "female_leagues": [
+      "PHF",
+      "Women's Olympic Hockey"
+    ],
+    "titles": [
+      "Stanley Cup",
+      "Olympic Gold"
+    ],
+    "female_titles": [
+      "Olympic Gold (Women)"
+    ]
+  },
+  "golf": {
+    "positions": [
+      "Golfer"
+    ],
+    "female_positions": [
+      "Golfer"
+    ],
+    "leagues": [
+      "PGA Tour",
+      "The Masters",
+      "US Open",
+      "Ryder Cup"
+    ],
+    "female_leagues": [
+      "LPGA Tour",
+      "Solheim Cup"
+    ],
+    "titles": [
+      "The Masters",
+      "PGA Championship"
+    ],
+    "female_titles": [
+      "Women's PGA Championship",
+      "US Women's Open"
+    ]
+  },
+  "swimming": {
+    "positions": [
+      "Freestyle",
+      "Backstroke",
+      "Breaststroke",
+      "Butterfly",
+      "Medley"
+    ],
+    "female_positions": [
+      "Freestyle",
+      "Backstroke",
+      "Breaststroke",
+      "Butterfly",
+      "Medley"
+    ],
+    "leagues": [
+      "Olympics",
+      "World Aquatics Championships"
+    ],
+    "female_leagues": [
+      "Olympics (Women)",
+      "World Aquatics Championships (Women)"
+    ],
+    "titles": [
+      "Olympic Gold",
+      "World Champion"
+    ],
+    "female_titles": [
+      "Olympic Gold (Women)",
+      "World Champion (Women)"
+    ]
+  },
+  "athletics": {
+    "positions": [
+      "Sprinter",
+      "Middle Distance",
+      "Long Distance",
+      "Jumper",
+      "Thrower",
+      "Decathlete"
+    ],
+    "female_positions": [
+      "Sprinter",
+      "Middle Distance",
+      "Long Distance",
+      "Jumper",
+      "Thrower",
+      "Heptathlete"
+    ],
+    "leagues": [
+      "Olympics",
+      "World Athletics Championships",
+      "Diamond League"
+    ],
+    "female_leagues": [
+      "Olympics (Women)",
+      "World Athletics Championships (Women)"
+    ],
+    "titles": [
+      "Olympic Gold",
+      "World Champion"
+    ],
+    "female_titles": [
+      "Olympic Gold (Women)",
+      "World Champion (Women)"
+    ]
+  },
+  "boxing": {
+    "positions": [
+      "Flyweight",
+      "Lightweight",
+      "Welterweight",
+      "Middleweight",
+      "Heavyweight"
+    ],
+    "female_positions": [
+      "Flyweight",
+      "Lightweight",
+      "Welterweight",
+      "Middleweight",
+      "Heavyweight"
+    ],
+    "leagues": [
+      "WBC",
+      "WBA",
+      "IBF",
+      "WBO",
+      "Olympics"
+    ],
+    "female_leagues": [
+      "Olympics (Women)",
+      "WBC",
+      "WBA",
+      "IBF",
+      "WBO"
+    ],
+    "titles": [
+      "World Champion",
+      "Olympic Gold"
+    ],
+    "female_titles": [
+      "World Champion (Women)",
+      "Olympic Gold (Women)"
+    ]
+  },
+  "wrestling": {
+    "positions": [
+      "Freestyle",
+      "Greco-Roman"
+    ],
+    "female_positions": [
+      "Freestyle"
+    ],
+    "leagues": [
+      "Olympics",
+      "World Wrestling Championships"
+    ],
+    "female_leagues": [
+      "Olympics (Women)",
+      "World Wrestling Championships (Women)"
+    ],
+    "titles": [
+      "Olympic Gold",
+      "World Champion"
+    ],
+    "female_titles": [
+      "Olympic Gold (Women)",
+      "World Champion (Women)"
+    ]
+  },
+  "martial_arts": {
+    "positions": [
+      "Karate",
+      "Taekwondo",
+      "Judo",
+      "Kung Fu",
+      "MMA"
+    ],
+    "female_positions": [
+      "Karate",
+      "Taekwondo",
+      "Judo",
+      "Kung Fu",
+      "MMA"
+    ],
+    "leagues": [
+      "UFC",
+      "Olympics",
+      "ONE Championship"
+    ],
+    "female_leagues": [
+      "UFC (Women)",
+      "Olympics (Women)",
+      "ONE Championship (Women)"
+    ],
+    "titles": [
+      "UFC Champion",
+      "Olympic Gold"
+    ],
+    "female_titles": [
+      "UFC Champion (Women)",
+      "Olympic Gold (Women)"
+    ]
+  },
+  "cycling": {
+    "positions": [
+      "Road Cyclist",
+      "Track Cyclist",
+      "Mountain Biker",
+      "BMX Rider"
+    ],
+    "female_positions": [
+      "Road Cyclist",
+      "Track Cyclist",
+      "Mountain Biker",
+      "BMX Rider"
+    ],
+    "leagues": [
+      "Tour de France",
+      "Giro d'Italia",
+      "Olympics"
+    ],
+    "female_leagues": [
+      "Tour de France Femmes",
+      "Olympics (Women)"
+    ],
+    "titles": [
+      "Tour de France Winner",
+      "Olympic Gold"
+    ],
+    "female_titles": [
+      "Tour de France Femmes Winner",
+      "Olympic Gold (Women)"
+    ]
+  },
+  "table_tennis": {
+    "positions": [
+      "Singles",
+      "Doubles",
+      "Mixed Doubles"
+    ],
+    "female_positions": [
+      "Singles",
+      "Doubles",
+      "Mixed Doubles"
+    ],
+    "leagues": [
+      "ITTF World Tour",
+      "Olympics"
+    ],
+    "female_leagues": [
+      "ITTF World Tour (Women)",
+      "Olympics (Women)"
+    ],
+    "titles": [
+      "Olympic Gold",
+      "World Champion"
+    ],
+    "female_titles": [
+      "Olympic Gold (Women)",
+      "World Champion (Women)"
+    ]
+  },
+  "badminton": {
+    "positions": [
+      "Singles",
+      "Doubles",
+      "Mixed Doubles"
+    ],
+    "female_positions": [
+      "Singles",
+      "Doubles",
+      "Mixed Doubles"
+    ],
+    "leagues": [
+      "BWF World Tour",
+      "Olympics"
+    ],
+    "female_leagues": [
+      "BWF World Tour (Women)",
+      "Olympics (Women)"
+    ],
+    "titles": [
+      "Olympic Gold",
+      "World Champion"
+    ],
+    "female_titles": [
+      "Olympic Gold (Women)",
+      "World Champion (Women)"
+    ]
+  },
+  "handball": {
+    "positions": [
+      "Goalkeeper",
+      "Left Wing",
+      "Right Wing",
+      "Pivot",
+      "Left Back",
+      "Right Back",
+      "Center Back"
+    ],
+    "female_positions": [
+      "Goalkeeper",
+      "Left Wing",
+      "Right Wing",
+      "Pivot",
+      "Left Back",
+      "Right Back",
+      "Center Back"
+    ],
+    "leagues": [
+      "EHF Champions League",
+      "Olympics",
+      "IHF World Championship"
+    ],
+    "female_leagues": [
+      "EHF Champions League (Women)",
+      "Olympics (Women)",
+      "IHF World Championship (Women)"
+    ],
+    "titles": [
+      "Olympic Gold",
+      "World Champion"
+    ],
+    "female_titles": [
+      "Olympic Gold (Women)",
+      "World Champion (Women)"
+    ]
+  },
+  "water_polo": {
+    "positions": [
+      "Goalkeeper",
+      "Center Forward",
+      "Center Back",
+      "Driver",
+      "Winger"
+    ],
+    "female_positions": [
+      "Goalkeeper",
+      "Center Forward",
+      "Center Back",
+      "Driver",
+      "Winger"
+    ],
+    "leagues": [
+      "FINA World League",
+      "Olympics"
+    ],
+    "female_leagues": [
+      "FINA Women's World League",
+      "Olympics (Women)"
+    ],
+    "titles": [
+      "Olympic Gold",
+      "World Champion"
+    ],
+    "female_titles": [
+      "Olympic Gold (Women)",
+      "World Champion (Women)"
+    ]
+  }
+}

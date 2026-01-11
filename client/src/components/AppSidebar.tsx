@@ -1,206 +1,254 @@
-import { useLocation, Link } from "wouter";
+
+import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { useGoogleTranslation } from '@/contexts/GoogleTranslationContext';
 import {
   Sidebar,
   SidebarContent,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
-  SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarHeader,
   SidebarFooter,
-} from "@/components/ui/sidebar";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
+} from '@/components/ui/sidebar';
 import {
-  LayoutDashboard,
+  Home,
   Users,
   Video,
-  Film,
-  FileText,
-  Building2,
+  Calendar,
   Search,
-  Settings,
+  User,
   LogOut,
   Bell,
-  Shield,
-  MessageSquare,
-  Mail,
-  ClipboardList,
-  FileCheck,
-  Coins,
-  DollarSign,
-  Activity,
-} from "lucide-react";
-import logoImage from "@assets/WhatsApp_Image_2025-12-17_at_12.49.33_1766008177672.jpeg";
+  FileText,
+  Clock,
+  Heart,
+  Target,
+  Wallet
+} from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { Badge } from '@/components/ui/badge';
 
-interface AppSidebarProps {
-  userName?: string;
-  userRole?: string;
-  userRoleRaw?: string;
-  pendingVerifications?: number;
-}
+export function AppSidebar() {
+  const location = useLocation();
+  const { profile, signOut } = useAuth();
+  const { translateTextSync, currentLanguage } = useGoogleTranslation();
+  const { toast } = useToast();
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [refreshKey, setRefreshKey] = useState(0);
 
-export default function AppSidebar({ 
-  userName = "John Smith", 
-  userRole = "Sporting Director",
-  userRoleRaw = "sporting_director",
-  pendingVerifications = 3 
-}: AppSidebarProps) {
-  const [location] = useLocation();
+  // Listen for language change events to force refresh
+  useEffect(() => {
+    const handleLanguageChange = () => {
+      setRefreshKey(prev => prev + 1);
+    };
 
-  const teamNavItems = [
-    { title: "Dashboard", url: "/", icon: LayoutDashboard },
-    { title: "Players", url: "/players", icon: Users },
-    { title: "Videos", url: "/videos", icon: Video },
-    { title: "Video Reels", url: "/video-reels", icon: Film },
-    { title: "Team Sheets", url: "/team-sheets", icon: ClipboardList },
-    { title: "Reports", url: "/reports", icon: FileText },
-    { title: "Scouting", url: "/scouting", icon: Search },
-    { title: "Invitation Letters", url: "/invitation-letters", icon: Mail },
-    { title: "Federation Letters", url: "/federation-letters", icon: FileCheck },
-    { title: "Messages", url: "/messages", icon: MessageSquare },
-    { title: "Token Bank", url: "/token-bank", icon: Coins },
+    window.addEventListener('languageChanged', handleLanguageChange);
+    return () => window.removeEventListener('languageChanged', handleLanguageChange);
+  }, []);
+
+  // Force re-render when language changes
+  useEffect(() => {
+    setRefreshKey(prev => prev + 1);
+  }, [currentLanguage]);
+
+  // Base menu items for both user types
+  const baseMenuItems = [
+    {
+      id: 'dashboard',
+      title: translateTextSync('Dashboard'),
+      url: "/dashboard",
+      icon: Home,
+    },
+    {
+      id: 'explore',
+      title: translateTextSync('Explore'),
+      url: "/explore",
+      icon: Search,
+    },
+    {
+      id: 'contracts',
+      title: translateTextSync('Contracts'),
+      url: "/contracts",
+      icon: FileText,
+    },
+    {
+      id: 'wallet',
+      title: translateTextSync('Wallet'),
+      url: "/wallet",
+      icon: Wallet,
+    },
+    {
+      id: 'profile',
+      title: translateTextSync('Profile'),
+      url: "/profile",
+      icon: User,
+    },
+    {
+      id: 'notifications',
+      title: translateTextSync('Notifications'),
+      url: "/notifications",
+      icon: Bell,
+      showBadge: true,
+    },
+    {
+      id: 'history',
+      title: translateTextSync('History'),
+      url: "/history",
+      icon: Clock,
+    },
   ];
 
-  const scoutNavItems = [
-    { title: "Player Search", url: "/", icon: Search },
-    { title: "Video Reels", url: "/video-reels", icon: Film },
-    { title: "Messages", url: "/messages", icon: MessageSquare },
-    { title: "Token Bank", url: "/token-bank", icon: Coins },
+  // Agent-specific menu items
+  const agentMenuItems = [
+    ...baseMenuItems.slice(0, 2), // Dashboard, Explore
+    {
+      id: 'shortlist',
+      title: translateTextSync('Shortlist'),
+      url: "/agent-shortlist",
+      icon: Heart,
+    },
+    {
+      id: 'ai-scout',
+      title: translateTextSync('AI Scout'),
+      url: "/ai-scout",
+      icon: Target,
+    },
+    ...baseMenuItems.slice(2), // Contracts, Wallet, Profile, Notifications, History
   ];
 
-  const embassyNavItems = [
-    { title: "Documents", url: "/", icon: FileText },
+  // Team-specific menu items
+  const teamMenuItems = [
+    ...baseMenuItems.slice(0, 1), // Dashboard
+    {
+      id: 'players',
+      title: translateTextSync('Players'),
+      url: "/players",
+      icon: Users,
+    },
+    {
+      id: 'videos',
+      title: translateTextSync('Videos'),
+      url: "/videos",
+      icon: Video,
+    },
+    {
+      id: 'timeline',
+      title: translateTextSync('Timeline'),
+      url: "/timeline",
+      icon: Calendar,
+    },
+    ...baseMenuItems.slice(1), // Explore, Contracts, Wallet, Profile, Notifications, History
   ];
 
-  const adminNavItems = [
-    { title: "Embassy Verification", url: "/embassy", icon: Building2, badge: pendingVerifications },
-    { title: "Access Control", url: "/access", icon: Shield },
-    { title: "Settings", url: "/settings", icon: Settings },
-  ];
+  // Get appropriate menu items based on user type
+  const getMenuItems = () => {
+    if (profile?.user_type === 'agent') {
+      return agentMenuItems;
+    }
+    return teamMenuItems;
+  };
 
-  const federationAdminNavItems = [
-    { title: "Dashboard", url: "/", icon: LayoutDashboard },
-    { title: "Request Queue", url: "/federation-admin", icon: FileCheck },
-    { title: "Settings", url: "/settings", icon: Settings },
-  ];
+  const menuItems = getMenuItems();
 
-  const platformAdminNavItems = [
-    { title: "Dashboard", url: "/", icon: LayoutDashboard },
-    { title: "User Management", url: "/admin/users", icon: Users },
-    { title: "Message Inbox", url: "/admin/messages", icon: MessageSquare },
-    { title: "Financial Analytics", url: "/admin/payments", icon: DollarSign },
-    { title: "Audit Logs", url: "/admin/audit-logs", icon: Activity },
-    { title: "GDPR Requests", url: "/admin/gdpr", icon: Shield },
-    { title: "Settings", url: "/settings", icon: Settings },
-  ];
+  useEffect(() => {
+    if (profile?.user_id) {
+      fetchUnreadNotifications();
+    }
+  }, [profile]);
 
-  const isEmbassy = userRoleRaw === "embassy";
-  const isScout = userRoleRaw === "scout" || userRoleRaw === "agent";
-  const isFederationAdmin = userRoleRaw === "federation_admin";
-  const isPlatformAdmin = userRoleRaw === "admin";
-  const mainNavItems = isPlatformAdmin ? platformAdminNavItems : isFederationAdmin ? federationAdminNavItems : isEmbassy ? embassyNavItems : isScout ? scoutNavItems : teamNavItems;
+  const fetchUnreadNotifications = async () => {
+    if (!profile?.user_id) return;
 
-  const isActive = (url: string) => {
-    if (url === "/") return location === "/";
-    return location.startsWith(url);
+    try {
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('id')
+        .eq('user_id', profile.user_id)
+        .eq('is_read', false);
+
+      if (error) throw error;
+      setUnreadNotifications(data?.length || 0);
+    } catch (error) {
+      console.error('Error fetching unread notifications:', error);
+    }
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+    } catch (error: any) {
+      toast({
+        title: "Error signing out",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
   };
 
   return (
-    <Sidebar data-testid="sidebar-main">
-      <SidebarHeader className="p-4 border-b border-sidebar-border">
+    <Sidebar className='border-r-0 border-0  overflow-hidden'>
+      <SidebarHeader className="p-4 lg:p-6">
         <div className="flex items-center gap-3">
-          <img 
-            src={logoImage} 
-            alt="Sports Reels" 
-            className="h-10 w-10 object-contain rounded-md"
+          <img
+            src="/lovable-uploads/41a57d3e-b9e8-41da-b5d5-bd65db3af6ba.png"
+            alt="Sports Reels"
+            className="w-10 h-10 flex-shrink-0"
           />
-          <div>
-            <h1 className="font-semibold text-lg text-sidebar-foreground">Sports Reels</h1>
-            <p className="text-xs text-sidebar-foreground/60">Compliance Platform</p>
+          <div className="min-w-0">
+            <h2 className="font-polysans text-lg lg:text-xl font-bold text-sidebar-foreground truncate">
+              Sports Reels
+            </h2>
+            <p className="text-sm text-sidebar-foreground/70 truncate">
+              {profile?.user_type === 'team' ? translateTextSync('Team') : translateTextSync('Agent')}
+            </p>
           </div>
         </div>
       </SidebarHeader>
-      
-      <SidebarContent>
+
+      <SidebarContent className="overflow-hidden">
         <SidebarGroup>
-          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {mainNavItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton 
-                    asChild 
-                    isActive={isActive(item.url)}
-                    data-testid={`nav-${item.title.toLowerCase()}`}
+          <SidebarGroupLabel className="text-sidebar-foreground/70 font-medium text-sm">
+            Navigation
+          </SidebarGroupLabel>
+          <SidebarGroupContent className="overflow-hidden">
+            <SidebarMenu className="overflow-hidden">
+              {menuItems.map((item) => (
+                <SidebarMenuItem key={item.id || item.url}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={location.pathname === item.url}
                   >
-                    <Link href={item.url}>
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
-                    </Link>
+                    <a href={item.url} className="flex items-center gap-3">
+                      <item.icon className="w-5 h-5 flex-shrink-0" />
+                      <span className="font-medium truncate">{item.title}</span>
+                      {item.showBadge && unreadNotifications > 0 && (
+                        <Badge variant="destructive" className="ml-auto text-xs px-1.5 flex-shrink-0">
+                          {unreadNotifications > 99 ? '99+' : unreadNotifications}
+                        </Badge>
+                      )}
+                    </a>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-
-        {!isEmbassy && !isScout && !isFederationAdmin && !isPlatformAdmin && (
-          <SidebarGroup>
-            <SidebarGroupLabel>Administration</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {adminNavItems.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton 
-                      asChild 
-                      isActive={isActive(item.url)}
-                      data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}
-                    >
-                      <Link href={item.url}>
-                        <item.icon className="h-4 w-4" />
-                        <span>{item.title}</span>
-                        {item.badge && item.badge > 0 && (
-                          <Badge 
-                            variant="secondary" 
-                            className="ml-auto bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
-                          >
-                            {item.badge}
-                          </Badge>
-                        )}
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-sidebar-border p-4">
-        <div className="flex items-center gap-3">
-          <Avatar className="h-9 w-9">
-            <AvatarFallback className="bg-primary text-primary-foreground text-sm">
-              {userName.split(" ").map(n => n[0]).join("")}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate">{userName}</p>
-            <p className="text-xs text-muted-foreground truncate">{userRole}</p>
-          </div>
-          <SidebarMenuButton 
-            asChild 
-            className="w-auto p-2"
-            data-testid="button-logout"
-          >
-            <a href="/api/logout">
-              <LogOut className="h-4 w-4" />
-            </a>
-          </SidebarMenuButton>
-        </div>
+      <SidebarFooter className="p-4 lg:p-6">
+        <SidebarMenuButton
+          onClick={handleSignOut}
+          className="w-full justify-start"
+        >
+          <LogOut className="w-5 h-5 mr-3 flex-shrink-0" />
+          <span>{translateTextSync('Sign Out')}</span>
+        </SidebarMenuButton>
       </SidebarFooter>
     </Sidebar>
   );

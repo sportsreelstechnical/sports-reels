@@ -1,0 +1,10 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🔍 Running pre-commit checks..."
+
+# Lint only staged files (prevents new errors, allows fixing existing ones incrementally)
+echo "📝 Running ESLint on staged files..."
+npx lint-staged
+
+echo "✅ Pre-commit checks passed!"

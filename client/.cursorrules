@@ -1,0 +1,297 @@
+# Engineering Rules for Reel Connect Sports Hub
+
+## Project Overview
+This is a React + TypeScript + Vite application using Supabase for backend, shadcn/ui components, React Query for data fetching, and Tailwind CSS for styling.
+
+## Code Style & Conventions
+
+### TypeScript
+- Always use TypeScript for new files. Avoid `any` types - use proper types or `unknown` when necessary.
+- Define interfaces/types for all props, API responses, and data structures.
+- Use type inference where possible, but be explicit for function parameters and return types.
+- Prefer `interface` for object shapes that might be extended, `type` for unions, intersections, and computed types.
+- Use optional chaining (`?.`) and nullish coalescing (`??`) appropriately.
+- Enable strict mode gradually - fix type errors rather than disabling checks.
+
+### Naming Conventions
+- **Components**: PascalCase (e.g., `PlayerProfile.tsx`, `AgentDashboard.tsx`)
+- **Hooks**: camelCase starting with `use` (e.g., `usePlayerData.ts`, `useNotifications.ts`)
+- **Utilities/Services**: camelCase (e.g., `videoValidation.ts`, `pdfExport.ts`)
+- **Constants**: UPPER_SNAKE_CASE for true constants, camelCase for config objects
+- **Files**: Match the exported name (component files match component name)
+- **Variables/Functions**: camelCase, descriptive names
+- **Boolean variables**: Prefix with `is`, `has`, `can`, `should` (e.g., `isLoading`, `hasError`, `canEdit`)
+
+### File Organization
+- Keep files focused and under 300 lines when possible. Split larger files into smaller modules.
+- Co-locate related files (components, hooks, types) in the same directory when they're tightly coupled.
+- Use the `@/` alias for imports from `src/` directory.
+- Group imports: external packages → internal modules → types → relative imports
+- Use absolute imports with `@/` prefix instead of relative paths (`@/components/...` not `../../components/...`)
+
+## React Best Practices
+
+### Components
+- Prefer functional components with hooks over class components.
+- Keep components small and focused on a single responsibility.
+- Extract complex logic into custom hooks.
+- Use `React.memo` for expensive components that re-render frequently with same props.
+- Destructure props at the component signature for clarity.
+- Use default exports for page components, named exports for reusable components.
+
+### Hooks
+- Always call hooks at the top level - never inside loops, conditions, or nested functions.
+- Include all dependencies in dependency arrays for `useEffect`, `useMemo`, `useCallback`.
+- Use `useCallback` for functions passed as props to memoized components.
+- Use `useMemo` for expensive calculations, not for every value.
+- Create custom hooks for reusable stateful logic (prefix with `use`).
+
+### State Management
+- Use React Query (`@tanstack/react-query`) for server state (API calls, Supabase queries).
+- Use local state (`useState`) for UI-only state.
+- Use Context API sparingly - only for truly global state (like AuthContext).
+- Avoid prop drilling - use Context or composition when passing props through multiple levels.
+
+### Performance
+- Lazy load routes with `React.lazy()` and `Suspense` for code splitting.
+- Use `React.memo` judiciously - only when you've identified a performance issue.
+- Avoid creating objects/arrays in render - use `useMemo` or move outside component.
+- Debounce/throttle expensive operations (search, API calls, scroll handlers).
+
+## Supabase & Data Fetching
+
+### Database Queries
+- Always use React Query for Supabase queries - never use `useState` + `useEffect` for data fetching.
+- Use proper TypeScript types from `@/integrations/supabase/types` when available.
+- Handle loading, error, and success states explicitly.
+- Use optimistic updates for better UX where appropriate.
+- Implement proper error handling with user-friendly messages.
+
+### Real-time Subscriptions
+- Clean up Supabase subscriptions in `useEffect` return function.
+- Use React Query's real-time capabilities or manage subscriptions carefully to avoid memory leaks.
+- Unsubscribe when component unmounts or dependencies change.
+
+### RLS (Row Level Security)
+- Always assume RLS is enabled - don't bypass security in client code.
+- Test queries with proper user roles and permissions.
+- Handle permission errors gracefully.
+
+## Component Library (shadcn/ui)
+
+### Usage
+- Use shadcn/ui components from `@/components/ui/` directory.
+- Customize components by copying them to your project (they're not external dependencies).
+- Follow shadcn/ui patterns for composition and styling.
+- Use Radix UI primitives directly only when shadcn doesn't have the component.
+
+### Styling
+- Use Tailwind CSS utility classes for styling.
+- Use `cn()` utility from `@/lib/utils` for conditional class names.
+- Follow the design system - use consistent spacing, colors, and typography.
+- Prefer Tailwind classes over inline styles.
+- Use CSS variables for theme values when needed.
+
+## Forms & Validation
+
+### React Hook Form
+- Use `react-hook-form` for all forms.
+- Use `zod` schemas with `@hookform/resolvers/zod` for validation.
+- Show validation errors clearly to users.
+- Disable submit button during submission to prevent double-submission.
+
+### Form Patterns
+```typescript
+// Good: Using react-hook-form with zod
+const schema = z.object({
+  email: z.string().email(),
+  password: z.string().min(8),
+});
+
+const { register, handleSubmit, formState: { errors } } = useForm({
+  resolver: zodResolver(schema),
+});
+```
+
+## Error Handling
+
+### API Errors
+- Always handle errors from Supabase queries and mutations.
+- Show user-friendly error messages using toast notifications.
+- Log errors to console in development, but don't expose sensitive info to users.
+- Use try-catch blocks for async operations.
+
+### Error Boundaries
+- Implement error boundaries for critical sections of the app.
+- Provide fallback UI that allows users to recover or report issues.
+
+## Security
+
+### Authentication
+- Never store sensitive data in localStorage (use Supabase session management).
+- Always verify user authentication before showing protected content.
+- Use Supabase RLS policies for data access control.
+- Validate and sanitize user inputs on both client and server.
+
+### Environment Variables
+- Use `VITE_` prefix for environment variables exposed to the client.
+- Never commit `.env` files with secrets.
+- Use `.env.example` to document required environment variables.
+
+## Code Quality
+
+### Comments
+- Write self-documenting code - prefer clear naming over comments.
+- Comment "why" not "what" - explain business logic, not obvious code.
+- Use JSDoc comments for public APIs and complex functions.
+- Remove commented-out code before committing.
+
+### DRY Principle
+- Extract repeated logic into reusable functions, hooks, or components.
+- Create shared utilities for common operations.
+- Use composition over duplication.
+
+### SOLID Principles
+- Single Responsibility: Each function/component should do one thing well.
+- Open/Closed: Extend functionality through composition, not modification.
+- Dependency Inversion: Depend on abstractions (interfaces) not concrete implementations.
+
+## Testing Considerations
+
+### Testability
+- Write pure functions when possible (easier to test).
+- Separate business logic from UI components.
+- Use dependency injection for external services.
+- Keep components small and focused for easier unit testing.
+
+### Test Structure
+- Test user behavior, not implementation details.
+- Test error states and edge cases.
+- Use descriptive test names that explain what is being tested.
+
+## Git & Version Control
+
+### Commits
+- Write clear, descriptive commit messages.
+- Use conventional commits format: `feat:`, `fix:`, `refactor:`, `chore:`, `docs:`
+- Keep commits focused on a single change.
+- Don't commit commented-out code, console.logs, or temporary files.
+
+### Branching
+- Use descriptive branch names: `feat/user-authentication`, `fix/video-upload-bug`
+- Keep branches up to date with main/master.
+- Delete merged branches.
+
+## Performance Guidelines
+
+### Bundle Size
+- Use dynamic imports for large dependencies.
+- Remove unused imports and dependencies.
+- Use tree-shaking friendly imports.
+
+### Runtime Performance
+- Avoid unnecessary re-renders.
+- Use `useMemo` and `useCallback` appropriately (not everywhere).
+- Lazy load heavy components and routes.
+- Optimize images and videos (use appropriate formats and sizes).
+
+## Accessibility
+
+### A11y
+- Use semantic HTML elements.
+- Provide proper ARIA labels when needed.
+- Ensure keyboard navigation works for all interactive elements.
+- Maintain proper color contrast ratios.
+- Test with screen readers when possible.
+
+## Documentation
+
+### Code Documentation
+- Document complex algorithms and business logic.
+- Keep README.md updated with setup instructions.
+- Document API endpoints and data structures.
+- Include examples for complex components or hooks.
+
+### Type Documentation
+- Use TypeScript types as documentation - make them descriptive.
+- Add JSDoc comments for public APIs.
+
+## Project-Specific Guidelines
+
+### File Structure
+- `src/components/` - Reusable UI components
+- `src/pages/` - Page-level components (routes)
+- `src/hooks/` - Custom React hooks
+- `src/services/` - Business logic and API services
+- `src/utils/` - Pure utility functions
+- `src/contexts/` - React Context providers
+- `src/types/` - TypeScript type definitions
+- `src/integrations/` - Third-party service integrations
+
+### Supabase Integration
+- Keep all Supabase client code in `src/integrations/supabase/`
+- Use the typed client from `@/integrations/supabase/client`
+- Define database types in `src/integrations/supabase/types.ts`
+
+### React Query Patterns
+- Use query keys consistently: `['resource', id]` or `['resource', filters]`
+- Create custom hooks that wrap `useQuery`/`useMutation` for reusability
+- Use query invalidation strategically after mutations
+
+## Common Patterns
+
+### Loading States
+```typescript
+const { data, isLoading, error } = useQuery({
+  queryKey: ['players'],
+  queryFn: fetchPlayers,
+});
+
+if (isLoading) return <LoadingSpinner />;
+if (error) return <ErrorMessage error={error} />;
+return <PlayerList players={data} />;
+```
+
+### Form Handling
+```typescript
+const form = useForm<FormData>({
+  resolver: zodResolver(schema),
+});
+
+const onSubmit = async (data: FormData) => {
+  try {
+    await mutation.mutateAsync(data);
+    toast.success('Success!');
+  } catch (error) {
+    toast.error('Failed to submit');
+  }
+};
+```
+
+## Anti-Patterns to Avoid
+
+- ❌ Don't use `any` type - use proper types or `unknown`
+- ❌ Don't mutate state directly - use setState or immutable updates
+- ❌ Don't create functions in render - use `useCallback` or move outside
+- ❌ Don't ignore TypeScript errors - fix them properly
+- ❌ Don't use `console.log` in production code - use proper logging
+- ❌ Don't commit secrets or sensitive data
+- ❌ Don't bypass RLS or security checks
+- ❌ Don't create deeply nested components - extract and compose
+- ❌ Don't use inline styles when Tailwind classes work
+- ❌ Don't ignore accessibility requirements
+
+## Code Review Checklist
+
+Before submitting code, ensure:
+- [ ] TypeScript compiles without errors
+- [ ] No console.logs or debug code
+- [ ] Error handling is implemented
+- [ ] Loading states are handled
+- [ ] Code follows project conventions
+- [ ] Components are properly typed
+- [ ] Dependencies are correctly listed
+- [ ] No unused imports or variables
+- [ ] Code is properly formatted
+- [ ] Comments explain "why" not "what"
+

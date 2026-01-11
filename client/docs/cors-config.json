@@ -1,0 +1,29 @@
+[
+    {
+        "AllowedOrigins": [
+            "http://localhost:8082",
+            "http://localhost:8101",
+            "http://localhost:3000",
+            "http://localhost:5173",
+            "https://yourdomain.com"
+        ],
+        "AllowedMethods": [
+            "GET",
+            "PUT",
+            "POST",
+            "DELETE",
+            "HEAD",
+            "OPTIONS"
+        ],
+        "AllowedHeaders": [
+            "*"
+        ],
+        "ExposeHeaders": [
+            "ETag",
+            "x-amz-meta-*",
+            "x-amz-*"
+        ],
+        "MaxAgeSeconds": 3000
+    }
+]
+

@@ -17,6 +17,7 @@
     "types": ["node", "vite/client"],
     "paths": {
       "@/*": ["./client/src/*"],
+      "@dashboard/*": ["./client/src/dashboard/*"],
       "@shared/*": ["./shared/*"]
     }
   }
