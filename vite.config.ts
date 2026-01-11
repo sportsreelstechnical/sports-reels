@@ -15,6 +15,7 @@ export default defineConfig({
     process.env.NODE_ENV === "development" && componentTagger(),
   ].filter(Boolean),
   resolve: {
+    dedupe: ["react", "react-dom"],
     alias: {
       "@": path.resolve(__dirname, "client", "src"),
       "@dashboard": path.resolve(__dirname, "client", "src", "dashboard"),

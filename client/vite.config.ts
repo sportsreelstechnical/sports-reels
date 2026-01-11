@@ -9,19 +9,20 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: 8080,
     headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
     },
   },
-  plugins: [
-    react(),
-    mode === 'development' &&
-    componentTagger(),
-  ].filter(Boolean),
+  plugins: [react(), mode === "development" && componentTagger()].filter(
+    Boolean
+  ),
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "@dashboard": path.resolve(__dirname, "./src/dashboard"),
+      "@shared": path.resolve(__dirname, "../../shared"),
+      "@assets": path.resolve(__dirname, "../../attached_assets"),
     },
   },
 }));
