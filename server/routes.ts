@@ -77,6 +77,7 @@ declare module "express-session" {
     userId?: string;
     teamId?: string;
     userRole?: string;
+    username?: string;
     embassyCountry?: string;
   }
 }
@@ -1144,7 +1145,7 @@ export async function registerRoutes(
           ipAddress: req.ip,
           userAgent: req.get("User-Agent"),
           newValue: { documentType, originalName },
-          details: { fileSize, mimeType },
+          metadata: { fileSize, mimeType },
         });
 
         res.json(document);
@@ -1361,7 +1362,7 @@ export async function registerRoutes(
           ipAddress: req.ip,
           userAgent: req.get("User-Agent"),
           newValue: { versionNumber: nextVersionNumber, changeReason },
-          details: { originalName, fileSize },
+          metadata: { originalName, fileSize },
         });
 
         res.json(newVersion);
@@ -1411,7 +1412,7 @@ export async function registerRoutes(
           ipAddress: req.ip,
           userAgent: req.get("User-Agent"),
           previousValue: { versionNumber: version.versionNumber },
-          details: { restoredFromVersion: version.versionNumber },
+          metadata: { restoredFromVersion: version.versionNumber },
         });
 
         res.json({ success: true, restoredVersion: version.versionNumber });
@@ -2005,7 +2006,7 @@ export async function registerRoutes(
           description: "Federation letter issued",
           previousStatus: "processing",
           newStatus: "issued",
-          details: { documentName: issuedDocumentOriginalName },
+          metadata: { documentName: issuedDocumentOriginalName },
         });
 
         res.json(updatedRequest);
@@ -2062,7 +2063,7 @@ export async function registerRoutes(
           description: "Request rejected - tokens refunded",
           previousStatus: request.status,
           newStatus: "rejected",
-          details: { rejectionReason, tokensRefunded: 10 },
+          metadata: { rejectionReason, tokensRefunded: 10 },
         });
 
         res.json(updatedRequest);
@@ -3459,7 +3460,7 @@ Provide the summary as a formal document text.`;
 
       await storage.addConversationParticipant({
         conversationId: conversation.id,
-        actorId: req.session.userId!,
+        userId: req.session.userId!,
         role: req.session.userRole || "unknown",
       });
 
@@ -3521,7 +3522,7 @@ Provide the summary as a formal document text.`;
         senderId: userId,
         senderRole: userRole,
         content,
-        attachmentUrl,
+        attachmentUrls: attachmentUrl ? [attachmentUrl] : [],
         attachmentType,
       });
       res.json(message);
@@ -4604,7 +4605,7 @@ Provide the summary as a formal document text.`;
       if (!embassyProfile) {
         const user = await storage.getUser(req.session.userId!);
         embassyProfile = await storage.createEmbassyProfile({
-          actorId: req.session.userId!,
+          userId: req.session.userId!,
           country: req.session.embassyCountry || "United Kingdom",
           jurisdiction: "National",
           contactEmail: user?.email || "",
