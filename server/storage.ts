@@ -2515,17 +2515,20 @@ export class DatabaseStorage implements IStorage {
     status?: string,
     limit?: number
   ): Promise<AdminMessageInbox[]> {
-    let query = db
-      .select()
-      .from(adminMessageInbox)
-      .orderBy(desc(adminMessageInbox.createdAt));
+    let query;
     if (status) {
       query = db
         .select()
         .from(adminMessageInbox)
         .where(eq(adminMessageInbox.status, status))
         .orderBy(desc(adminMessageInbox.createdAt));
+    } else {
+      query = db
+        .select()
+        .from(adminMessageInbox)
+        .orderBy(desc(adminMessageInbox.createdAt));
     }
+
     if (limit) {
       return query.limit(limit);
     }

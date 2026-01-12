@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { r2VideoRetrievalService } from '@/domains/video/services/r2VideoRetrievalService';
+import VideoAnalysisResults from '@/domains/video/components/VideoAnalysisResults';
 import {
   User,
   Calendar,
@@ -17,7 +18,7 @@ import {
   Ruler,
   Weight,
   DollarSign,
-  Video,
+  Video as VideoIcon,
   MessageSquare,
   Star,
   Trophy,
@@ -482,7 +483,7 @@ const PlayerDetailModal: React.FC<PlayerDetailModalProps> = ({
                 ) : videos.length === 0 ? (
                   <Card className="bg-gray-800 border-gray-700">
                     <CardContent className="p-8 text-center">
-                      <Video className="w-12 h-12 mx-auto mb-4 text-gray-500" />
+                      <VideoIcon className="w-12 h-12 mx-auto mb-4 text-gray-500" />
                       <p className="text-gray-400">No videos available</p>
                     </CardContent>
                   </Card>
@@ -493,7 +494,7 @@ const PlayerDetailModal: React.FC<PlayerDetailModalProps> = ({
                         <CardContent className="p-4">
                           <div className="aspect-video bg-gray-700 rounded-lg mb-3 relative overflow-hidden">
                             <SmartThumbnail
-                              thumbnailUrl={video.thumbnailUrl}
+                              thumbnailUrl={video.thumbnailUrl || undefined}
                               title={video.title}
                               className="w-full h-full object-cover"
                             />
@@ -505,6 +506,7 @@ const PlayerDetailModal: React.FC<PlayerDetailModalProps> = ({
                                   className="bg-white/20 hover:bg-white/30 text-white border-0"
                                   onClick={async () => {
                                     // Get signed URL before opening
+                                    if (!video.fileUrl) return;
                                     const videoRetrieval = await r2VideoRetrievalService.getVideoForPlayback(video.fileUrl);
                                     if (videoRetrieval.success && videoRetrieval.videoUrl) {
                                       window.open(videoRetrieval.videoUrl, '_blank');
@@ -646,7 +648,7 @@ const PlayerDetailModal: React.FC<PlayerDetailModalProps> = ({
                                 {photo.type}
                               </Badge>
                               <span className="text-xs text-gray-400">
-                                {new Date(photo.uploaded_at).toLocaleDateString()}
+                                {new Date(photo.uploadedAt).toLocaleDateString()}
                               </span>
                             </div>
                           </div>
@@ -679,7 +681,7 @@ const PlayerDetailModal: React.FC<PlayerDetailModalProps> = ({
                 </Card>
 
                 {/* AI Analysis */}
-                {player.ai_analysis && (
+                {player.ai_analysis ? (
                   <Card className="bg-gray-800 border-gray-700">
                     <CardHeader>
                       <CardTitle className="text-white font-polysans flex items-center gap-2">
@@ -689,16 +691,16 @@ const PlayerDetailModal: React.FC<PlayerDetailModalProps> = ({
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-2">
-                        {Object.entries(player.ai_analysis as Record<string, any>).map(([key, value]) => (
+                        {(player.ai_analysis && typeof player.ai_analysis === 'object') ? Object.entries(player.ai_analysis as Record<string, any>).map(([key, value]) => (
                           <div key={key}>
                             <p className="text-gray-400 text-sm capitalize">{key.replace('_', ' ')}</p>
-                            <p className="text-white">{value}</p>
+                            <p className="text-white">{String(value)}</p>
                           </div>
-                        ))}
+                        )) : null}
                       </div>
                     </CardContent>
                   </Card>
-                )}
+                ) : null}
               </TabsContent>
             </Tabs>
           </div>

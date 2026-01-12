@@ -105,6 +105,10 @@ export const players = pgTable("players", {
   isPublishedToScouts: boolean("is_published_to_scouts").default(false),
   publishedAt: timestamp("published_at"),
   publishExpiresAt: timestamp("publish_expires_at"),
+  leagues_participated: text("leagues_participated").array(),
+  titles_seasons: text("titles_seasons").array(),
+  match_stats: jsonb("match_stats"),
+  ai_analysis: jsonb("ai_analysis"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -179,6 +183,8 @@ export const videos = pgTable("videos", {
   processed: boolean("processed").default(false),
   teamId: varchar("team_id"),
   teamSheetId: varchar("team_sheet_id"),
+  description: text("description"),
+  videoType: text("video_type"),
 });
 
 export const videoInsights = pgTable("video_insights", {
