@@ -36,6 +36,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { SmartThumbnail } from './SmartThumbnail';
 import EnhancedVideoUploadForm from './EnhancedVideoUploadForm';
 import { usePlayersData } from '@/domains/players/hooks/usePlayersData';
@@ -131,9 +132,13 @@ const EnhancedVideoManagement = () => {
     return allPlayersData.filter(player => videoTags.includes(player.id));
   };
 
+  const { profile } = useAuth();
+
   useEffect(() => {
-    fetchUserTeams();
-  }, []);
+    if (profile?.id) {
+      fetchUserTeams();
+    }
+  }, [profile?.id]);
 
   useEffect(() => {
     if (currentTeamId) {
@@ -149,16 +154,7 @@ const EnhancedVideoManagement = () => {
 
   const fetchUserTeams = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('user_id', user.id)
-        .single();
-
-      if (!profile) return;
+      if (!profile?.id) return;
 
       const { data: teamsData, error } = await supabase
         .from('teams')
@@ -506,22 +502,22 @@ const EnhancedVideoManagement = () => {
 
       <Tabs defaultValue="videos" className="w-full">
         <TabsList className="grid w-full grid-cols-3 bg-[#111111] border-0 gap-1 p-1 h-auto">
-          <TabsTrigger 
-            value="videos" 
+          <TabsTrigger
+            value="videos"
             className="data-[state=active]:bg-rosegold data-[state=active]:text-white text-white/60 border-0 flex items-center justify-center gap-1.5 sm:gap-2 text-xs sm:text-sm px-2 py-2.5 sm:py-3 min-h-[44px]"
           >
             <Play className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
             <span className="hidden sm:inline">Videos</span>
           </TabsTrigger>
-          <TabsTrigger 
-            value="analytics" 
+          <TabsTrigger
+            value="analytics"
             className="data-[state=active]:bg-rosegold data-[state=active]:text-white text-white/60 border-0 flex items-center justify-center gap-1.5 sm:gap-2 text-xs sm:text-sm px-2 py-2.5 sm:py-3 min-h-[44px]"
           >
             <BarChart3 className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
             <span className="hidden sm:inline">Analytics</span>
           </TabsTrigger>
-          <TabsTrigger 
-            value="tags" 
+          <TabsTrigger
+            value="tags"
             className="data-[state=active]:bg-rosegold data-[state=active]:text-white text-white/60 border-0 flex items-center justify-center gap-1.5 sm:gap-2 text-xs sm:text-sm px-2 py-2.5 sm:py-3 min-h-[44px]"
           >
             <Tags className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
@@ -881,11 +877,10 @@ const EnhancedVideoManagement = () => {
                                 key={page}
                                 size="sm"
                                 onClick={() => handlePageChange(page)}
-                                className={`border-0 w-8 h-8 sm:w-9 sm:h-9 p-0 text-xs sm:text-sm ${
-                                  currentPage === page
-                                    ? "bg-rosegold text-white"
-                                    : "bg-[#1a1a1a] text-white/60"
-                                }`}
+                                className={`border-0 w-8 h-8 sm:w-9 sm:h-9 p-0 text-xs sm:text-sm ${currentPage === page
+                                  ? "bg-rosegold text-white"
+                                  : "bg-[#1a1a1a] text-white/60"
+                                  }`}
                               >
                                 {page}
                               </Button>

@@ -369,47 +369,12 @@ const Messages = () => {
           sender_id: profile.id,
           receiver_id: receiverId,
           pitch_id: pitchId,
-          attachment_urls: attachmentUrls || null,
-          status: 'sent'
+          attachment_urls: attachmentUrls
         })
         .select()
         .single();
 
-      if (error) {
-        console.error('Error sending message:', error);
-        toast({
-          title: "Error",
-          description: "Failed to send message",
-          variant: "destructive"
-        });
-
-        // Remove optimistic message on error
-        setMessageThreads(prev => {
-          const threadKey = [profile.id, receiverId].sort().join('-');
-          return prev.map(thread => {
-            if (thread.id === threadKey) {
-              return {
-                ...thread,
-                messages: thread.messages.filter(m => m.id !== optimisticMessage.id),
-                lastMessage: thread.messages[thread.messages.length - 2] || thread.lastMessage
-              };
-            }
-            return thread;
-          });
-        });
-
-        if (selectedThread) {
-          const threadKey = [profile.id, receiverId].sort().join('-');
-          if (threadKey === selectedThread.id) {
-            setSelectedThread(prev => prev ? {
-              ...prev,
-              messages: prev.messages.filter(m => m.id !== optimisticMessage.id),
-              lastMessage: prev.messages[prev.messages.length - 2] || prev.lastMessage
-            } : null);
-          }
-        }
-        return;
-      }
+      if (error) throw error;
 
       // Replace optimistic message with real message
       if (data) {

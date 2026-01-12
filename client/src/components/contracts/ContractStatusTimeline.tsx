@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 import { enhancedContractService } from '@/domains/contracts/services/enhancedContractService';
 import {
   CheckCircle,
@@ -26,6 +27,7 @@ const ContractStatusTimeline: React.FC<ContractStatusTimelineProps> = ({
   contract,
   onStageUpdate
 }) => {
+  const { profile } = useAuth();
   const { toast } = useToast();
 
   const stages = [
@@ -79,7 +81,7 @@ const ContractStatusTimeline: React.FC<ContractStatusTimelineProps> = ({
 
   const getStageColor = (stage: any, index: number) => {
     const currentIndex = getCurrentStageIndex();
-    
+
     if (stage.id === contract.deal_stage) {
       switch (stage.color) {
         case 'green': return 'bg-green-500 border-green-500 text-white';
@@ -110,8 +112,17 @@ const ContractStatusTimeline: React.FC<ContractStatusTimelineProps> = ({
   };
 
   const updateStage = async (newStage: string) => {
+    if (!profile?.id) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to update contract stage",
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
-      await enhancedContractService.updateContractStage(contract.id, newStage);
+      await enhancedContractService.updateContractStage(contract.id, newStage, profile.id);
       toast({
         title: "Success",
         description: `Contract stage updated to ${newStage.replace('_', ' ')}`
@@ -137,10 +148,10 @@ const ContractStatusTimeline: React.FC<ContractStatusTimelineProps> = ({
             <Clock className="w-5 h-5" />
             Contract Progress
           </CardTitle>
-          <Badge 
+          <Badge
             variant="outline"
             className={`${getStageColor(
-              stages.find(s => s.id === contract.deal_stage) || stages[0], 
+              stages.find(s => s.id === contract.deal_stage) || stages[0],
               getCurrentStageIndex()
             )}`}
           >
@@ -158,10 +169,10 @@ const ContractStatusTimeline: React.FC<ContractStatusTimelineProps> = ({
                 .filter(stage => stage.id !== 'rejected' && stage.id !== 'expired')
                 .map((stage, index) => {
                   const isActive = stage.id === contract.deal_stage;
-                  const isCompleted = index < getCurrentStageIndex() && 
-                    contract.deal_stage !== 'rejected' && 
+                  const isCompleted = index < getCurrentStageIndex() &&
+                    contract.deal_stage !== 'rejected' &&
                     contract.deal_stage !== 'expired';
-                  
+
                   return (
                     <div key={stage.id} className="relative flex items-center">
                       <div className={`
@@ -227,8 +238,8 @@ const ContractStatusTimeline: React.FC<ContractStatusTimelineProps> = ({
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Response Deadline:</span>
                 <span className={
-                  new Date(contract.response_deadline) < new Date() 
-                    ? 'text-red-600 font-medium' 
+                  new Date(contract.response_deadline) < new Date()
+                    ? 'text-red-600 font-medium'
                     : 'text-gray-900'
                 }>
                   {new Date(contract.response_deadline).toLocaleDateString()}

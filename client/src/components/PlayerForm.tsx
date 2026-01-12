@@ -14,6 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Tables } from '@/integrations/supabase/types';
 import { useSports } from '@/hooks/useSports';
 import { useSportData, getSportDisplayName, getSportIcon } from '@/hooks/useSportData';
+import { useAuth } from '@/contexts/AuthContext';
 import { Plus, X, Upload, MapPin, Trophy, Users, Calendar, DollarSign, Flag, Image, FileImage } from 'lucide-react';
 
 type DatabasePlayer = Tables<'players'>;
@@ -47,6 +48,7 @@ interface InternationalDuty {
 
 const PlayerForm: React.FC<PlayerFormProps> = ({ player, onSave, onCancel, teamId }) => {
   const { toast } = useToast();
+  const { profile } = useAuth();
   const { sports } = useSports();
   const [loading, setLoading] = useState(false);
   const [teamSport, setTeamSport] = useState<string>('');
@@ -311,7 +313,7 @@ const PlayerForm: React.FC<PlayerFormProps> = ({ player, onSave, onCancel, teamI
       if (player) {
         // Log activity for update
         const { PlayerActivityService } = await import('@/domains/players/services/playerActivityService');
-        const activityService = new PlayerActivityService(teamId);
+        const activityService = new PlayerActivityService(teamId, profile?.id || '');
 
         const changedFields = PlayerActivityService.getChangedFields(player, playerData);
         if (changedFields.length > 0) {
@@ -334,7 +336,7 @@ const PlayerForm: React.FC<PlayerFormProps> = ({ player, onSave, onCancel, teamI
         // Log activity for creation
         if (result.data) {
           const { PlayerActivityService } = await import('@/domains/players/services/playerActivityService');
-          const activityService = new PlayerActivityService(teamId);
+          const activityService = new PlayerActivityService(teamId, profile?.id || '');
           await activityService.logPlayerCreated(result.data);
         }
       }

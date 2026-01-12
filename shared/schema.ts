@@ -480,10 +480,24 @@ export const messages = pgTable("messages", {
   senderId: varchar("sender_id").notNull(),
   senderRole: text("sender_role").notNull(),
   content: text("content").notNull(),
-  attachmentUrl: text("attachment_url"),
+  attachmentUrls: text("attachment_urls").array(),
   attachmentType: text("attachment_type"),
   readBy: jsonb("read_by"),
   createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const playerPhotos = pgTable("player_photos", {
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  playerId: varchar("player_id").notNull(),
+  url: text("url").notNull(),
+  title: text("title").notNull(),
+  description: text("description"),
+  type: text("type").notNull(), // headshot, action, team, other
+  objectPath: text("object_path"),
+  storageKey: text("storage_key"),
+  uploadedAt: timestamp("uploaded_at").defaultNow(),
 });
 
 export const embassyDocumentAccess = pgTable("embassy_document_access", {
@@ -796,6 +810,11 @@ export const insertVisaRuleSchema = createInsertSchema(visaRules).omit({
 export const insertEligibilityScoreSchema = createInsertSchema(
   eligibilityScores
 ).omit({ id: true, calculatedAt: true });
+
+export const insertPlayerPhotoSchema = createInsertSchema(playerPhotos).omit({
+  id: true,
+  uploadedAt: true,
+});
 
 export const insertTransferEligibilityAssessmentSchema = createInsertSchema(
   transferEligibilityAssessments
@@ -1576,3 +1595,6 @@ export type InsertFederationPaymentHistory = z.infer<
 >;
 export type FederationPaymentHistory =
   typeof federationPaymentHistory.$inferSelect;
+
+export type InsertPlayerPhoto = z.infer<typeof insertPlayerPhotoSchema>;
+export type PlayerPhoto = typeof playerPhotos.$inferSelect;

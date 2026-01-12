@@ -25,6 +25,7 @@ import {
 import { BulkPlayerUploadService, PlayerUploadData, UploadSummary } from '@/domains/players/services/bulkPlayerUploadService';
 import { SportType } from '@/shared/utils/sportsService';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface BulkPlayerUploadProps {
   teamId: string;
@@ -50,8 +51,9 @@ const BulkPlayerUpload: React.FC<BulkPlayerUploadProps> = ({
   onCancel
 }) => {
   const { toast } = useToast();
+  const { profile } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const uploadService = new BulkPlayerUploadService(teamId, sportType);
+  const uploadService = new BulkPlayerUploadService(teamId, sportType, profile?.id || '');
 
   // Simple helper function for date display (text inputs don't need conversion)
   const formatDateForDisplay = (dateString: string | null | undefined): string => {
@@ -122,10 +124,10 @@ const BulkPlayerUpload: React.FC<BulkPlayerUploadProps> = ({
     try {
       const players = await uploadService.parseFile(file);
       const summary = await uploadService.validatePlayers(players);
-      
+
       setUploadSummary(summary);
       setEditablePlayers(summary.players);
-      
+
       if (summary.validRows === 0) {
         toast({
           title: "No Valid Players",
@@ -193,7 +195,7 @@ const BulkPlayerUpload: React.FC<BulkPlayerUploadProps> = ({
 
     try {
       const result = await uploadService.uploadPlayers(editablePlayers, selectedFile || undefined);
-      
+
       setUploadProgress(100);
 
       if (result.success > 0) {
@@ -241,8 +243,8 @@ const BulkPlayerUpload: React.FC<BulkPlayerUploadProps> = ({
   };
 
   const updatePlayer = (index: number, field: keyof PlayerUploadData, value: any) => {
-    setEditablePlayers(prev => 
-      prev.map((player, i) => 
+    setEditablePlayers(prev =>
+      prev.map((player, i) =>
         i === index ? { ...player, [field]: value } : player
       )
     );
@@ -323,11 +325,10 @@ const BulkPlayerUpload: React.FC<BulkPlayerUploadProps> = ({
       {/* File Upload Area */}
       {!selectedFile && (
         <Card
-          className={`border-2 border-dashed transition-colors ${
-            dragActive
+          className={`border-2 border-dashed transition-colors ${dragActive
               ? 'border-rosegold bg-rosegold/10'
               : 'border-gray-600 hover:border-gray-500'
-          }`}
+            }`}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
@@ -488,8 +489,8 @@ const BulkPlayerUpload: React.FC<BulkPlayerUploadProps> = ({
                   {Math.round((uploadSummary.validRows / uploadSummary.totalRows) * 100)}%
                 </span>
               </div>
-              <Progress 
-                value={(uploadSummary.validRows / uploadSummary.totalRows) * 100} 
+              <Progress
+                value={(uploadSummary.validRows / uploadSummary.totalRows) * 100}
                 className="h-2"
               />
             </div>
@@ -731,7 +732,7 @@ const BulkPlayerUpload: React.FC<BulkPlayerUploadProps> = ({
                         </div>
                       </div>
                     </div>
-                    
+
                     {/* Badges */}
                     <div className="flex flex-wrap gap-1.5 sm:gap-2">
                       <Badge variant="outline" className="text-green-400 border-green-400 text-[10px] sm:text-xs px-1.5 sm:px-2">

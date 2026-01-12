@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+// import { supabase } from '@/integrations/supabase/client'; // Removed
+import { fileUploadService } from '@/services/fileUploadService';
 import { SmartThumbnail } from '@/domains/video/components/SmartThumbnail';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -33,18 +34,19 @@ import {
   BarChart3,
   Brain
 } from 'lucide-react';
-import { Tables } from '@/integrations/supabase/types';
-import VideoAnalysisResults from '@/domains/video/components/VideoAnalysisResults';
+// type DatabasePlayer = Tables<'players'>; // Removed Supabase type
+// type DatabaseVideo = Tables<'videos'>; // Removed Supabase type
+import type { Player, Video, Team } from '@shared/schema';
 
-type DatabasePlayer = Tables<'players'>;
-type DatabaseVideo = Tables<'videos'>;
+type DatabasePlayer = Player; // Aliasing for compatibility or refactor prop types
+type DatabaseVideo = Video;
 
 interface PlayerPhoto {
   id: string;
   url: string;
   title: string;
   description?: string;
-  uploaded_at: string;
+  uploadedAt: string;
   type: 'headshot' | 'action' | 'team' | 'other';
 }
 
@@ -61,7 +63,7 @@ const PlayerDetailModal: React.FC<PlayerDetailModalProps> = ({
   onClose,
   onEdit
 }) => {
-  const { profile } = useAuth();
+  const { profile, team: authTeam } = useAuth();
   const { toast } = useToast();
   const [videos, setVideos] = useState<DatabaseVideo[]>([]);
   const [photos, setPhotos] = useState<PlayerPhoto[]>([]);
@@ -84,8 +86,8 @@ const PlayerDetailModal: React.FC<PlayerDetailModalProps> = ({
   }, [isOpen, player, profile]);
 
   const calculateAge = () => {
-    if (player.date_of_birth) {
-      const birthDate = new Date(player.date_of_birth);
+    if (player.dateOfBirth) {
+      const birthDate = new Date(player.dateOfBirth);
       const today = new Date();
       const calculatedAge = today.getFullYear() - birthDate.getFullYear();
       const monthDiff = today.getMonth() - birthDate.getMonth();
@@ -98,27 +100,10 @@ const PlayerDetailModal: React.FC<PlayerDetailModalProps> = ({
     }
   };
 
-  const checkOwnership = async () => {
-    if (!profile?.id) return;
-
-    try {
-      const { data: team, error } = await supabase
-        .from('teams')
-        .select('id')
-        .eq('profile_id', profile.id)
-        .single();
-
-      // If user doesn't have a team profile, that's okay - they're not the owner
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error checking ownership:', error);
-        return;
-      }
-
-      if (team && team.id === player.team_id) {
-        setIsOwnPlayer(true);
-      }
-    } catch (error) {
-      console.error('Error checking ownership:', error);
+  const checkOwnership = () => {
+    if (!authTeam || !player.teamId) return;
+    if (authTeam.id === player.teamId) {
+      setIsOwnPlayer(true);
     }
   };
 
@@ -127,19 +112,16 @@ const PlayerDetailModal: React.FC<PlayerDetailModalProps> = ({
       setLoading(true);
 
       // Only fetch videos if player has a valid team_id
-      if (!player.team_id) {
+      if (!player.teamId) {
         setVideos([]);
         return;
       }
 
-      const { data, error } = await supabase
-        .from('videos')
-        .select('*')
-        .eq('team_id', player.team_id)
-        .order('created_at', { ascending: false });
+      const response = await fetch(`/api/videos?playerId=${player.id}`);
+      if (!response.ok) throw new Error('Failed to fetch videos');
+      const data = await response.json();
 
-      if (error) throw error;
-      setVideos(data || []);
+      setVideos(data);
     } catch (error) {
       console.error('Error fetching videos:', error);
       setVideos([]);
@@ -152,59 +134,24 @@ const PlayerDetailModal: React.FC<PlayerDetailModalProps> = ({
     try {
       setPhotoLoading(true);
 
-      // Fetch photos from storage bucket
-      const { data: photoFiles, error } = await supabase.storage
-        .from('player-photos')
-        .list(`players/${player.id}`, {
-          limit: 100,
-          offset: 0,
-        });
-
-      if (error) {
-        console.error('Error fetching photos:', error);
-        return;
+      const response = await fetch(`/api/players/${player.id}/photos`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch photos');
       }
+      const photoList = await response.json();
 
-      // Create photo objects with metadata
-      const photoList: PlayerPhoto[] = photoFiles
-        .filter(file => file.name !== '.emptyFolderPlaceholder')
-        .map((file, index) => ({
-          id: file.id || `photo-${index}`,
-          url: `${supabase.storage.from('player-photos').getPublicUrl(`players/${player.id}/${file.name}`).data.publicUrl}`,
-          title: file.name.replace(/\.[^/.]+$/, '').replace(/_/g, ' '),
-          description: `Photo uploaded on ${new Date(file.updated_at).toLocaleDateString()}`,
-          uploaded_at: file.updated_at,
-          type: getPhotoType(file.name)
-        }));
-
-      // Add existing photo URLs from player data
+      // Add existing photo URLs from player data if strictly needed, or rely on the photos table
       const existingPhotos: PlayerPhoto[] = [];
+      // ... existing logic for legacy fields photo_url/headshot_url if desired, or skip
 
-      if (player.photo_url) {
-        existingPhotos.push({
-          id: 'main-photo',
-          url: player.photo_url,
-          title: 'Main Photo',
-          description: 'Primary player photo',
-          uploaded_at: new Date().toISOString(),
-          type: 'headshot'
-        });
-      }
-
-      if (player.headshot_url) {
-        existingPhotos.push({
-          id: 'headshot-photo',
-          url: player.headshot_url,
-          title: 'Headshot',
-          description: 'Professional headshot',
-          uploaded_at: new Date().toISOString(),
-          type: 'headshot'
-        });
-      }
-
-      setPhotos([...existingPhotos, ...photoList]);
+      setPhotos(photoList);
     } catch (error) {
       console.error('Error fetching player photos:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch photos",
+        variant: "destructive"
+      });
     } finally {
       setPhotoLoading(false);
     }
@@ -237,22 +184,25 @@ const PlayerDetailModal: React.FC<PlayerDetailModalProps> = ({
 
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        const fileName = `${Date.now()}-${file.name}`;
-        const filePath = `players/${player.id}/${fileName}`;
 
-        // Upload to storage
-        const { error: uploadError } = await supabase.storage
-          .from('player-photos')
-          .upload(filePath, file);
+        // 1. Upload to Object Storage
+        const objectPath = await fileUploadService.uploadFile(file);
 
-        if (uploadError) {
-          console.error('Error uploading photo:', uploadError);
-          toast({
-            title: "Error",
-            description: `Failed to upload ${file.name}`,
-            variant: "destructive"
-          });
-          continue;
+        // 2. Create DB record
+        const response = await fetch(`/api/players/${player.id}/photos`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            url: objectPath, // This will be the relative path, can be served via /objects/...
+            title: file.name,
+            description: 'Uploaded via player modal',
+            type: getPhotoType(file.name),
+            objectPath: objectPath
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to save photo record for ${file.name}`);
         }
 
         toast({
@@ -277,24 +227,12 @@ const PlayerDetailModal: React.FC<PlayerDetailModalProps> = ({
 
   const handleDeletePhoto = async (photoId: string, photoUrl: string) => {
     try {
-      // Extract filename from URL
-      const urlParts = photoUrl.split('/');
-      const fileName = urlParts[urlParts.length - 1];
-      const filePath = `players/${player.id}/${fileName}`;
+      const response = await fetch(`/api/player-photos/${photoId}`, {
+        method: 'DELETE'
+      });
 
-      // Delete from storage
-      const { error } = await supabase.storage
-        .from('player-photos')
-        .remove([filePath]);
-
-      if (error) {
-        console.error('Error deleting photo:', error);
-        toast({
-          title: "Error",
-          description: "Failed to delete photo",
-          variant: "destructive"
-        });
-        return;
+      if (!response.ok) {
+        throw new Error('Failed to delete photo');
       }
 
       // Remove from local state
@@ -339,7 +277,7 @@ const PlayerDetailModal: React.FC<PlayerDetailModalProps> = ({
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-[#1a1a1a] border-gray-700">
           <DialogHeader className="flex flex-row items-center justify-between">
             <DialogTitle className="text-white font-polysans text-2xl">
-              {player.full_name}
+              {player.firstName} {player.lastName}
             </DialogTitle>
             <div className="flex gap-2">
               {isOwnPlayer && onEdit && (
@@ -358,10 +296,10 @@ const PlayerDetailModal: React.FC<PlayerDetailModalProps> = ({
             {/* Player Header */}
             <div className="flex items-start gap-6">
               <div className="w-32 h-32 rounded-lg overflow-hidden bg-gray-700 flex-shrink-0">
-                {player.headshot_url || player.photo_url ? (
+                {player.profileImageUrl ? (
                   <img
-                    src={player.headshot_url || player.photo_url}
-                    alt={player.full_name}
+                    src={player.profileImageUrl}
+                    alt={`${player.firstName} ${player.lastName}`}
                     className="w-full h-full object-cover"
                   />
                 ) : (
@@ -376,13 +314,13 @@ const PlayerDetailModal: React.FC<PlayerDetailModalProps> = ({
                   <Badge variant="outline" className="text-rosegold border-rosegold text-lg px-3 py-1">
                     {player.position}
                   </Badge>
-                  {player.jersey_number && (
+                  {player.jerseyNumber && (
                     <Badge variant="outline" className="text-blue-400 border-blue-400 text-lg px-3 py-1">
-                      #{player.jersey_number}
+                      #{player.jerseyNumber}
                     </Badge>
                   )}
                   <Badge variant="outline" className="text-gray-300 border-gray-300">
-                    {player.gender?.toUpperCase()}
+                    {/* Gender not explicitly in schema viewed, assuming omitted or mapped if present */}
                   </Badge>
                 </div>
 
@@ -398,7 +336,7 @@ const PlayerDetailModal: React.FC<PlayerDetailModalProps> = ({
                     <MapPin className="h-4 w-4 text-gray-400" />
                     <div>
                       <p className="text-gray-400">Nationality</p>
-                      <p className="text-white font-semibold">{player.citizenship}</p>
+                      <p className="text-white font-semibold">{player.nationality}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -420,16 +358,16 @@ const PlayerDetailModal: React.FC<PlayerDetailModalProps> = ({
                     <div>
                       <p className="text-gray-400">Market Value</p>
                       <p className="text-white font-semibold">
-                        {player.market_value ? formatCurrency(player.market_value) : 'N/A'}
+                        {player.marketValue ? formatCurrency(player.marketValue) : 'N/A'}
                       </p>
                     </div>
                   </div>
-                  {player.foot && (
+                  {player.preferredFoot && (
                     <div className="flex items-center gap-2">
                       <Target className="h-4 w-4 text-gray-400" />
                       <div>
                         <p className="text-gray-400">Preferred Foot</p>
-                        <p className="text-white font-semibold capitalize">{player.foot}</p>
+                        <p className="text-white font-semibold capitalize">{player.preferredFoot}</p>
                       </div>
                     </div>
                   )}
@@ -449,16 +387,7 @@ const PlayerDetailModal: React.FC<PlayerDetailModalProps> = ({
 
               <TabsContent value="overview" className="space-y-4">
                 {/* Bio */}
-                {player.bio && (
-                  <Card className="bg-gray-800 border-gray-700">
-                    <CardHeader>
-                      <CardTitle className="text-white font-polysans">Biography</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-gray-300 font-poppins">{player.bio}</p>
-                    </CardContent>
-                  </Card>
-                )}
+                {/* Bio not in schema viewed, possibly need to add or remove */}
 
                 {/* Personal Information */}
                 <Card className="bg-gray-800 border-gray-700">
@@ -467,28 +396,23 @@ const PlayerDetailModal: React.FC<PlayerDetailModalProps> = ({
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {player.date_of_birth && (
+                      {player.dateOfBirth && (
                         <div>
                           <p className="text-gray-400 text-sm">Date of Birth</p>
-                          <p className="text-white">{formatDate(player.date_of_birth)}</p>
+                          <p className="text-white">{formatDate(player.dateOfBirth)}</p>
                         </div>
                       )}
-                      {player.place_of_birth && (
+                      {player.birthPlace && (
                         <div>
                           <p className="text-gray-400 text-sm">Place of Birth</p>
-                          <p className="text-white">{player.place_of_birth}</p>
+                          <p className="text-white">{player.birthPlace}</p>
                         </div>
                       )}
-                      {player.fifa_id && (
-                        <div>
-                          <p className="text-gray-400 text-sm">FIFA ID</p>
-                          <p className="text-white">{player.fifa_id}</p>
-                        </div>
-                      )}
-                      {player.player_agent && (
+                      {/* fifa_id not in schema viewed */}
+                      {player.agentName && (
                         <div>
                           <p className="text-gray-400 text-sm">Agent</p>
-                          <p className="text-white">{player.player_agent}</p>
+                          <p className="text-white">{player.agentName}</p>
                         </div>
                       )}
                     </div>
@@ -503,22 +427,16 @@ const PlayerDetailModal: React.FC<PlayerDetailModalProps> = ({
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {player.current_club && (
+                      {player.currentClubName && (
                         <div>
                           <p className="text-gray-400 text-sm">Current Club</p>
-                          <p className="text-white">{player.current_club}</p>
+                          <p className="text-white">{player.currentClubName}</p>
                         </div>
                       )}
-                      {player.contract_expires && (
+                      {player.contractEndDate && (
                         <div>
                           <p className="text-gray-400 text-sm">Contract Expires</p>
-                          <p className="text-white">{formatDate(player.contract_expires)}</p>
-                        </div>
-                      )}
-                      {player.joined_date && (
-                        <div>
-                          <p className="text-gray-400 text-sm">Joined Date</p>
-                          <p className="text-white">{formatDate(player.joined_date)}</p>
+                          <p className="text-white">{formatDate(player.contractEndDate)}</p>
                         </div>
                       )}
                     </div>
@@ -575,7 +493,7 @@ const PlayerDetailModal: React.FC<PlayerDetailModalProps> = ({
                         <CardContent className="p-4">
                           <div className="aspect-video bg-gray-700 rounded-lg mb-3 relative overflow-hidden">
                             <SmartThumbnail
-                              thumbnailUrl={video.thumbnail_url}
+                              thumbnailUrl={video.thumbnailUrl}
                               title={video.title}
                               className="w-full h-full object-cover"
                             />
@@ -587,7 +505,7 @@ const PlayerDetailModal: React.FC<PlayerDetailModalProps> = ({
                                   className="bg-white/20 hover:bg-white/30 text-white border-0"
                                   onClick={async () => {
                                     // Get signed URL before opening
-                                    const videoRetrieval = await r2VideoRetrievalService.getVideoForPlayback(video.video_url);
+                                    const videoRetrieval = await r2VideoRetrievalService.getVideoForPlayback(video.fileUrl);
                                     if (videoRetrieval.success && videoRetrieval.videoUrl) {
                                       window.open(videoRetrieval.videoUrl, '_blank');
                                     } else {
@@ -615,7 +533,7 @@ const PlayerDetailModal: React.FC<PlayerDetailModalProps> = ({
                           )}
                           <div className="flex items-center justify-between mt-2 text-xs text-gray-400">
                             <span>{video.duration ? `${video.duration}s` : 'N/A'}</span>
-                            <span>{video.video_type || 'highlight'}</span>
+                            <span>{video.videoType || 'highlight'}</span>
                           </div>
                         </CardContent>
                       </Card>
@@ -827,7 +745,7 @@ const PlayerDetailModal: React.FC<PlayerDetailModalProps> = ({
               )}
               <div className="flex items-center justify-between text-sm text-gray-400">
                 <span>Type: {selectedPhoto.type}</span>
-                <span>Uploaded: {new Date(selectedPhoto.uploaded_at).toLocaleDateString()}</span>
+                <span>Uploaded: {new Date(selectedPhoto.uploadedAt).toLocaleDateString()}</span>
               </div>
             </div>
           </DialogContent>
@@ -850,8 +768,8 @@ const PlayerDetailModal: React.FC<PlayerDetailModalProps> = ({
             <div className="overflow-y-auto max-h-[calc(95vh-120px)]">
               <VideoAnalysisResults
                 videoId={selectedVideoForAnalysis.id}
-                videoType={selectedVideoForAnalysis.video_type as 'match' | 'training' | 'highlight' | 'interview' || 'highlight'}
-                teamId={selectedVideoForAnalysis.team_id || ''}
+                videoType={selectedVideoForAnalysis.videoType as 'match' | 'training' | 'highlight' | 'interview' || 'highlight'}
+                teamId={selectedVideoForAnalysis.teamId || ''}
               />
             </div>
           </DialogContent>

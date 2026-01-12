@@ -189,16 +189,7 @@ const VideoAnalysisResults = () => {
 
   const fetchCurrentTeam = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('user_id', user.id)
-        .single();
-
-      if (!profile) return;
+      if (!profile?.id) return;
 
       const { data: teamData } = await supabase
         .from('teams')

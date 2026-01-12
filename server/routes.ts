@@ -1,11 +1,26 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertUserSchema, insertTeamSchema, insertPlayerSchema, insertVideoSchema, insertComplianceOrderSchema, insertPlayerInternationalRecordSchema, insertTeamSheetSchema, insertTeamSheetPlayerSchema, insertPlayerDocumentSchema, insertFederationLetterRequestSchema } from "@shared/schema";
+import {
+  insertUserSchema,
+  insertTeamSchema,
+  insertPlayerSchema,
+  insertVideoSchema,
+  insertComplianceOrderSchema,
+  insertPlayerInternationalRecordSchema,
+  insertTeamSheetSchema,
+  insertTeamSheetPlayerSchema,
+  insertPlayerDocumentSchema,
+  insertFederationLetterRequestSchema,
+  insertPlayerPhotoSchema,
+} from "@shared/schema";
 import session from "express-session";
 import { z } from "zod";
 import { GoogleGenAI } from "@google/genai";
-import { registerObjectStorageRoutes, ObjectStorageService } from "./replit_integrations/object_storage";
+import {
+  registerObjectStorageRoutes,
+  ObjectStorageService,
+} from "./replit_integrations/object_storage";
 import { jsPDF } from "jspdf";
 import crypto from "crypto";
 
@@ -21,20 +36,23 @@ const MAX_PLAYERS_PER_VIDEO = 15;
 const SIGNUP_BONUS_TOKENS = 50;
 const SIGNUP_TOKEN_EXPIRY_MONTHS = 6;
 
-async function grantSignupBonus(userId: string, userRole: string): Promise<void> {
+async function grantSignupBonus(
+  userId: string,
+  userRole: string
+): Promise<void> {
   if (userRole === "embassy") return;
-  
+
   try {
     const expiresAt = new Date();
     expiresAt.setMonth(expiresAt.getMonth() + SIGNUP_TOKEN_EXPIRY_MONTHS);
-    
+
     await storage.createTokenBalance({
       userId,
       balance: SIGNUP_BONUS_TOKENS,
       lifetimePurchased: 0,
       lifetimeSpent: 0,
     });
-    
+
     await storage.createTokenTransaction({
       userId,
       amount: SIGNUP_BONUS_TOKENS,
@@ -70,7 +88,8 @@ const requireAuth = (req: Request, res: Response, next: NextFunction) => {
   if (!req.session.userId) {
     req.session.userId = "demo-user";
     req.session.teamId = "demo-team";
-    req.session.userRole = req.headers["x-user-role"] as string || "sporting_director";
+    req.session.userRole =
+      (req.headers["x-user-role"] as string) || "sporting_director";
   }
   next();
 };
@@ -92,7 +111,11 @@ const requireScoutRole = (req: Request, res: Response, next: NextFunction) => {
   next();
 };
 
-const requireEmbassyRole = (req: Request, res: Response, next: NextFunction) => {
+const requireEmbassyRole = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   if (!req.session.userId) {
     req.session.userId = "demo-embassy";
     req.session.userRole = "embassy";
@@ -103,7 +126,7 @@ const requireEmbassyRole = (req: Request, res: Response, next: NextFunction) => 
 
 function getPositionalMetricsPrompt(position: string): string {
   const positionLower = position.toLowerCase();
-  
+
   if (positionLower.includes("goalkeeper") || positionLower === "gk") {
     return `Focus on GOALKEEPER-specific metrics:
 - Saves made and save percentage
@@ -115,8 +138,14 @@ function getPositionalMetricsPrompt(position: string): string {
 - Positioning and command of area
 - Communication with defense`;
   }
-  
-  if (positionLower.includes("defender") || positionLower.includes("back") || positionLower === "cb" || positionLower === "rb" || positionLower === "lb") {
+
+  if (
+    positionLower.includes("defender") ||
+    positionLower.includes("back") ||
+    positionLower === "cb" ||
+    positionLower === "rb" ||
+    positionLower === "lb"
+  ) {
     return `Focus on DEFENDER-specific metrics:
 - Tackles won and tackle success rate
 - Aerial duels won and percentage
@@ -128,8 +157,14 @@ function getPositionalMetricsPrompt(position: string): string {
 - Ground duels success rate
 - Defensive positioning`;
   }
-  
-  if (positionLower.includes("midfielder") || positionLower === "cm" || positionLower === "dm" || positionLower === "am" || positionLower === "cdm") {
+
+  if (
+    positionLower.includes("midfielder") ||
+    positionLower === "cm" ||
+    positionLower === "dm" ||
+    positionLower === "am" ||
+    positionLower === "cdm"
+  ) {
     return `Focus on MIDFIELDER-specific metrics:
 - Pass completion rate (short, medium, long)
 - Key passes and through balls
@@ -141,8 +176,15 @@ function getPositionalMetricsPrompt(position: string): string {
 - Distance covered and high-intensity runs
 - Possession retention`;
   }
-  
-  if (positionLower.includes("winger") || positionLower.includes("wing") || positionLower === "lw" || positionLower === "rw" || positionLower === "lm" || positionLower === "rm") {
+
+  if (
+    positionLower.includes("winger") ||
+    positionLower.includes("wing") ||
+    positionLower === "lw" ||
+    positionLower === "rw" ||
+    positionLower === "lm" ||
+    positionLower === "rm"
+  ) {
     return `Focus on WINGER-specific metrics:
 - Successful dribbles and take-ons
 - Crosses attempted and completed
@@ -154,8 +196,14 @@ function getPositionalMetricsPrompt(position: string): string {
 - Defensive tracking back
 - Sprint speed and acceleration`;
   }
-  
-  if (positionLower.includes("striker") || positionLower.includes("forward") || positionLower === "st" || positionLower === "cf" || positionLower === "fw") {
+
+  if (
+    positionLower.includes("striker") ||
+    positionLower.includes("forward") ||
+    positionLower === "st" ||
+    positionLower === "cf" ||
+    positionLower === "fw"
+  ) {
     return `Focus on STRIKER/FORWARD-specific metrics:
 - Goals scored and xG (expected goals)
 - Shots on target and shot accuracy
@@ -167,7 +215,7 @@ function getPositionalMetricsPrompt(position: string): string {
 - xA (expected assists) if applicable
 - Penalty area touches`;
   }
-  
+
   return `Analyze general football performance metrics for this position: ${position}`;
 }
 
@@ -178,56 +226,69 @@ async function updatePlayerStatsFromVideos(playerId: string): Promise<void> {
 
     const videos = await storage.getVideos(playerId);
     const playerTags = await storage.getVideoPlayerTagsForPlayer(playerId);
-    
+
     let totalMinutesFromVideos = 0;
     const currentYear = new Date().getFullYear();
     const oneYearAgo = new Date();
     oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
     let last12MonthsMinutes = 0;
     let currentSeasonMinutes = 0;
-    
+
     for (const video of videos) {
       if (video.minutesPlayed && video.minutesPlayed > 0) {
         totalMinutesFromVideos += video.minutesPlayed;
-        
-        const videoDate = video.matchDate ? new Date(video.matchDate) : video.uploadDate;
+
+        const videoDate = video.matchDate
+          ? new Date(video.matchDate)
+          : video.uploadDate;
         if (videoDate && videoDate >= oneYearAgo) {
           last12MonthsMinutes += video.minutesPlayed;
         }
-        
+
         if (videoDate && videoDate.getFullYear() === currentYear) {
           currentSeasonMinutes += video.minutesPlayed;
         }
       }
     }
-    
+
     for (const tag of playerTags) {
       if (tag.minutesPlayed && tag.minutesPlayed > 0) {
         totalMinutesFromVideos += tag.minutesPlayed;
-        
-        const videoDate = tag.video?.matchDate ? new Date(tag.video.matchDate) : (tag.video?.uploadDate || tag.createdAt);
+
+        const videoDate = tag.video?.matchDate
+          ? new Date(tag.video.matchDate)
+          : tag.video?.uploadDate || tag.createdAt;
         if (videoDate && videoDate >= oneYearAgo) {
           last12MonthsMinutes += tag.minutesPlayed;
         }
-        
+
         if (videoDate && videoDate.getFullYear() === currentYear) {
           currentSeasonMinutes += tag.minutesPlayed;
         }
       }
     }
-    
+
     const updates: Record<string, number> = {};
-    
+
     if (totalMinutesFromVideos > 0) {
-      updates.totalCareerMinutes = Math.max(player.totalCareerMinutes || 0, totalMinutesFromVideos);
+      updates.totalCareerMinutes = Math.max(
+        player.totalCareerMinutes || 0,
+        totalMinutesFromVideos
+      );
     }
     if (last12MonthsMinutes > 0) {
-      updates.clubMinutesLast12Months = Math.max(player.clubMinutesLast12Months || 0, last12MonthsMinutes);
+      updates.clubMinutesLast12Months = Math.max(
+        player.clubMinutesLast12Months || 0,
+        last12MonthsMinutes
+      );
     }
     if (currentSeasonMinutes > 0) {
-      updates.clubMinutesCurrentSeason = Math.max(player.clubMinutesCurrentSeason || 0, currentSeasonMinutes);
+      updates.clubMinutesCurrentSeason = Math.max(
+        player.clubMinutesCurrentSeason || 0,
+        currentSeasonMinutes
+      );
     }
-    
+
     if (Object.keys(updates).length > 0) {
       await storage.updatePlayer(playerId, updates);
     }
@@ -240,54 +301,66 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
-  
   registerObjectStorageRoutes(app);
   const objectStorageService = new ObjectStorageService();
-  
+
   // Object storage upload URL endpoint
   app.get("/api/object-storage/upload-url", requireAuth, async (req, res) => {
     try {
       const signedUrl = await objectStorageService.getObjectEntityUploadURL();
-      
+
       // Extract the objectPath from the signed URL
       const url = new URL(signedUrl);
-      const pathParts = url.pathname.split('/');
+      const pathParts = url.pathname.split("/");
       const bucketName = pathParts[1];
-      const objectName = pathParts.slice(2).join('/');
+      const objectName = pathParts.slice(2).join("/");
       const key = `${bucketName}/${objectName}`;
-      const objectPath = `/objects/uploads/${objectName.split('/').pop()}`;
-      
+      const objectPath = `/objects/uploads/${objectName.split("/").pop()}`;
+
       res.json({ signedUrl, key, objectPath });
     } catch (error: any) {
       console.error("Error getting upload URL:", error);
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   // Auth routes - Team signup
   app.post("/api/auth/signup", async (req, res) => {
     try {
-      const signupSchema = z.object({
-        username: z.string().min(3),
-        password: z.string().min(8),
-        email: z.string().email(),
-        firstName: z.string().optional(),
-        lastName: z.string().optional(),
-        role: z.enum(["sporting_director", "legal", "scout", "coach", "admin", "agent", "embassy"]).optional().default("scout"),
-        teamName: z.string().optional(),
-        clubName: z.string().optional(),
-        country: z.string().optional(),
-        leagueBand: z.coerce.number().min(1).max(5).optional().default(3),
-        embassyCountry: z.string().optional(),
-        jurisdiction: z.string().optional(),
-      }).transform(data => ({
-        ...data,
-        role: data.role || "scout",
-        leagueBand: data.leagueBand || 3,
-      }));
+      const signupSchema = z
+        .object({
+          username: z.string().min(3),
+          password: z.string().min(8),
+          email: z.string().email(),
+          firstName: z.string().optional(),
+          lastName: z.string().optional(),
+          role: z
+            .enum([
+              "sporting_director",
+              "legal",
+              "scout",
+              "coach",
+              "admin",
+              "agent",
+              "embassy",
+            ])
+            .optional()
+            .default("scout"),
+          teamName: z.string().optional(),
+          clubName: z.string().optional(),
+          country: z.string().optional(),
+          leagueBand: z.coerce.number().min(1).max(5).optional().default(3),
+          embassyCountry: z.string().optional(),
+          jurisdiction: z.string().optional(),
+        })
+        .transform((data) => ({
+          ...data,
+          role: data.role || "scout",
+          leagueBand: data.leagueBand || 3,
+        }));
 
       const data = signupSchema.parse(req.body);
-      
+
       const existingUser = await storage.getUserByUsername(data.username);
       if (existingUser) {
         return res.status(400).json({ error: "Username already exists" });
@@ -316,14 +389,24 @@ export async function registerRoutes(
         req.session.userId = user.id;
         req.session.userRole = "embassy";
         req.session.embassyCountry = embassyProfile.country;
-        
+
         return new Promise((resolve, reject) => {
           req.session.save((err) => {
             if (err) {
               console.error("Session save error:", err);
               return res.status(500).json({ error: "Session error" });
             }
-            res.json({ success: true, userId: user.id, role: "embassy", user: { id: user.id, username: user.username, role: "embassy", embassyCountry: embassyProfile.country } });
+            res.json({
+              success: true,
+              userId: user.id,
+              role: "embassy",
+              user: {
+                id: user.id,
+                username: user.username,
+                role: "embassy",
+                embassyCountry: embassyProfile.country,
+              },
+            });
             resolve(undefined);
           });
         });
@@ -338,20 +421,25 @@ export async function registerRoutes(
           lastName: data.lastName,
           role: data.role,
         });
-        
+
         await grantSignupBonus(user.id, data.role);
 
         // Auto-login after signup
         req.session.userId = user.id;
         req.session.userRole = data.role;
-        
+
         return new Promise((resolve, reject) => {
           req.session.save((err) => {
             if (err) {
               console.error("Session save error:", err);
               return res.status(500).json({ error: "Session error" });
             }
-            res.json({ success: true, userId: user.id, role: data.role, user: { id: user.id, username: user.username, role: data.role } });
+            res.json({
+              success: true,
+              userId: user.id,
+              role: data.role,
+              user: { id: user.id, username: user.username, role: data.role },
+            });
             resolve(undefined);
           });
         });
@@ -376,21 +464,32 @@ export async function registerRoutes(
         role: data.role,
         teamId,
       });
-      
+
       await grantSignupBonus(user.id, data.role);
 
       // Auto-login after signup
       req.session.userId = user.id;
       req.session.teamId = teamId;
       req.session.userRole = data.role;
-      
+
       return new Promise((resolve, reject) => {
         req.session.save((err) => {
           if (err) {
             console.error("Session save error:", err);
             return res.status(500).json({ error: "Session error" });
           }
-          res.json({ success: true, userId: user.id, teamId, role: data.role, user: { id: user.id, username: user.username, role: data.role, teamId } });
+          res.json({
+            success: true,
+            userId: user.id,
+            teamId,
+            role: data.role,
+            user: {
+              id: user.id,
+              username: user.username,
+              role: data.role,
+              teamId,
+            },
+          });
           resolve(undefined);
         });
       });
@@ -403,15 +502,15 @@ export async function registerRoutes(
   app.post("/api/auth/login", async (req, res) => {
     try {
       const { username, password } = req.body;
-      
+
       console.log("Login attempt for:", username);
-      
+
       const user = await storage.getUserByUsername(username);
       if (!user) {
         console.log("User not found:", username);
         return res.status(401).json({ error: "Invalid credentials" });
       }
-      
+
       // Simple password comparison (for development)
       if (user.password !== password) {
         console.log("Password mismatch for:", username);
@@ -437,7 +536,7 @@ export async function registerRoutes(
             console.error("Session save error:", err);
             return res.status(500).json({ error: "Session error" });
           }
-          
+
           try {
             await storage.logAction({
               userId: user.id,
@@ -450,16 +549,16 @@ export async function registerRoutes(
           } catch (e) {
             console.error("Log action error:", e);
           }
-          
-          res.json({ 
-            success: true, 
-            user: { 
-              id: user.id, 
-              username: user.username, 
+
+          res.json({
+            success: true,
+            user: {
+              id: user.id,
+              username: user.username,
               role: user.role,
               teamId: user.teamId,
               embassyCountry: embassyProfile?.country,
-            } 
+            },
           });
           resolve(undefined);
         });
@@ -474,7 +573,7 @@ export async function registerRoutes(
     if (!req.session.userId) {
       return res.status(401).json({ error: "Not authenticated" });
     }
-    
+
     const user = await storage.getUser(req.session.userId);
     if (!user) {
       return res.status(401).json({ error: "User not found" });
@@ -485,11 +584,11 @@ export async function registerRoutes(
     if (user.role === "embassy") {
       embassyProfile = await storage.getEmbassyProfileByUserId(user.id);
     }
-    
-    res.json({ 
-      user: { 
-        id: user.id, 
-        username: user.username, 
+
+    res.json({
+      user: {
+        id: user.id,
+        username: user.username,
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
@@ -498,7 +597,7 @@ export async function registerRoutes(
         embassyCountry: embassyProfile?.country,
       },
       team,
-      embassyProfile
+      embassyProfile,
     });
   });
 
@@ -538,20 +637,20 @@ export async function registerRoutes(
       if (!player) {
         return res.status(404).json({ error: "Player not found" });
       }
-      
+
       const metrics = await storage.getPlayerMetrics(player.id);
       const eligibilityScores = await storage.getEligibilityScores(player.id);
       const medicalRecords = await storage.getMedicalRecords(player.id);
       const biometricData = await storage.getBiometricData(player.id);
       const videos = await storage.getVideos(player.id);
-      
-      res.json({ 
-        player, 
-        metrics, 
-        eligibilityScores, 
-        medicalRecords, 
+
+      res.json({
+        player,
+        metrics,
+        eligibilityScores,
+        medicalRecords,
         biometricData,
-        videos 
+        videos,
       });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -583,6 +682,38 @@ export async function registerRoutes(
     }
   });
 
+  // Player Photos
+  app.get("/api/players/:id/photos", requireAuth, async (req, res) => {
+    try {
+      const photos = await storage.getPlayerPhotos(req.params.id);
+      res.json(photos);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/players/:id/photos", requireAuth, async (req, res) => {
+    try {
+      const data = insertPlayerPhotoSchema.parse({
+        ...req.body,
+        playerId: req.params.id,
+      });
+      const photo = await storage.createPlayerPhoto(data);
+      res.json(photo);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/player-photos/:id", requireAuth, async (req, res) => {
+    try {
+      await storage.deletePlayerPhoto(req.params.id);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Player metrics routes
   app.post("/api/players/:id/metrics", requireAuth, async (req, res) => {
     try {
@@ -597,48 +728,72 @@ export async function registerRoutes(
   });
 
   // Player international records routes
-  app.get("/api/players/:playerId/international-records", requireAuth, async (req, res) => {
-    try {
-      const records = await storage.getPlayerInternationalRecords(req.params.playerId);
-      res.json(records);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  app.post("/api/players/:playerId/international-records", requireAuth, async (req, res) => {
-    try {
-      const recordData = insertPlayerInternationalRecordSchema.parse({
-        ...req.body,
-        playerId: req.params.playerId,
-      });
-      const record = await storage.createPlayerInternationalRecord(recordData);
-      res.json(record);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
-    }
-  });
-
-  app.put("/api/players/:playerId/international-records/:recordId", requireAuth, async (req, res) => {
-    try {
-      const record = await storage.updatePlayerInternationalRecord(req.params.recordId, req.body);
-      if (!record) {
-        return res.status(404).json({ error: "International record not found" });
+  app.get(
+    "/api/players/:playerId/international-records",
+    requireAuth,
+    async (req, res) => {
+      try {
+        const records = await storage.getPlayerInternationalRecords(
+          req.params.playerId
+        );
+        res.json(records);
+      } catch (error: any) {
+        res.status(500).json({ error: error.message });
       }
-      res.json(record);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
     }
-  });
+  );
 
-  app.delete("/api/players/:playerId/international-records/:recordId", requireAuth, async (req, res) => {
-    try {
-      await storage.deletePlayerInternationalRecord(req.params.recordId);
-      res.json({ success: true });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+  app.post(
+    "/api/players/:playerId/international-records",
+    requireAuth,
+    async (req, res) => {
+      try {
+        const recordData = insertPlayerInternationalRecordSchema.parse({
+          ...req.body,
+          playerId: req.params.playerId,
+        });
+        const record =
+          await storage.createPlayerInternationalRecord(recordData);
+        res.json(record);
+      } catch (error: any) {
+        res.status(400).json({ error: error.message });
+      }
     }
-  });
+  );
+
+  app.put(
+    "/api/players/:playerId/international-records/:recordId",
+    requireAuth,
+    async (req, res) => {
+      try {
+        const record = await storage.updatePlayerInternationalRecord(
+          req.params.recordId,
+          req.body
+        );
+        if (!record) {
+          return res
+            .status(404)
+            .json({ error: "International record not found" });
+        }
+        res.json(record);
+      } catch (error: any) {
+        res.status(400).json({ error: error.message });
+      }
+    }
+  );
+
+  app.delete(
+    "/api/players/:playerId/international-records/:recordId",
+    requireAuth,
+    async (req, res) => {
+      try {
+        await storage.deletePlayerInternationalRecord(req.params.recordId);
+        res.json({ success: true });
+      } catch (error: any) {
+        res.status(500).json({ error: error.message });
+      }
+    }
+  );
 
   // Player publishing for scouts (3.5 tokens per month)
   app.post("/api/players/:id/publish", requireTeamRole, async (req, res) => {
@@ -646,7 +801,7 @@ export async function registerRoutes(
       const playerId = req.params.id;
       const userId = req.session.userId || "demo-user";
       const { publish } = req.body;
-      
+
       const player = await storage.getPlayer(playerId);
       if (!player) {
         return res.status(404).json({ error: "Player not found" });
@@ -656,19 +811,24 @@ export async function registerRoutes(
         // Check token balance (3.5 tokens, stored as 35 cents equivalent)
         const balance = await storage.getTokenBalance(userId);
         const cost = 4; // Round up 3.5 to 4 for integer storage
-        
+
         if (!balance || balance.balance < cost) {
-          return res.status(402).json({ 
-            error: "Insufficient tokens", 
-            required: cost, 
+          return res.status(402).json({
+            error: "Insufficient tokens",
+            required: cost,
             current: balance?.balance || 0,
-            needsTokens: true
+            needsTokens: true,
           });
         }
 
         // Spend tokens
         const newBalance = balance.balance - cost;
-        await storage.updateTokenBalance(userId, newBalance, undefined, balance.lifetimeSpent + cost);
+        await storage.updateTokenBalance(
+          userId,
+          newBalance,
+          undefined,
+          balance.lifetimeSpent + cost
+        );
 
         await storage.createTokenTransaction({
           userId,
@@ -690,12 +850,12 @@ export async function registerRoutes(
           publishExpiresAt,
         });
 
-        res.json({ 
-          success: true, 
-          published: true, 
+        res.json({
+          success: true,
+          published: true,
           expiresAt: publishExpiresAt,
           tokensSpent: cost,
-          newBalance
+          newBalance,
         });
       } else {
         // Unpublish - no token refund
@@ -718,7 +878,7 @@ export async function registerRoutes(
       const playerId = req.params.id;
       const userId = req.session.userId || "demo-user";
       const teamId = req.session.teamId || "demo-team";
-      
+
       const player = await storage.getPlayer(playerId);
       if (!player) {
         return res.status(404).json({ error: "Player not found" });
@@ -727,23 +887,28 @@ export async function registerRoutes(
       // Check token balance (10 tokens)
       const balance = await storage.getTokenBalance(userId);
       const cost = 10;
-      
+
       if (!balance || balance.balance < cost) {
-        return res.status(402).json({ 
-          error: "Insufficient tokens", 
-          required: cost, 
+        return res.status(402).json({
+          error: "Insufficient tokens",
+          required: cost,
           current: balance?.balance || 0,
-          needsTokens: true
+          needsTokens: true,
         });
       }
 
       // Spend tokens
       const newBalance = balance.balance - cost;
-      await storage.updateTokenBalance(userId, newBalance, undefined, balance.lifetimeSpent + cost);
+      await storage.updateTokenBalance(
+        userId,
+        newBalance,
+        undefined,
+        balance.lifetimeSpent + cost
+      );
 
       // Generate unique share token
       const shareToken = `sr_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
-      
+
       // Create expiry 90 days from now
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 90);
@@ -768,13 +933,13 @@ export async function registerRoutes(
         expiresAt,
       });
 
-      res.json({ 
-        success: true, 
+      res.json({
+        success: true,
         shareToken,
         shareUrl: `/shared/player/${shareToken}`,
         expiresAt,
         tokensSpent: cost,
-        newBalance
+        newBalance,
       });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -794,14 +959,18 @@ export async function registerRoutes(
   // Public shared player profile (no auth required)
   app.get("/api/shared/:shareToken", async (req, res) => {
     try {
-      const shareLink = await storage.getPlayerShareLinkByToken(req.params.shareToken);
-      
+      const shareLink = await storage.getPlayerShareLinkByToken(
+        req.params.shareToken
+      );
+
       if (!shareLink) {
         return res.status(404).json({ error: "Share link not found" });
       }
 
       if (!shareLink.isActive) {
-        return res.status(410).json({ error: "Share link has been deactivated" });
+        return res
+          .status(410)
+          .json({ error: "Share link has been deactivated" });
       }
 
       if (shareLink.expiresAt && new Date(shareLink.expiresAt) < new Date()) {
@@ -818,13 +987,17 @@ export async function registerRoutes(
       }
 
       // Get eligibility data
-      const eligibilityScores = await storage.getEligibilityScores(shareLink.playerId);
-      const assessment = await storage.getTransferEligibilityAssessment(shareLink.playerId);
+      const eligibilityScores = await storage.getEligibilityScores(
+        shareLink.playerId
+      );
+      const assessment = await storage.getTransferEligibilityAssessment(
+        shareLink.playerId
+      );
       const metrics = await storage.getPlayerMetrics(shareLink.playerId);
       const videos = await storage.getVideos(shareLink.playerId);
 
       // Include video previews (thumbnails/titles only, no playable URLs)
-      const videoPreview = videos.map(v => ({
+      const videoPreview = videos.map((v) => ({
         id: v.id,
         title: v.title,
         thumbnailUrl: v.thumbnailUrl,
@@ -854,7 +1027,8 @@ export async function registerRoutes(
           dateOfBirth: player.dateOfBirth,
           preferredFoot: player.preferredFoot,
           clubMinutesCurrentSeason: player.clubMinutesCurrentSeason,
-          internationalMinutesCurrentSeason: player.internationalMinutesCurrentSeason,
+          internationalMinutesCurrentSeason:
+            player.internationalMinutesCurrentSeason,
         },
         eligibilityScores,
         assessment,
@@ -874,640 +1048,818 @@ export async function registerRoutes(
   });
 
   // Player documents routes (passport, national ID, birth certificate)
-  app.get("/api/players/:playerId/documents", requireTeamRole, async (req, res) => {
-    try {
-      const documents = await storage.getPlayerDocuments(req.params.playerId);
-      res.json(documents);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+  app.get(
+    "/api/players/:playerId/documents",
+    requireTeamRole,
+    async (req, res) => {
+      try {
+        const documents = await storage.getPlayerDocuments(req.params.playerId);
+        res.json(documents);
+      } catch (error: any) {
+        res.status(500).json({ error: error.message });
+      }
     }
-  });
+  );
 
-  app.post("/api/players/:playerId/documents", requireTeamRole, async (req, res) => {
-    try {
-      const { documentType, originalName, mimeType, fileSize, storageKey, objectPath, documentNumber, issuingCountry, expiryDate, notes } = req.body;
-      
-      if (!documentType || !originalName || !storageKey) {
-        return res.status(400).json({ error: "Missing required fields: documentType, originalName, storageKey" });
-      }
-      
-      const validTypes = ["passport", "national_id", "birth_certificate"];
-      if (!validTypes.includes(documentType)) {
-        return res.status(400).json({ error: `Invalid document type. Must be one of: ${validTypes.join(", ")}` });
-      }
-      
-      const document = await storage.createPlayerDocument({
-        playerId: req.params.playerId,
-        teamId: req.session.teamId || "demo-team",
-        documentType,
-        originalName,
-        mimeType,
-        fileSize,
-        storageKey,
-        objectPath,
-        documentNumber,
-        issuingCountry,
-        expiryDate,
-        notes,
-        uploadedBy: req.session.userId,
-      });
-      
-      await storage.logAction({
-        userId: req.session.userId,
-        userRole: req.session.userRole,
-        action: "upload_document",
-        entityType: "player_document",
-        entityId: document.id,
-        details: { playerId: req.params.playerId, documentType },
-      });
-      
-      // Create initial version and audit log
-      await storage.createDocumentVersion({
-        documentId: document.id,
-        versionNumber: 1,
-        originalName,
-        mimeType,
-        fileSize,
-        storageKey,
-        objectPath,
-        changeReason: "Initial upload",
-        uploadedBy: req.session.userId,
-        isCurrent: true,
-      });
-      
-      await storage.createDocumentAuditLog({
-        documentId: document.id,
-        documentType,
-        playerId: req.params.playerId,
-        teamId: req.session.teamId,
-        action: "created",
-        actorId: req.session.userId,
-        actorName: req.session.username,
-        actorRole: req.session.userRole,
-        ipAddress: req.ip,
-        userAgent: req.get("User-Agent"),
-        newValue: { documentType, originalName },
-        details: { fileSize, mimeType },
-      });
-      
-      res.json(document);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
-    }
-  });
+  app.post(
+    "/api/players/:playerId/documents",
+    requireTeamRole,
+    async (req, res) => {
+      try {
+        const {
+          documentType,
+          originalName,
+          mimeType,
+          fileSize,
+          storageKey,
+          objectPath,
+          documentNumber,
+          issuingCountry,
+          expiryDate,
+          notes,
+        } = req.body;
 
-  app.put("/api/players/:playerId/documents/:docId", requireTeamRole, async (req, res) => {
-    try {
-      const document = await storage.updatePlayerDocument(req.params.docId, req.body);
-      if (!document) {
-        return res.status(404).json({ error: "Document not found" });
-      }
-      res.json(document);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
-    }
-  });
+        if (!documentType || !originalName || !storageKey) {
+          return res.status(400).json({
+            error:
+              "Missing required fields: documentType, originalName, storageKey",
+          });
+        }
 
-  app.delete("/api/players/:playerId/documents/:docId", requireTeamRole, async (req, res) => {
-    try {
-      const document = await storage.getPlayerDocument(req.params.docId);
-      if (!document) {
-        return res.status(404).json({ error: "Document not found" });
-      }
-      
-      await storage.deletePlayerDocument(req.params.docId);
-      
-      await storage.logAction({
-        userId: req.session.userId,
-        userRole: req.session.userRole,
-        action: "delete_document",
-        entityType: "player_document",
-        entityId: req.params.docId,
-        details: { playerId: req.params.playerId, documentType: document.documentType },
-      });
-      
-      // Create audit log for deletion
-      await storage.createDocumentAuditLog({
-        documentId: req.params.docId,
-        documentType: document.documentType,
-        playerId: req.params.playerId,
-        teamId: req.session.teamId,
-        action: "deleted",
-        actorId: req.session.userId,
-        actorName: req.session.username,
-        actorRole: req.session.userRole,
-        ipAddress: req.ip,
-        userAgent: req.get("User-Agent"),
-        previousValue: { documentType: document.documentType, originalName: document.originalName },
-      });
-      
-      res.json({ success: true });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  });
+        const validTypes = ["passport", "national_id", "birth_certificate"];
+        if (!validTypes.includes(documentType)) {
+          return res.status(400).json({
+            error: `Invalid document type. Must be one of: ${validTypes.join(", ")}`,
+          });
+        }
 
-  app.post("/api/players/:playerId/documents/:docId/verify", requireTeamRole, async (req, res) => {
-    try {
-      const document = await storage.updatePlayerDocument(req.params.docId, {
-        verificationStatus: "verified",
-        verifiedBy: req.session.userId,
-        verifiedAt: new Date(),
-      });
-      if (!document) {
-        return res.status(404).json({ error: "Document not found" });
+        const document = await storage.createPlayerDocument({
+          playerId: req.params.playerId,
+          teamId: req.session.teamId || "demo-team",
+          documentType,
+          originalName,
+          mimeType,
+          fileSize,
+          storageKey,
+          objectPath,
+          documentNumber,
+          issuingCountry,
+          expiryDate,
+          notes,
+          uploadedBy: req.session.userId,
+        });
+
+        await storage.logAction({
+          userId: req.session.userId,
+          userRole: req.session.userRole,
+          action: "upload_document",
+          entityType: "player_document",
+          entityId: document.id,
+          details: { playerId: req.params.playerId, documentType },
+        });
+
+        // Create initial version and audit log
+        await storage.createDocumentVersion({
+          documentId: document.id,
+          versionNumber: 1,
+          originalName,
+          mimeType,
+          fileSize,
+          storageKey,
+          objectPath,
+          changeReason: "Initial upload",
+          uploadedBy: req.session.userId,
+          isCurrent: true,
+        });
+
+        await storage.createDocumentAuditLog({
+          documentId: document.id,
+          documentType,
+          playerId: req.params.playerId,
+          teamId: req.session.teamId,
+          action: "created",
+          actorId: req.session.userId,
+          actorName: req.session.username,
+          actorRole: req.session.userRole,
+          ipAddress: req.ip,
+          userAgent: req.get("User-Agent"),
+          newValue: { documentType, originalName },
+          details: { fileSize, mimeType },
+        });
+
+        res.json(document);
+      } catch (error: any) {
+        res.status(400).json({ error: error.message });
       }
-      
-      await storage.logAction({
-        userId: req.session.userId,
-        userRole: req.session.userRole,
-        action: "verify_document",
-        entityType: "player_document",
-        entityId: req.params.docId,
-        details: { playerId: req.params.playerId, documentType: document.documentType },
-      });
-      
-      // Create audit log for verification
-      await storage.createDocumentAuditLog({
-        documentId: req.params.docId,
-        documentType: document.documentType,
-        playerId: req.params.playerId,
-        teamId: req.session.teamId,
-        action: "verified",
-        actorId: req.session.userId,
-        actorName: req.session.username,
-        actorRole: req.session.userRole,
-        ipAddress: req.ip,
-        userAgent: req.get("User-Agent"),
-        newValue: { verificationStatus: "verified" },
-      });
-      
-      res.json(document);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
     }
-  });
+  );
+
+  app.put(
+    "/api/players/:playerId/documents/:docId",
+    requireTeamRole,
+    async (req, res) => {
+      try {
+        const document = await storage.updatePlayerDocument(
+          req.params.docId,
+          req.body
+        );
+        if (!document) {
+          return res.status(404).json({ error: "Document not found" });
+        }
+        res.json(document);
+      } catch (error: any) {
+        res.status(400).json({ error: error.message });
+      }
+    }
+  );
+
+  app.delete(
+    "/api/players/:playerId/documents/:docId",
+    requireTeamRole,
+    async (req, res) => {
+      try {
+        const document = await storage.getPlayerDocument(req.params.docId);
+        if (!document) {
+          return res.status(404).json({ error: "Document not found" });
+        }
+
+        await storage.deletePlayerDocument(req.params.docId);
+
+        await storage.logAction({
+          userId: req.session.userId,
+          userRole: req.session.userRole,
+          action: "delete_document",
+          entityType: "player_document",
+          entityId: req.params.docId,
+          details: {
+            playerId: req.params.playerId,
+            documentType: document.documentType,
+          },
+        });
+
+        // Create audit log for deletion
+        await storage.createDocumentAuditLog({
+          documentId: req.params.docId,
+          documentType: document.documentType,
+          playerId: req.params.playerId,
+          teamId: req.session.teamId,
+          action: "deleted",
+          actorId: req.session.userId,
+          actorName: req.session.username,
+          actorRole: req.session.userRole,
+          ipAddress: req.ip,
+          userAgent: req.get("User-Agent"),
+          previousValue: {
+            documentType: document.documentType,
+            originalName: document.originalName,
+          },
+        });
+
+        res.json({ success: true });
+      } catch (error: any) {
+        res.status(500).json({ error: error.message });
+      }
+    }
+  );
+
+  app.post(
+    "/api/players/:playerId/documents/:docId/verify",
+    requireTeamRole,
+    async (req, res) => {
+      try {
+        const document = await storage.updatePlayerDocument(req.params.docId, {
+          verificationStatus: "verified",
+          verifiedBy: req.session.userId,
+          verifiedAt: new Date(),
+        });
+        if (!document) {
+          return res.status(404).json({ error: "Document not found" });
+        }
+
+        await storage.logAction({
+          userId: req.session.userId,
+          userRole: req.session.userRole,
+          action: "verify_document",
+          entityType: "player_document",
+          entityId: req.params.docId,
+          details: {
+            playerId: req.params.playerId,
+            documentType: document.documentType,
+          },
+        });
+
+        // Create audit log for verification
+        await storage.createDocumentAuditLog({
+          documentId: req.params.docId,
+          documentType: document.documentType,
+          playerId: req.params.playerId,
+          teamId: req.session.teamId,
+          action: "verified",
+          actorId: req.session.userId,
+          actorName: req.session.username,
+          actorRole: req.session.userRole,
+          ipAddress: req.ip,
+          userAgent: req.get("User-Agent"),
+          newValue: { verificationStatus: "verified" },
+        });
+
+        res.json(document);
+      } catch (error: any) {
+        res.status(400).json({ error: error.message });
+      }
+    }
+  );
 
   // Document version control endpoints
-  app.get("/api/players/:playerId/documents/:docId/versions", requireTeamRole, async (req, res) => {
-    try {
-      const versions = await storage.getDocumentVersions(req.params.docId);
-      res.json(versions);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+  app.get(
+    "/api/players/:playerId/documents/:docId/versions",
+    requireTeamRole,
+    async (req, res) => {
+      try {
+        const versions = await storage.getDocumentVersions(req.params.docId);
+        res.json(versions);
+      } catch (error: any) {
+        res.status(500).json({ error: error.message });
+      }
     }
-  });
+  );
 
-  app.post("/api/players/:playerId/documents/:docId/versions", requireTeamRole, async (req, res) => {
-    try {
-      const { originalName, mimeType, fileSize, storageKey, objectPath, changeReason } = req.body;
-      
-      if (!originalName || !storageKey) {
-        return res.status(400).json({ error: "Missing required fields: originalName, storageKey" });
-      }
-      
-      const document = await storage.getPlayerDocument(req.params.docId);
-      if (!document) {
-        return res.status(404).json({ error: "Document not found" });
-      }
-      
-      // Get current version number
-      const existingVersions = await storage.getDocumentVersions(req.params.docId);
-      const nextVersionNumber = existingVersions.length > 0 
-        ? Math.max(...existingVersions.map(v => v.versionNumber)) + 1 
-        : 1;
-      
-      // Mark all previous versions as not current
-      for (const version of existingVersions) {
-        if (version.isCurrent) {
-          await storage.setCurrentVersion(req.params.docId, version.id);
+  app.post(
+    "/api/players/:playerId/documents/:docId/versions",
+    requireTeamRole,
+    async (req, res) => {
+      try {
+        const {
+          originalName,
+          mimeType,
+          fileSize,
+          storageKey,
+          objectPath,
+          changeReason,
+        } = req.body;
+
+        if (!originalName || !storageKey) {
+          return res.status(400).json({
+            error: "Missing required fields: originalName, storageKey",
+          });
         }
-      }
-      
-      // Create new version
-      const newVersion = await storage.createDocumentVersion({
-        documentId: req.params.docId,
-        versionNumber: nextVersionNumber,
-        originalName,
-        mimeType,
-        fileSize,
-        storageKey,
-        objectPath,
-        changeReason,
-        uploadedBy: req.session.userId,
-        isCurrent: true,
-      });
-      
-      // Update the main document with new file info
-      await storage.updatePlayerDocument(req.params.docId, {
-        originalName,
-        mimeType,
-        fileSize,
-        storageKey,
-        objectPath,
-      });
-      
-      // Create audit log
-      await storage.createDocumentAuditLog({
-        documentId: req.params.docId,
-        documentType: document.documentType,
-        playerId: req.params.playerId,
-        teamId: req.session.teamId,
-        action: "version_created",
-        actorId: req.session.userId,
-        actorName: req.session.username,
-        actorRole: req.session.userRole,
-        ipAddress: req.ip,
-        userAgent: req.get("User-Agent"),
-        newValue: { versionNumber: nextVersionNumber, changeReason },
-        details: { originalName, fileSize },
-      });
-      
-      res.json(newVersion);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
-    }
-  });
 
-  app.post("/api/players/:playerId/documents/:docId/versions/:versionId/restore", requireTeamRole, async (req, res) => {
-    try {
-      const version = await storage.getDocumentVersion(req.params.versionId);
-      if (!version) {
-        return res.status(404).json({ error: "Version not found" });
+        const document = await storage.getPlayerDocument(req.params.docId);
+        if (!document) {
+          return res.status(404).json({ error: "Document not found" });
+        }
+
+        // Get current version number
+        const existingVersions = await storage.getDocumentVersions(
+          req.params.docId
+        );
+        const nextVersionNumber =
+          existingVersions.length > 0
+            ? Math.max(...existingVersions.map((v) => v.versionNumber)) + 1
+            : 1;
+
+        // Mark all previous versions as not current
+        for (const version of existingVersions) {
+          if (version.isCurrent) {
+            await storage.setCurrentVersion(req.params.docId, version.id);
+          }
+        }
+
+        // Create new version
+        const newVersion = await storage.createDocumentVersion({
+          documentId: req.params.docId,
+          versionNumber: nextVersionNumber,
+          originalName,
+          mimeType,
+          fileSize,
+          storageKey,
+          objectPath,
+          changeReason,
+          uploadedBy: req.session.userId,
+          isCurrent: true,
+        });
+
+        // Update the main document with new file info
+        await storage.updatePlayerDocument(req.params.docId, {
+          originalName,
+          mimeType,
+          fileSize,
+          storageKey,
+          objectPath,
+        });
+
+        // Create audit log
+        await storage.createDocumentAuditLog({
+          documentId: req.params.docId,
+          documentType: document.documentType,
+          playerId: req.params.playerId,
+          teamId: req.session.teamId,
+          action: "version_created",
+          actorId: req.session.userId,
+          actorName: req.session.username,
+          actorRole: req.session.userRole,
+          ipAddress: req.ip,
+          userAgent: req.get("User-Agent"),
+          newValue: { versionNumber: nextVersionNumber, changeReason },
+          details: { originalName, fileSize },
+        });
+
+        res.json(newVersion);
+      } catch (error: any) {
+        res.status(400).json({ error: error.message });
       }
-      
-      const document = await storage.getPlayerDocument(req.params.docId);
-      if (!document) {
-        return res.status(404).json({ error: "Document not found" });
-      }
-      
-      // Restore the document to this version
-      await storage.updatePlayerDocument(req.params.docId, {
-        originalName: version.originalName,
-        mimeType: version.mimeType,
-        fileSize: version.fileSize,
-        storageKey: version.storageKey,
-        objectPath: version.objectPath,
-      });
-      
-      // Set this version as current
-      await storage.setCurrentVersion(req.params.docId, req.params.versionId);
-      
-      // Create audit log
-      await storage.createDocumentAuditLog({
-        documentId: req.params.docId,
-        documentType: document.documentType,
-        playerId: req.params.playerId,
-        teamId: req.session.teamId,
-        action: "restored",
-        actorId: req.session.userId,
-        actorName: req.session.username,
-        actorRole: req.session.userRole,
-        ipAddress: req.ip,
-        userAgent: req.get("User-Agent"),
-        previousValue: { versionNumber: version.versionNumber },
-        details: { restoredFromVersion: version.versionNumber },
-      });
-      
-      res.json({ success: true, restoredVersion: version.versionNumber });
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
     }
-  });
+  );
+
+  app.post(
+    "/api/players/:playerId/documents/:docId/versions/:versionId/restore",
+    requireTeamRole,
+    async (req, res) => {
+      try {
+        const version = await storage.getDocumentVersion(req.params.versionId);
+        if (!version) {
+          return res.status(404).json({ error: "Version not found" });
+        }
+
+        const document = await storage.getPlayerDocument(req.params.docId);
+        if (!document) {
+          return res.status(404).json({ error: "Document not found" });
+        }
+
+        // Restore the document to this version
+        await storage.updatePlayerDocument(req.params.docId, {
+          originalName: version.originalName,
+          mimeType: version.mimeType,
+          fileSize: version.fileSize,
+          storageKey: version.storageKey,
+          objectPath: version.objectPath,
+        });
+
+        // Set this version as current
+        await storage.setCurrentVersion(req.params.docId, req.params.versionId);
+
+        // Create audit log
+        await storage.createDocumentAuditLog({
+          documentId: req.params.docId,
+          documentType: document.documentType,
+          playerId: req.params.playerId,
+          teamId: req.session.teamId,
+          action: "restored",
+          actorId: req.session.userId,
+          actorName: req.session.username,
+          actorRole: req.session.userRole,
+          ipAddress: req.ip,
+          userAgent: req.get("User-Agent"),
+          previousValue: { versionNumber: version.versionNumber },
+          details: { restoredFromVersion: version.versionNumber },
+        });
+
+        res.json({ success: true, restoredVersion: version.versionNumber });
+      } catch (error: any) {
+        res.status(400).json({ error: error.message });
+      }
+    }
+  );
 
   // Document audit log endpoints
-  app.get("/api/players/:playerId/documents/:docId/audit-logs", requireTeamRole, async (req, res) => {
-    try {
-      const logs = await storage.getDocumentAuditLogs(req.params.docId);
-      res.json(logs);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+  app.get(
+    "/api/players/:playerId/documents/:docId/audit-logs",
+    requireTeamRole,
+    async (req, res) => {
+      try {
+        const logs = await storage.getDocumentAuditLogs(req.params.docId);
+        res.json(logs);
+      } catch (error: any) {
+        res.status(500).json({ error: error.message });
+      }
     }
-  });
+  );
 
-  app.get("/api/players/:playerId/audit-logs", requireTeamRole, async (req, res) => {
-    try {
-      const logs = await storage.getDocumentAuditLogsByPlayer(req.params.playerId);
-      res.json(logs);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+  app.get(
+    "/api/players/:playerId/audit-logs",
+    requireTeamRole,
+    async (req, res) => {
+      try {
+        const logs = await storage.getDocumentAuditLogsByPlayer(
+          req.params.playerId
+        );
+        res.json(logs);
+      } catch (error: any) {
+        res.status(500).json({ error: error.message });
+      }
     }
-  });
+  );
 
-  app.get("/api/team/document-audit-logs", requireTeamRole, async (req, res) => {
-    try {
-      const limit = req.query.limit ? parseInt(req.query.limit as string) : 100;
-      const logs = await storage.getDocumentAuditLogsByTeam(req.session.teamId || "demo-team", limit);
-      res.json(logs);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+  app.get(
+    "/api/team/document-audit-logs",
+    requireTeamRole,
+    async (req, res) => {
+      try {
+        const limit = req.query.limit
+          ? parseInt(req.query.limit as string)
+          : 100;
+        const logs = await storage.getDocumentAuditLogsByTeam(
+          req.session.teamId || "demo-team",
+          limit
+        );
+        res.json(logs);
+      } catch (error: any) {
+        res.status(500).json({ error: error.message });
+      }
     }
-  });
+  );
 
   // Federation Letter Request routes
-  
+
   // Team summary stats endpoint
-  app.get("/api/federation-letter-requests/summary", requireTeamRole, async (req, res) => {
-    try {
-      const teamId = req.session.teamId || "demo-team";
-      const requests = await storage.getFederationLetterRequests(teamId);
-      
-      const summary = {
-        total: requests.length,
-        pending: requests.filter(r => r.status === "pending").length,
-        submitted: requests.filter(r => r.status === "submitted").length,
-        processing: requests.filter(r => r.status === "processing").length,
-        issued: requests.filter(r => r.status === "issued").length,
-        rejected: requests.filter(r => r.status === "rejected").length,
-      };
-      
-      res.json(summary);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  });
-  
-  app.get("/api/federation-letter-requests", requireTeamRole, async (req, res) => {
-    try {
-      const { teamId, playerId, status } = req.query;
-      let requests;
-      if (playerId) {
-        requests = await storage.getFederationLetterRequestsByPlayer(playerId as string);
-      } else if (status) {
-        requests = await storage.getFederationLetterRequestsByStatus(status as string);
-      } else {
-        requests = await storage.getFederationLetterRequests(teamId as string || req.session.teamId);
-      }
-      res.json(requests);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  });
+  app.get(
+    "/api/federation-letter-requests/summary",
+    requireTeamRole,
+    async (req, res) => {
+      try {
+        const teamId = req.session.teamId || "demo-team";
+        const requests = await storage.getFederationLetterRequests(teamId);
 
-  app.get("/api/federation-letter-requests/:id", requireTeamRole, async (req, res) => {
-    try {
-      const request = await storage.getFederationLetterRequest(req.params.id);
-      if (!request) {
-        return res.status(404).json({ error: "Request not found" });
-      }
-      res.json(request);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  });
+        const summary = {
+          total: requests.length,
+          pending: requests.filter((r) => r.status === "pending").length,
+          submitted: requests.filter((r) => r.status === "submitted").length,
+          processing: requests.filter((r) => r.status === "processing").length,
+          issued: requests.filter((r) => r.status === "issued").length,
+          rejected: requests.filter((r) => r.status === "rejected").length,
+        };
 
-  app.get("/api/players/:playerId/issued-federation-letters", requireTeamRole, async (req, res) => {
-    try {
-      const issuedLetters = await storage.getIssuedFederationLettersByPlayer(req.params.playerId);
-      res.json(issuedLetters);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+        res.json(summary);
+      } catch (error: any) {
+        res.status(500).json({ error: error.message });
+      }
     }
-  });
+  );
 
-  app.post("/api/federation-letter-requests", requireTeamRole, async (req, res) => {
-    try {
-      const year = new Date().getFullYear();
-      const timestamp = Date.now().toString(36).toUpperCase();
-      const requestNumber = `FLR-${year}-${timestamp}`;
-      
-      // Ensure teamId is set from session before validation
-      const teamId = req.session.teamId || req.body.teamId || "demo-team";
-      
-      const requestData = insertFederationLetterRequestSchema.parse({
-        ...req.body,
-        requestNumber,
-        teamId,
-        status: "pending",
-        paymentStatus: "unpaid",
-        submittedBy: req.session.userId,
-        feeAmount: 150,
-        serviceCharge: 25,
-        totalAmount: 175,
-      });
-      
-      const newRequest = await storage.createFederationLetterRequest(requestData);
-      
-      await storage.logAction({
-        userId: req.session.userId,
-        userRole: req.session.userRole,
-        action: "create_federation_letter_request",
-        entityType: "federation_letter_request",
-        entityId: newRequest.id,
-        details: { requestNumber, playerId: req.body.playerId },
-      });
-      
-      res.json(newRequest);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+  app.get(
+    "/api/federation-letter-requests",
+    requireTeamRole,
+    async (req, res) => {
+      try {
+        const { teamId, playerId, status } = req.query;
+        let requests;
+        if (playerId) {
+          requests = await storage.getFederationLetterRequestsByPlayer(
+            playerId as string
+          );
+        } else if (status) {
+          requests = await storage.getFederationLetterRequestsByStatus(
+            status as string
+          );
+        } else {
+          requests = await storage.getFederationLetterRequests(
+            (teamId as string) || req.session.teamId
+          );
+        }
+        res.json(requests);
+      } catch (error: any) {
+        res.status(500).json({ error: error.message });
+      }
     }
-  });
+  );
 
-  app.put("/api/federation-letter-requests/:id", requireTeamRole, async (req, res) => {
-    try {
-      const request = await storage.getFederationLetterRequest(req.params.id);
-      if (!request) {
-        return res.status(404).json({ error: "Request not found" });
+  app.get(
+    "/api/federation-letter-requests/:id",
+    requireTeamRole,
+    async (req, res) => {
+      try {
+        const request = await storage.getFederationLetterRequest(req.params.id);
+        if (!request) {
+          return res.status(404).json({ error: "Request not found" });
+        }
+        res.json(request);
+      } catch (error: any) {
+        res.status(500).json({ error: error.message });
       }
-      
-      const updatedRequest = await storage.updateFederationLetterRequest(req.params.id, req.body);
-      
-      await storage.logAction({
-        userId: req.session.userId,
-        userRole: req.session.userRole,
-        action: "update_federation_letter_request",
-        entityType: "federation_letter_request",
-        entityId: req.params.id,
-        details: { updates: Object.keys(req.body) },
-      });
-      
-      res.json(updatedRequest);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
     }
-  });
+  );
 
-  app.post("/api/federation-letter-requests/:id/submit", requireTeamRole, async (req, res) => {
-    try {
-      const request = await storage.getFederationLetterRequest(req.params.id);
-      if (!request) {
-        return res.status(404).json({ error: "Request not found" });
+  app.get(
+    "/api/players/:playerId/issued-federation-letters",
+    requireTeamRole,
+    async (req, res) => {
+      try {
+        const issuedLetters = await storage.getIssuedFederationLettersByPlayer(
+          req.params.playerId
+        );
+        res.json(issuedLetters);
+      } catch (error: any) {
+        res.status(500).json({ error: error.message });
       }
-      
-      if (request.paymentStatus !== "paid") {
-        return res.status(400).json({ error: "Payment required before submission" });
-      }
-      
-      const updatedRequest = await storage.updateFederationLetterRequest(req.params.id, {
-        status: "submitted",
-        submittedAt: new Date(),
-      });
-      
-      await storage.logAction({
-        userId: req.session.userId,
-        userRole: req.session.userRole,
-        action: "submit_federation_letter_request",
-        entityType: "federation_letter_request",
-        entityId: req.params.id,
-        details: { requestNumber: request.requestNumber },
-      });
-      
-      res.json(updatedRequest);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
     }
-  });
+  );
 
-  app.post("/api/federation-letter-requests/:id/process", requireTeamRole, async (req, res) => {
-    try {
-      const request = await storage.getFederationLetterRequest(req.params.id);
-      if (!request) {
-        return res.status(404).json({ error: "Request not found" });
-      }
-      
-      const updatedRequest = await storage.updateFederationLetterRequest(req.params.id, {
-        status: "processing",
-        processedBy: req.session.userId,
-        processedAt: new Date(),
-      });
-      
-      await storage.logAction({
-        userId: req.session.userId,
-        userRole: req.session.userRole,
-        action: "process_federation_letter_request",
-        entityType: "federation_letter_request",
-        entityId: req.params.id,
-        details: { requestNumber: request.requestNumber },
-      });
-      
-      res.json(updatedRequest);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
-    }
-  });
+  app.post(
+    "/api/federation-letter-requests",
+    requireTeamRole,
+    async (req, res) => {
+      try {
+        const year = new Date().getFullYear();
+        const timestamp = Date.now().toString(36).toUpperCase();
+        const requestNumber = `FLR-${year}-${timestamp}`;
 
-  app.post("/api/federation-letter-requests/:id/issue", requireTeamRole, async (req, res) => {
-    try {
-      const request = await storage.getFederationLetterRequest(req.params.id);
-      if (!request) {
-        return res.status(404).json({ error: "Request not found" });
-      }
-      
-      const { issuedDocumentStorageKey, issuedDocumentObjectPath, issuedDocumentOriginalName } = req.body;
-      
-      const updatedRequest = await storage.updateFederationLetterRequest(req.params.id, {
-        status: "issued",
-        issuedAt: new Date(),
-        issuedBy: req.session.userId,
-        issuedDocumentStorageKey,
-        issuedDocumentObjectPath,
-        issuedDocumentOriginalName,
-      });
-      
-      await storage.logAction({
-        userId: req.session.userId,
-        userRole: req.session.userRole,
-        action: "issue_federation_letter_request",
-        entityType: "federation_letter_request",
-        entityId: req.params.id,
-        details: { requestNumber: request.requestNumber },
-      });
-      
-      res.json(updatedRequest);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
-    }
-  });
+        // Ensure teamId is set from session before validation
+        const teamId = req.session.teamId || req.body.teamId || "demo-team";
 
-  app.post("/api/federation-letter-requests/:id/reject", requireTeamRole, async (req, res) => {
-    try {
-      const request = await storage.getFederationLetterRequest(req.params.id);
-      if (!request) {
-        return res.status(404).json({ error: "Request not found" });
-      }
-      
-      const { rejectionReason } = req.body;
-      
-      const updatedRequest = await storage.updateFederationLetterRequest(req.params.id, {
-        status: "rejected",
-        rejectionReason,
-      });
-      
-      await storage.logAction({
-        userId: req.session.userId,
-        userRole: req.session.userRole,
-        action: "reject_federation_letter_request",
-        entityType: "federation_letter_request",
-        entityId: req.params.id,
-        details: { requestNumber: request.requestNumber, rejectionReason },
-      });
-      
-      res.json(updatedRequest);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
-    }
-  });
+        const requestData = insertFederationLetterRequestSchema.parse({
+          ...req.body,
+          requestNumber,
+          teamId,
+          status: "pending",
+          paymentStatus: "unpaid",
+          submittedBy: req.session.userId,
+          feeAmount: 150,
+          serviceCharge: 25,
+          totalAmount: 175,
+        });
 
-  app.post("/api/federation-letter-requests/:id/confirm-payment", requireTeamRole, async (req, res) => {
-    try {
-      const request = await storage.getFederationLetterRequest(req.params.id);
-      if (!request) {
-        return res.status(404).json({ error: "Request not found" });
-      }
-      
-      const { paymentId } = req.body;
-      
-      const updatedRequest = await storage.updateFederationLetterRequest(req.params.id, {
-        paymentStatus: "paid",
-        paymentId,
-        paymentConfirmedAt: new Date(),
-      });
-      
-      await storage.logAction({
-        userId: req.session.userId,
-        userRole: req.session.userRole,
-        action: "confirm_payment_federation_letter_request",
-        entityType: "federation_letter_request",
-        entityId: req.params.id,
-        details: { requestNumber: request.requestNumber, paymentId },
-      });
-      
-      res.json(updatedRequest);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
-    }
-  });
+        const newRequest =
+          await storage.createFederationLetterRequest(requestData);
 
-  app.delete("/api/federation-letter-requests/:id", requireTeamRole, async (req, res) => {
-    try {
-      const request = await storage.getFederationLetterRequest(req.params.id);
-      if (!request) {
-        return res.status(404).json({ error: "Request not found" });
+        await storage.logAction({
+          userId: req.session.userId,
+          userRole: req.session.userRole,
+          action: "create_federation_letter_request",
+          entityType: "federation_letter_request",
+          entityId: newRequest.id,
+          details: { requestNumber, playerId: req.body.playerId },
+        });
+
+        res.json(newRequest);
+      } catch (error: any) {
+        res.status(400).json({ error: error.message });
       }
-      
-      if (request.status !== "pending") {
-        return res.status(400).json({ error: "Can only delete pending requests" });
-      }
-      
-      await storage.deleteFederationLetterRequest(req.params.id);
-      
-      await storage.logAction({
-        userId: req.session.userId,
-        userRole: req.session.userRole,
-        action: "delete_federation_letter_request",
-        entityType: "federation_letter_request",
-        entityId: req.params.id,
-        details: { requestNumber: request.requestNumber },
-      });
-      
-      res.json({ success: true });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
     }
-  });
+  );
+
+  app.put(
+    "/api/federation-letter-requests/:id",
+    requireTeamRole,
+    async (req, res) => {
+      try {
+        const request = await storage.getFederationLetterRequest(req.params.id);
+        if (!request) {
+          return res.status(404).json({ error: "Request not found" });
+        }
+
+        const updatedRequest = await storage.updateFederationLetterRequest(
+          req.params.id,
+          req.body
+        );
+
+        await storage.logAction({
+          userId: req.session.userId,
+          userRole: req.session.userRole,
+          action: "update_federation_letter_request",
+          entityType: "federation_letter_request",
+          entityId: req.params.id,
+          details: { updates: Object.keys(req.body) },
+        });
+
+        res.json(updatedRequest);
+      } catch (error: any) {
+        res.status(400).json({ error: error.message });
+      }
+    }
+  );
+
+  app.post(
+    "/api/federation-letter-requests/:id/submit",
+    requireTeamRole,
+    async (req, res) => {
+      try {
+        const request = await storage.getFederationLetterRequest(req.params.id);
+        if (!request) {
+          return res.status(404).json({ error: "Request not found" });
+        }
+
+        if (request.paymentStatus !== "paid") {
+          return res
+            .status(400)
+            .json({ error: "Payment required before submission" });
+        }
+
+        const updatedRequest = await storage.updateFederationLetterRequest(
+          req.params.id,
+          {
+            status: "submitted",
+            submittedAt: new Date(),
+          }
+        );
+
+        await storage.logAction({
+          userId: req.session.userId,
+          userRole: req.session.userRole,
+          action: "submit_federation_letter_request",
+          entityType: "federation_letter_request",
+          entityId: req.params.id,
+          details: { requestNumber: request.requestNumber },
+        });
+
+        res.json(updatedRequest);
+      } catch (error: any) {
+        res.status(400).json({ error: error.message });
+      }
+    }
+  );
+
+  app.post(
+    "/api/federation-letter-requests/:id/process",
+    requireTeamRole,
+    async (req, res) => {
+      try {
+        const request = await storage.getFederationLetterRequest(req.params.id);
+        if (!request) {
+          return res.status(404).json({ error: "Request not found" });
+        }
+
+        const updatedRequest = await storage.updateFederationLetterRequest(
+          req.params.id,
+          {
+            status: "processing",
+            processedBy: req.session.userId,
+            processedAt: new Date(),
+          }
+        );
+
+        await storage.logAction({
+          userId: req.session.userId,
+          userRole: req.session.userRole,
+          action: "process_federation_letter_request",
+          entityType: "federation_letter_request",
+          entityId: req.params.id,
+          details: { requestNumber: request.requestNumber },
+        });
+
+        res.json(updatedRequest);
+      } catch (error: any) {
+        res.status(400).json({ error: error.message });
+      }
+    }
+  );
+
+  app.post(
+    "/api/federation-letter-requests/:id/issue",
+    requireTeamRole,
+    async (req, res) => {
+      try {
+        const request = await storage.getFederationLetterRequest(req.params.id);
+        if (!request) {
+          return res.status(404).json({ error: "Request not found" });
+        }
+
+        const {
+          issuedDocumentStorageKey,
+          issuedDocumentObjectPath,
+          issuedDocumentOriginalName,
+        } = req.body;
+
+        const updatedRequest = await storage.updateFederationLetterRequest(
+          req.params.id,
+          {
+            status: "issued",
+            issuedAt: new Date(),
+            issuedBy: req.session.userId,
+            issuedDocumentStorageKey,
+            issuedDocumentObjectPath,
+            issuedDocumentOriginalName,
+          }
+        );
+
+        await storage.logAction({
+          userId: req.session.userId,
+          userRole: req.session.userRole,
+          action: "issue_federation_letter_request",
+          entityType: "federation_letter_request",
+          entityId: req.params.id,
+          details: { requestNumber: request.requestNumber },
+        });
+
+        res.json(updatedRequest);
+      } catch (error: any) {
+        res.status(400).json({ error: error.message });
+      }
+    }
+  );
+
+  app.post(
+    "/api/federation-letter-requests/:id/reject",
+    requireTeamRole,
+    async (req, res) => {
+      try {
+        const request = await storage.getFederationLetterRequest(req.params.id);
+        if (!request) {
+          return res.status(404).json({ error: "Request not found" });
+        }
+
+        const { rejectionReason } = req.body;
+
+        const updatedRequest = await storage.updateFederationLetterRequest(
+          req.params.id,
+          {
+            status: "rejected",
+            rejectionReason,
+          }
+        );
+
+        await storage.logAction({
+          userId: req.session.userId,
+          userRole: req.session.userRole,
+          action: "reject_federation_letter_request",
+          entityType: "federation_letter_request",
+          entityId: req.params.id,
+          details: { requestNumber: request.requestNumber, rejectionReason },
+        });
+
+        res.json(updatedRequest);
+      } catch (error: any) {
+        res.status(400).json({ error: error.message });
+      }
+    }
+  );
+
+  app.post(
+    "/api/federation-letter-requests/:id/confirm-payment",
+    requireTeamRole,
+    async (req, res) => {
+      try {
+        const request = await storage.getFederationLetterRequest(req.params.id);
+        if (!request) {
+          return res.status(404).json({ error: "Request not found" });
+        }
+
+        const { paymentId } = req.body;
+
+        const updatedRequest = await storage.updateFederationLetterRequest(
+          req.params.id,
+          {
+            paymentStatus: "paid",
+            paymentId,
+            paymentConfirmedAt: new Date(),
+          }
+        );
+
+        await storage.logAction({
+          userId: req.session.userId,
+          userRole: req.session.userRole,
+          action: "confirm_payment_federation_letter_request",
+          entityType: "federation_letter_request",
+          entityId: req.params.id,
+          details: { requestNumber: request.requestNumber, paymentId },
+        });
+
+        res.json(updatedRequest);
+      } catch (error: any) {
+        res.status(400).json({ error: error.message });
+      }
+    }
+  );
+
+  app.delete(
+    "/api/federation-letter-requests/:id",
+    requireTeamRole,
+    async (req, res) => {
+      try {
+        const request = await storage.getFederationLetterRequest(req.params.id);
+        if (!request) {
+          return res.status(404).json({ error: "Request not found" });
+        }
+
+        if (request.status !== "pending") {
+          return res
+            .status(400)
+            .json({ error: "Can only delete pending requests" });
+        }
+
+        await storage.deleteFederationLetterRequest(req.params.id);
+
+        await storage.logAction({
+          userId: req.session.userId,
+          userRole: req.session.userRole,
+          action: "delete_federation_letter_request",
+          entityType: "federation_letter_request",
+          entityId: req.params.id,
+          details: { requestNumber: request.requestNumber },
+        });
+
+        res.json({ success: true });
+      } catch (error: any) {
+        res.status(500).json({ error: error.message });
+      }
+    }
+  );
 
   // Federation Admin Routes
-  const requireFederationAdmin = (req: Request, res: Response, next: NextFunction) => {
+  const requireFederationAdmin = (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
     // In demo mode, allow access to federation admin routes for any user
     // This simulates having federation admin privileges for demo purposes
     if (!req.session.userId) {
@@ -1519,574 +1871,766 @@ export async function registerRoutes(
     next();
   };
 
-  app.get("/api/federation-admin/dashboard-stats", requireFederationAdmin, async (req, res) => {
-    try {
-      const stats = await storage.getFederationDashboardStats();
-      res.json(stats);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+  app.get(
+    "/api/federation-admin/dashboard-stats",
+    requireFederationAdmin,
+    async (req, res) => {
+      try {
+        const stats = await storage.getFederationDashboardStats();
+        res.json(stats);
+      } catch (error: any) {
+        res.status(500).json({ error: error.message });
+      }
     }
-  });
+  );
 
-  app.get("/api/federation-admin/requests", requireFederationAdmin, async (req, res) => {
-    try {
-      const { status } = req.query;
-      let requests;
-      if (status && status !== "all") {
-        requests = await storage.getFederationLetterRequestsByStatus(status as string);
-      } else {
-        requests = await storage.getFederationLetterRequests();
-      }
-      res.json(requests);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  app.post("/api/federation-admin/requests/:id/accept", requireFederationAdmin, async (req, res) => {
-    try {
-      const request = await storage.getFederationLetterRequest(req.params.id);
-      if (!request) {
-        return res.status(404).json({ error: "Request not found" });
-      }
-      if (request.status !== "submitted") {
-        return res.status(400).json({ error: "Can only accept submitted requests" });
-      }
-      
-      const updatedRequest = await storage.updateFederationLetterRequest(req.params.id, {
-        status: "processing",
-        processedBy: req.session.userId,
-        processedAt: new Date(),
-      });
-
-      await storage.createFederationRequestActivity({
-        requestId: req.params.id,
-        actorId: req.session.userId,
-        actorRole: "federation_admin",
-        activityType: "accepted",
-        description: "Request accepted for processing",
-        previousStatus: "submitted",
-        newStatus: "processing",
-      });
-      
-      res.json(updatedRequest);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
-    }
-  });
-
-  app.post("/api/federation-admin/requests/:id/issue", requireFederationAdmin, async (req, res) => {
-    try {
-      const request = await storage.getFederationLetterRequest(req.params.id);
-      if (!request) {
-        return res.status(404).json({ error: "Request not found" });
-      }
-      if (request.status !== "processing") {
-        return res.status(400).json({ error: "Can only issue processing requests" });
-      }
-      
-      const { issuedDocumentStorageKey, issuedDocumentObjectPath, issuedDocumentOriginalName, mimeType, fileSize } = req.body;
-      
-      const updatedRequest = await storage.updateFederationLetterRequest(req.params.id, {
-        status: "issued",
-        issuedAt: new Date(),
-        issuedBy: req.session.userId,
-        issuedDocumentStorageKey,
-        issuedDocumentObjectPath,
-        issuedDocumentOriginalName,
-      });
-
-      // Create issued document record for download tracking
-      await storage.createFederationIssuedDocument({
-        requestId: req.params.id,
-        documentType: "Federation Letter",
-        documentNumber: request.requestNumber,
-        storageKey: issuedDocumentStorageKey || `issued-${req.params.id}`,
-        objectPath: issuedDocumentObjectPath,
-        originalName: issuedDocumentOriginalName || `Federation_Letter_${request.requestNumber}.pdf`,
-        mimeType: mimeType || "application/pdf",
-        fileSize: fileSize || 0,
-        issuedBy: req.session.userId || "federation-admin",
-        issuedByName: "Federation Administrator",
-      });
-
-      await storage.createFederationRequestActivity({
-        requestId: req.params.id,
-        actorId: req.session.userId,
-        actorRole: "federation_admin",
-        activityType: "issued",
-        description: "Federation letter issued",
-        previousStatus: "processing",
-        newStatus: "issued",
-        details: { documentName: issuedDocumentOriginalName },
-      });
-      
-      res.json(updatedRequest);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
-    }
-  });
-
-  app.post("/api/federation-admin/requests/:id/reject", requireFederationAdmin, async (req, res) => {
-    try {
-      const request = await storage.getFederationLetterRequest(req.params.id);
-      if (!request) {
-        return res.status(404).json({ error: "Request not found" });
-      }
-      
-      const { rejectionReason } = req.body;
-      
-      const updatedRequest = await storage.updateFederationLetterRequest(req.params.id, {
-        status: "rejected",
-        rejectionReason,
-      });
-
-      // Refund tokens to the user who submitted the request
-      if (request.submittedBy) {
-        const refundAmount = 10; // federation_letter_request cost
-        const balance = await storage.getTokenBalance(request.submittedBy);
-        if (balance) {
-          const newBalance = balance.balance + refundAmount;
-          await storage.updateTokenBalance(request.submittedBy, newBalance);
-          
-          await storage.createTokenTransaction({
-            userId: request.submittedBy,
-            amount: refundAmount,
-            type: "credit",
-            action: "federation_letter_refund",
-            description: `Refund for rejected federation letter request ${request.requestNumber}`,
-            balanceAfter: newBalance,
-          });
+  app.get(
+    "/api/federation-admin/requests",
+    requireFederationAdmin,
+    async (req, res) => {
+      try {
+        const { status } = req.query;
+        let requests;
+        if (status && status !== "all") {
+          requests = await storage.getFederationLetterRequestsByStatus(
+            status as string
+          );
+        } else {
+          requests = await storage.getFederationLetterRequests();
         }
+        res.json(requests);
+      } catch (error: any) {
+        res.status(500).json({ error: error.message });
       }
-
-      await storage.createFederationRequestActivity({
-        requestId: req.params.id,
-        actorId: req.session.userId,
-        actorRole: "federation_admin",
-        activityType: "rejected",
-        description: "Request rejected - tokens refunded",
-        previousStatus: request.status,
-        newStatus: "rejected",
-        details: { rejectionReason, tokensRefunded: 10 },
-      });
-      
-      res.json(updatedRequest);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
     }
-  });
+  );
 
-  app.get("/api/federation-admin/requests/:id/activities", requireFederationAdmin, async (req, res) => {
-    try {
-      const activities = await storage.getFederationRequestActivities(req.params.id);
-      res.json(activities);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+  app.post(
+    "/api/federation-admin/requests/:id/accept",
+    requireFederationAdmin,
+    async (req, res) => {
+      try {
+        const request = await storage.getFederationLetterRequest(req.params.id);
+        if (!request) {
+          return res.status(404).json({ error: "Request not found" });
+        }
+        if (request.status !== "submitted") {
+          return res
+            .status(400)
+            .json({ error: "Can only accept submitted requests" });
+        }
+
+        const updatedRequest = await storage.updateFederationLetterRequest(
+          req.params.id,
+          {
+            status: "processing",
+            processedBy: req.session.userId,
+            processedAt: new Date(),
+          }
+        );
+
+        await storage.createFederationRequestActivity({
+          requestId: req.params.id,
+          actorId: req.session.userId,
+          actorRole: "federation_admin",
+          activityType: "accepted",
+          description: "Request accepted for processing",
+          previousStatus: "submitted",
+          newStatus: "processing",
+        });
+
+        res.json(updatedRequest);
+      } catch (error: any) {
+        res.status(400).json({ error: error.message });
+      }
     }
-  });
+  );
+
+  app.post(
+    "/api/federation-admin/requests/:id/issue",
+    requireFederationAdmin,
+    async (req, res) => {
+      try {
+        const request = await storage.getFederationLetterRequest(req.params.id);
+        if (!request) {
+          return res.status(404).json({ error: "Request not found" });
+        }
+        if (request.status !== "processing") {
+          return res
+            .status(400)
+            .json({ error: "Can only issue processing requests" });
+        }
+
+        const {
+          issuedDocumentStorageKey,
+          issuedDocumentObjectPath,
+          issuedDocumentOriginalName,
+          mimeType,
+          fileSize,
+        } = req.body;
+
+        const updatedRequest = await storage.updateFederationLetterRequest(
+          req.params.id,
+          {
+            status: "issued",
+            issuedAt: new Date(),
+            issuedBy: req.session.userId,
+            issuedDocumentStorageKey,
+            issuedDocumentObjectPath,
+            issuedDocumentOriginalName,
+          }
+        );
+
+        // Create issued document record for download tracking
+        await storage.createFederationIssuedDocument({
+          requestId: req.params.id,
+          documentType: "Federation Letter",
+          documentNumber: request.requestNumber,
+          storageKey: issuedDocumentStorageKey || `issued-${req.params.id}`,
+          objectPath: issuedDocumentObjectPath,
+          originalName:
+            issuedDocumentOriginalName ||
+            `Federation_Letter_${request.requestNumber}.pdf`,
+          mimeType: mimeType || "application/pdf",
+          fileSize: fileSize || 0,
+          issuedBy: req.session.userId || "federation-admin",
+          issuedByName: "Federation Administrator",
+        });
+
+        await storage.createFederationRequestActivity({
+          requestId: req.params.id,
+          actorId: req.session.userId,
+          actorRole: "federation_admin",
+          activityType: "issued",
+          description: "Federation letter issued",
+          previousStatus: "processing",
+          newStatus: "issued",
+          details: { documentName: issuedDocumentOriginalName },
+        });
+
+        res.json(updatedRequest);
+      } catch (error: any) {
+        res.status(400).json({ error: error.message });
+      }
+    }
+  );
+
+  app.post(
+    "/api/federation-admin/requests/:id/reject",
+    requireFederationAdmin,
+    async (req, res) => {
+      try {
+        const request = await storage.getFederationLetterRequest(req.params.id);
+        if (!request) {
+          return res.status(404).json({ error: "Request not found" });
+        }
+
+        const { rejectionReason } = req.body;
+
+        const updatedRequest = await storage.updateFederationLetterRequest(
+          req.params.id,
+          {
+            status: "rejected",
+            rejectionReason,
+          }
+        );
+
+        // Refund tokens to the user who submitted the request
+        if (request.submittedBy) {
+          const refundAmount = 10; // federation_letter_request cost
+          const balance = await storage.getTokenBalance(request.submittedBy);
+          if (balance) {
+            const newBalance = balance.balance + refundAmount;
+            await storage.updateTokenBalance(request.submittedBy, newBalance);
+
+            await storage.createTokenTransaction({
+              userId: request.submittedBy,
+              amount: refundAmount,
+              type: "credit",
+              action: "federation_letter_refund",
+              description: `Refund for rejected federation letter request ${request.requestNumber}`,
+              balanceAfter: newBalance,
+            });
+          }
+        }
+
+        await storage.createFederationRequestActivity({
+          requestId: req.params.id,
+          actorId: req.session.userId,
+          actorRole: "federation_admin",
+          activityType: "rejected",
+          description: "Request rejected - tokens refunded",
+          previousStatus: request.status,
+          newStatus: "rejected",
+          details: { rejectionReason, tokensRefunded: 10 },
+        });
+
+        res.json(updatedRequest);
+      } catch (error: any) {
+        res.status(400).json({ error: error.message });
+      }
+    }
+  );
+
+  app.get(
+    "/api/federation-admin/requests/:id/activities",
+    requireFederationAdmin,
+    async (req, res) => {
+      try {
+        const activities = await storage.getFederationRequestActivities(
+          req.params.id
+        );
+        res.json(activities);
+      } catch (error: any) {
+        res.status(500).json({ error: error.message });
+      }
+    }
+  );
 
   // Get request documents (passport and invitation letter)
-  app.get("/api/federation-admin/requests/:id/documents", requireFederationAdmin, async (req, res) => {
-    try {
-      const request = await storage.getFederationLetterRequest(req.params.id);
-      if (!request) {
-        return res.status(404).json({ error: "Request not found" });
-      }
-      
-      const documents: Array<{
-        type: string;
-        name: string;
-        objectPath?: string | null;
-        storageKey?: string | null;
-        mimeType?: string | null;
-        verificationStatus?: string | null;
-      }> = [];
-      
-      // Get passport document if attached
-      if (request.passportDocumentId) {
-        const passportDoc = await storage.getPlayerDocument(request.passportDocumentId);
-        if (passportDoc) {
+  app.get(
+    "/api/federation-admin/requests/:id/documents",
+    requireFederationAdmin,
+    async (req, res) => {
+      try {
+        const request = await storage.getFederationLetterRequest(req.params.id);
+        if (!request) {
+          return res.status(404).json({ error: "Request not found" });
+        }
+
+        const documents: Array<{
+          type: string;
+          name: string;
+          objectPath?: string | null;
+          storageKey?: string | null;
+          mimeType?: string | null;
+          verificationStatus?: string | null;
+        }> = [];
+
+        // Get passport document if attached
+        if (request.passportDocumentId) {
+          const passportDoc = await storage.getPlayerDocument(
+            request.passportDocumentId
+          );
+          if (passportDoc) {
+            documents.push({
+              type: "passport",
+              name: passportDoc.originalName,
+              objectPath: passportDoc.objectPath,
+              storageKey: passportDoc.storageKey,
+              mimeType: passportDoc.mimeType,
+              verificationStatus: passportDoc.verificationStatus,
+            });
+          }
+        }
+
+        // Get invitation letter if attached
+        if (
+          request.invitationLetterObjectPath ||
+          request.invitationLetterStorageKey
+        ) {
           documents.push({
-            type: "passport",
-            name: passportDoc.originalName,
-            objectPath: passportDoc.objectPath,
-            storageKey: passportDoc.storageKey,
-            mimeType: passportDoc.mimeType,
-            verificationStatus: passportDoc.verificationStatus,
+            type: "invitation_letter",
+            name: request.invitationLetterOriginalName || "Invitation Letter",
+            objectPath: request.invitationLetterObjectPath,
+            storageKey: request.invitationLetterStorageKey,
+            mimeType: "application/pdf",
           });
         }
+
+        res.json(documents);
+      } catch (error: any) {
+        res.status(500).json({ error: error.message });
       }
-      
-      // Get invitation letter if attached
-      if (request.invitationLetterObjectPath || request.invitationLetterStorageKey) {
-        documents.push({
-          type: "invitation_letter",
-          name: request.invitationLetterOriginalName || "Invitation Letter",
-          objectPath: request.invitationLetterObjectPath,
-          storageKey: request.invitationLetterStorageKey,
-          mimeType: "application/pdf",
+    }
+  );
+
+  app.get(
+    "/api/federation-admin/fee-schedules",
+    requireFederationAdmin,
+    async (req, res) => {
+      try {
+        const { federationId } = req.query;
+        const schedules = federationId
+          ? await storage.getFederationFeeSchedules(federationId as string)
+          : await storage.getAllFederationFeeSchedules();
+        res.json(schedules);
+      } catch (error: any) {
+        res.status(500).json({ error: error.message });
+      }
+    }
+  );
+
+  app.post(
+    "/api/federation-admin/fee-schedules",
+    requireFederationAdmin,
+    async (req, res) => {
+      try {
+        const schedule = await storage.createFederationFeeSchedule({
+          ...req.body,
+          platformServiceCharge: 25,
         });
+        res.json(schedule);
+      } catch (error: any) {
+        res.status(400).json({ error: error.message });
       }
-      
-      res.json(documents);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
     }
-  });
+  );
 
-  app.get("/api/federation-admin/fee-schedules", requireFederationAdmin, async (req, res) => {
-    try {
-      const { federationId } = req.query;
-      const schedules = federationId 
-        ? await storage.getFederationFeeSchedules(federationId as string)
-        : await storage.getAllFederationFeeSchedules();
-      res.json(schedules);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+  app.put(
+    "/api/federation-admin/fee-schedules/:id",
+    requireFederationAdmin,
+    async (req, res) => {
+      try {
+        const schedule = await storage.updateFederationFeeSchedule(
+          req.params.id,
+          req.body
+        );
+        res.json(schedule);
+      } catch (error: any) {
+        res.status(400).json({ error: error.message });
+      }
     }
-  });
+  );
 
-  app.post("/api/federation-admin/fee-schedules", requireFederationAdmin, async (req, res) => {
-    try {
-      const schedule = await storage.createFederationFeeSchedule({
-        ...req.body,
-        platformServiceCharge: 25,
-      });
-      res.json(schedule);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+  app.delete(
+    "/api/federation-admin/fee-schedules/:id",
+    requireFederationAdmin,
+    async (req, res) => {
+      try {
+        await storage.deleteFederationFeeSchedule(req.params.id);
+        res.json({ success: true });
+      } catch (error: any) {
+        res.status(500).json({ error: error.message });
+      }
     }
-  });
+  );
 
-  app.put("/api/federation-admin/fee-schedules/:id", requireFederationAdmin, async (req, res) => {
-    try {
-      const schedule = await storage.updateFederationFeeSchedule(req.params.id, req.body);
-      res.json(schedule);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+  app.get(
+    "/api/federation-admin/profiles",
+    requireFederationAdmin,
+    async (req, res) => {
+      try {
+        const profiles = await storage.getFederationProfiles();
+        res.json(profiles);
+      } catch (error: any) {
+        res.status(500).json({ error: error.message });
+      }
     }
-  });
+  );
 
-  app.delete("/api/federation-admin/fee-schedules/:id", requireFederationAdmin, async (req, res) => {
-    try {
-      await storage.deleteFederationFeeSchedule(req.params.id);
-      res.json({ success: true });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+  app.post(
+    "/api/federation-admin/profiles",
+    requireFederationAdmin,
+    async (req, res) => {
+      try {
+        const profile = await storage.createFederationProfile(req.body);
+        res.json(profile);
+      } catch (error: any) {
+        res.status(400).json({ error: error.message });
+      }
     }
-  });
+  );
 
-  app.get("/api/federation-admin/profiles", requireFederationAdmin, async (req, res) => {
-    try {
-      const profiles = await storage.getFederationProfiles();
-      res.json(profiles);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+  app.put(
+    "/api/federation-admin/profiles/:id",
+    requireFederationAdmin,
+    async (req, res) => {
+      try {
+        const profile = await storage.updateFederationProfile(
+          req.params.id,
+          req.body
+        );
+        res.json(profile);
+      } catch (error: any) {
+        res.status(400).json({ error: error.message });
+      }
     }
-  });
-
-  app.post("/api/federation-admin/profiles", requireFederationAdmin, async (req, res) => {
-    try {
-      const profile = await storage.createFederationProfile(req.body);
-      res.json(profile);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
-    }
-  });
-
-  app.put("/api/federation-admin/profiles/:id", requireFederationAdmin, async (req, res) => {
-    try {
-      const profile = await storage.updateFederationProfile(req.params.id, req.body);
-      res.json(profile);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
-    }
-  });
+  );
 
   // Federation Request Messages Routes (accessible by both team and federation admin)
-  app.get("/api/federation-requests/:id/messages", requireAuth, async (req, res) => {
-    try {
-      const messages = await storage.getFederationRequestMessages(req.params.id);
-      res.json(messages);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+  app.get(
+    "/api/federation-requests/:id/messages",
+    requireAuth,
+    async (req, res) => {
+      try {
+        const messages = await storage.getFederationRequestMessages(
+          req.params.id
+        );
+        res.json(messages);
+      } catch (error: any) {
+        res.status(500).json({ error: error.message });
+      }
     }
-  });
+  );
 
-  app.post("/api/federation-requests/:id/messages", requireAuth, async (req, res) => {
-    try {
-      const { content, subject, recipientPortal } = req.body;
-      const userRole = req.session.userRole || 'team';
-      const senderPortal = userRole === 'federation_admin' ? 'federation' : 'team';
-      
-      const message = await storage.createFederationRequestMessage({
-        requestId: req.params.id,
-        senderId: req.session.userId || 'anonymous',
-        senderName: req.body.senderName || req.session.userId || 'Unknown',
-        senderRole: userRole,
-        senderPortal,
-        recipientPortal: recipientPortal || (senderPortal === 'team' ? 'federation' : 'team'),
-        subject,
-        content,
-      });
+  app.post(
+    "/api/federation-requests/:id/messages",
+    requireAuth,
+    async (req, res) => {
+      try {
+        const { content, subject, recipientPortal } = req.body;
+        const userRole = req.session.userRole || "team";
+        const senderPortal =
+          userRole === "federation_admin" ? "federation" : "team";
 
-      await storage.logFederationActivity(
-        req.params.id,
-        'message_sent',
-        `Message sent from ${senderPortal} portal`,
-        req.session.userId,
-        req.body.senderName || req.session.userId,
-        userRole,
-        undefined,
-        undefined,
-        { messageId: message.id, subject }
-      );
+        const message = await storage.createFederationRequestMessage({
+          requestId: req.params.id,
+          senderId: req.session.userId || "anonymous",
+          senderName: req.body.senderName || req.session.userId || "Unknown",
+          senderRole: userRole,
+          senderPortal,
+          recipientPortal:
+            recipientPortal ||
+            (senderPortal === "team" ? "federation" : "team"),
+          subject,
+          content,
+        });
 
-      res.json(message);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+        await storage.logFederationActivity(
+          req.params.id,
+          "message_sent",
+          `Message sent from ${senderPortal} portal`,
+          req.session.userId,
+          req.body.senderName || req.session.userId,
+          userRole,
+          undefined,
+          undefined,
+          { messageId: message.id, subject }
+        );
+
+        res.json(message);
+      } catch (error: any) {
+        res.status(400).json({ error: error.message });
+      }
     }
-  });
+  );
 
-  app.put("/api/federation-requests/messages/:id/read", requireAuth, async (req, res) => {
-    try {
-      const message = await storage.markMessageAsRead(req.params.id);
-      res.json(message);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+  app.put(
+    "/api/federation-requests/messages/:id/read",
+    requireAuth,
+    async (req, res) => {
+      try {
+        const message = await storage.markMessageAsRead(req.params.id);
+        res.json(message);
+      } catch (error: any) {
+        res.status(400).json({ error: error.message });
+      }
     }
-  });
+  );
 
   // Federation Request Activity Log Routes
-  app.get("/api/federation-requests/:id/activities", requireAuth, async (req, res) => {
-    try {
-      const activities = await storage.getFederationRequestActivities(req.params.id);
-      res.json(activities);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+  app.get(
+    "/api/federation-requests/:id/activities",
+    requireAuth,
+    async (req, res) => {
+      try {
+        const activities = await storage.getFederationRequestActivities(
+          req.params.id
+        );
+        res.json(activities);
+      } catch (error: any) {
+        res.status(500).json({ error: error.message });
+      }
     }
-  });
+  );
 
   // Federation Request Full History (request + activities + messages + documents)
-  app.get("/api/federation-requests/:id/history", requireAuth, async (req, res) => {
-    try {
-      const history = await storage.getRequestWithFullHistory(req.params.id);
-      res.json(history);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+  app.get(
+    "/api/federation-requests/:id/history",
+    requireAuth,
+    async (req, res) => {
+      try {
+        const history = await storage.getRequestWithFullHistory(req.params.id);
+        res.json(history);
+      } catch (error: any) {
+        res.status(500).json({ error: error.message });
+      }
     }
-  });
+  );
 
   // Federation Issued Documents Routes
-  app.get("/api/federation-requests/:id/issued-documents", requireAuth, async (req, res) => {
-    try {
-      const documents = await storage.getFederationIssuedDocuments(req.params.id);
-      res.json(documents);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+  app.get(
+    "/api/federation-requests/:id/issued-documents",
+    requireAuth,
+    async (req, res) => {
+      try {
+        const documents = await storage.getFederationIssuedDocuments(
+          req.params.id
+        );
+        res.json(documents);
+      } catch (error: any) {
+        res.status(500).json({ error: error.message });
+      }
     }
-  });
+  );
 
-  app.post("/api/federation-requests/:id/issued-documents/:docId/download", requireAuth, async (req, res) => {
-    try {
-      await storage.incrementDocumentDownloadCount(req.params.docId);
-      
-      await storage.logFederationActivity(
-        req.params.id,
-        'document_downloaded',
-        `Document downloaded`,
-        req.session.userId,
-        req.session.userId,
-        req.session.userRole,
-        undefined,
-        undefined,
-        { documentId: req.params.docId }
-      );
-      
-      res.json({ success: true });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+  app.post(
+    "/api/federation-requests/:id/issued-documents/:docId/download",
+    requireAuth,
+    async (req, res) => {
+      try {
+        await storage.incrementDocumentDownloadCount(req.params.docId);
+
+        await storage.logFederationActivity(
+          req.params.id,
+          "document_downloaded",
+          `Document downloaded`,
+          req.session.userId,
+          req.session.userId,
+          req.session.userRole,
+          undefined,
+          undefined,
+          { documentId: req.params.docId }
+        );
+
+        res.json({ success: true });
+      } catch (error: any) {
+        res.status(500).json({ error: error.message });
+      }
     }
-  });
+  );
 
   // Download an issued document directly - generates PDF with platform timestamp
-  app.get("/api/federation-requests/:id/issued-documents/:docId/download-file", requireAuth, async (req, res) => {
-    try {
-      const documents = await storage.getFederationIssuedDocuments(req.params.id);
-      const doc = documents.find(d => d.id === req.params.docId);
-      
-      if (!doc) {
-        return res.status(404).json({ error: "Document not found" });
-      }
-      
-      // Get the request details for the certificate
-      const request = await storage.getFederationLetterRequest(req.params.id);
-      if (!request) {
-        return res.status(404).json({ error: "Request not found" });
-      }
-      
-      await storage.incrementDocumentDownloadCount(req.params.docId);
-      
-      // Generate a PDF certificate with platform timestamp
-      const pdf = new jsPDF();
-      const issuedDate = doc.createdAt ? new Date(doc.createdAt) : new Date();
-      const downloadDate = new Date();
-      
-      // Header
-      pdf.setFontSize(20);
-      pdf.setFont("helvetica", "bold");
-      pdf.text("FEDERATION LETTER CERTIFICATE", 105, 30, { align: "center" });
-      
-      // Platform branding
-      pdf.setFontSize(12);
-      pdf.setFont("helvetica", "normal");
-      pdf.text("Sports Reels Compliance Platform", 105, 40, { align: "center" });
-      
-      // Horizontal line
-      pdf.setLineWidth(0.5);
-      pdf.line(20, 50, 190, 50);
-      
-      // Document details
-      pdf.setFontSize(11);
-      let yPos = 65;
-      
-      pdf.setFont("helvetica", "bold");
-      pdf.text("Document Information", 20, yPos);
-      yPos += 10;
-      
-      pdf.setFont("helvetica", "normal");
-      pdf.text(`Request Number: ${request.requestNumber}`, 20, yPos);
-      yPos += 8;
-      pdf.text(`Document Type: ${doc.documentType}`, 20, yPos);
-      yPos += 8;
-      pdf.text(`Original File: ${doc.originalName}`, 20, yPos);
-      yPos += 15;
-      
-      pdf.setFont("helvetica", "bold");
-      pdf.text("Athlete Information", 20, yPos);
-      yPos += 10;
-      
-      pdf.setFont("helvetica", "normal");
-      pdf.text(`Full Name: ${request.athleteFullName}`, 20, yPos);
-      yPos += 8;
-      pdf.text(`Nationality: ${request.athleteNationality}`, 20, yPos);
-      yPos += 8;
-      pdf.text(`Position: ${request.athletePosition}`, 20, yPos);
-      yPos += 8;
-      pdf.text(`Date of Birth: ${request.athleteDateOfBirth}`, 20, yPos);
-      yPos += 15;
-      
-      pdf.setFont("helvetica", "bold");
-      pdf.text("Transfer Details", 20, yPos);
-      yPos += 10;
-      
-      pdf.setFont("helvetica", "normal");
-      pdf.text(`Target Club: ${request.targetClubName}`, 20, yPos);
-      yPos += 8;
-      pdf.text(`Target Country: ${request.targetClubCountry}`, 20, yPos);
-      yPos += 8;
-      pdf.text(`Transfer Type: ${request.transferType?.replace(/_/g, ' ').toUpperCase()}`, 20, yPos);
-      yPos += 8;
-      if (request.federationName) {
-        pdf.text(`Federation: ${request.federationName} (${request.federationCountry})`, 20, yPos);
+  app.get(
+    "/api/federation-requests/:id/issued-documents/:docId/download-file",
+    requireAuth,
+    async (req, res) => {
+      try {
+        const documents = await storage.getFederationIssuedDocuments(
+          req.params.id
+        );
+        const doc = documents.find((d) => d.id === req.params.docId);
+
+        if (!doc) {
+          return res.status(404).json({ error: "Document not found" });
+        }
+
+        // Get the request details for the certificate
+        const request = await storage.getFederationLetterRequest(req.params.id);
+        if (!request) {
+          return res.status(404).json({ error: "Request not found" });
+        }
+
+        await storage.incrementDocumentDownloadCount(req.params.docId);
+
+        // Generate a PDF certificate with platform timestamp
+        const pdf = new jsPDF();
+        const issuedDate = doc.createdAt ? new Date(doc.createdAt) : new Date();
+        const downloadDate = new Date();
+
+        // Header
+        pdf.setFontSize(20);
+        pdf.setFont("helvetica", "bold");
+        pdf.text("FEDERATION LETTER CERTIFICATE", 105, 30, { align: "center" });
+
+        // Platform branding
+        pdf.setFontSize(12);
+        pdf.setFont("helvetica", "normal");
+        pdf.text("Sports Reels Compliance Platform", 105, 40, {
+          align: "center",
+        });
+
+        // Horizontal line
+        pdf.setLineWidth(0.5);
+        pdf.line(20, 50, 190, 50);
+
+        // Document details
+        pdf.setFontSize(11);
+        let yPos = 65;
+
+        pdf.setFont("helvetica", "bold");
+        pdf.text("Document Information", 20, yPos);
+        yPos += 10;
+
+        pdf.setFont("helvetica", "normal");
+        pdf.text(`Request Number: ${request.requestNumber}`, 20, yPos);
         yPos += 8;
+        pdf.text(`Document Type: ${doc.documentType}`, 20, yPos);
+        yPos += 8;
+        pdf.text(`Original File: ${doc.originalName}`, 20, yPos);
+        yPos += 15;
+
+        pdf.setFont("helvetica", "bold");
+        pdf.text("Athlete Information", 20, yPos);
+        yPos += 10;
+
+        pdf.setFont("helvetica", "normal");
+        pdf.text(`Full Name: ${request.athleteFullName}`, 20, yPos);
+        yPos += 8;
+        pdf.text(`Nationality: ${request.athleteNationality}`, 20, yPos);
+        yPos += 8;
+        pdf.text(`Position: ${request.athletePosition}`, 20, yPos);
+        yPos += 8;
+        pdf.text(`Date of Birth: ${request.athleteDateOfBirth}`, 20, yPos);
+        yPos += 15;
+
+        pdf.setFont("helvetica", "bold");
+        pdf.text("Transfer Details", 20, yPos);
+        yPos += 10;
+
+        pdf.setFont("helvetica", "normal");
+        pdf.text(`Target Club: ${request.targetClubName}`, 20, yPos);
+        yPos += 8;
+        pdf.text(`Target Country: ${request.targetClubCountry}`, 20, yPos);
+        yPos += 8;
+        pdf.text(
+          `Transfer Type: ${request.transferType?.replace(/_/g, " ").toUpperCase()}`,
+          20,
+          yPos
+        );
+        yPos += 8;
+        if (request.federationName) {
+          pdf.text(
+            `Federation: ${request.federationName} (${request.federationCountry})`,
+            20,
+            yPos
+          );
+          yPos += 8;
+        }
+        yPos += 10;
+
+        // Horizontal line
+        pdf.line(20, yPos, 190, yPos);
+        yPos += 15;
+
+        // Platform timestamp section
+        pdf.setFont("helvetica", "bold");
+        pdf.text("Platform Verification", 20, yPos);
+        yPos += 10;
+
+        pdf.setFont("helvetica", "normal");
+        pdf.text(
+          `Issued Date: ${issuedDate.toLocaleString("en-US", {
+            dateStyle: "full",
+            timeStyle: "long",
+            timeZone: "UTC",
+          })} UTC`,
+          20,
+          yPos
+        );
+        yPos += 8;
+        pdf.text(
+          `Download Date: ${downloadDate.toLocaleString("en-US", {
+            dateStyle: "full",
+            timeStyle: "long",
+            timeZone: "UTC",
+          })} UTC`,
+          20,
+          yPos
+        );
+        yPos += 8;
+        pdf.text(
+          `Issued By: ${doc.issuedByName || "Federation Administrator"}`,
+          20,
+          yPos
+        );
+        yPos += 8;
+        pdf.text(`Download Count: ${(doc.downloadCount || 0) + 1}`, 20, yPos);
+        yPos += 15;
+
+        // Verification notice
+        pdf.setFontSize(9);
+        pdf.setFont("helvetica", "italic");
+        pdf.text(
+          "This document was issued through the Sports Reels Compliance Platform.",
+          105,
+          yPos,
+          { align: "center" }
+        );
+        yPos += 5;
+        pdf.text(
+          "The timestamp above represents the official platform issuance time.",
+          105,
+          yPos,
+          { align: "center" }
+        );
+        yPos += 5;
+        pdf.text(`Document ID: ${doc.id}`, 105, yPos, { align: "center" });
+
+        // Footer
+        pdf.setFontSize(8);
+        pdf.text(
+          "Sports Reels - Player Compliance & Visa Eligibility Platform",
+          105,
+          285,
+          { align: "center" }
+        );
+
+        // Generate PDF buffer and send
+        const pdfBuffer = Buffer.from(pdf.output("arraybuffer"));
+        const fileName = `Federation_Letter_${request.requestNumber}_${downloadDate.toISOString().split("T")[0]}.pdf`;
+
+        res.setHeader("Content-Type", "application/pdf");
+        res.setHeader(
+          "Content-Disposition",
+          `attachment; filename="${fileName}"`
+        );
+        res.send(pdfBuffer);
+      } catch (error: any) {
+        res.status(500).json({ error: error.message });
       }
-      yPos += 10;
-      
-      // Horizontal line
-      pdf.line(20, yPos, 190, yPos);
-      yPos += 15;
-      
-      // Platform timestamp section
-      pdf.setFont("helvetica", "bold");
-      pdf.text("Platform Verification", 20, yPos);
-      yPos += 10;
-      
-      pdf.setFont("helvetica", "normal");
-      pdf.text(`Issued Date: ${issuedDate.toLocaleString('en-US', { 
-        dateStyle: 'full', 
-        timeStyle: 'long',
-        timeZone: 'UTC'
-      })} UTC`, 20, yPos);
-      yPos += 8;
-      pdf.text(`Download Date: ${downloadDate.toLocaleString('en-US', { 
-        dateStyle: 'full', 
-        timeStyle: 'long',
-        timeZone: 'UTC'
-      })} UTC`, 20, yPos);
-      yPos += 8;
-      pdf.text(`Issued By: ${doc.issuedByName || 'Federation Administrator'}`, 20, yPos);
-      yPos += 8;
-      pdf.text(`Download Count: ${(doc.downloadCount || 0) + 1}`, 20, yPos);
-      yPos += 15;
-      
-      // Verification notice
-      pdf.setFontSize(9);
-      pdf.setFont("helvetica", "italic");
-      pdf.text("This document was issued through the Sports Reels Compliance Platform.", 105, yPos, { align: "center" });
-      yPos += 5;
-      pdf.text("The timestamp above represents the official platform issuance time.", 105, yPos, { align: "center" });
-      yPos += 5;
-      pdf.text(`Document ID: ${doc.id}`, 105, yPos, { align: "center" });
-      
-      // Footer
-      pdf.setFontSize(8);
-      pdf.text("Sports Reels - Player Compliance & Visa Eligibility Platform", 105, 285, { align: "center" });
-      
-      // Generate PDF buffer and send
-      const pdfBuffer = Buffer.from(pdf.output('arraybuffer'));
-      const fileName = `Federation_Letter_${request.requestNumber}_${downloadDate.toISOString().split('T')[0]}.pdf`;
-      
-      res.setHeader("Content-Type", "application/pdf");
-      res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
-      res.send(pdfBuffer);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
     }
-  });
+  );
 
   // Download the original uploaded document
-  app.get("/api/federation-requests/:id/issued-documents/:docId/download-original", requireAuth, async (req, res) => {
-    try {
-      const documents = await storage.getFederationIssuedDocuments(req.params.id);
-      const doc = documents.find(d => d.id === req.params.docId);
-      
-      if (!doc) {
-        return res.status(404).json({ error: "Document not found" });
-      }
-      
-      await storage.incrementDocumentDownloadCount(req.params.docId);
-      
-      // If objectPath exists, stream the original file directly
-      if (doc.objectPath) {
-        try {
-          const objectStorage = new ObjectStorageService();
-          // Use getObjectEntityFile which handles /objects/uploads/uuid paths
-          const objectFile = await objectStorage.getObjectEntityFile(doc.objectPath);
-          res.setHeader("Content-Disposition", `attachment; filename="${doc.originalName}"`);
-          return objectStorage.downloadObject(objectFile, res);
-        } catch (e: any) {
-          console.error("Error downloading original:", e);
+  app.get(
+    "/api/federation-requests/:id/issued-documents/:docId/download-original",
+    requireAuth,
+    async (req, res) => {
+      try {
+        const documents = await storage.getFederationIssuedDocuments(
+          req.params.id
+        );
+        const doc = documents.find((d) => d.id === req.params.docId);
+
+        if (!doc) {
+          return res.status(404).json({ error: "Document not found" });
         }
+
+        await storage.incrementDocumentDownloadCount(req.params.docId);
+
+        // If objectPath exists, stream the original file directly
+        if (doc.objectPath) {
+          try {
+            const objectStorage = new ObjectStorageService();
+            // Use getObjectEntityFile which handles /objects/uploads/uuid paths
+            const objectFile = await objectStorage.getObjectEntityFile(
+              doc.objectPath
+            );
+            res.setHeader(
+              "Content-Disposition",
+              `attachment; filename="${doc.originalName}"`
+            );
+            return objectStorage.downloadObject(objectFile, res);
+          } catch (e: any) {
+            console.error("Error downloading original:", e);
+          }
+        }
+
+        // Return error if file not found
+        res
+          .status(404)
+          .json({ error: "Original document file not found in storage" });
+      } catch (error: any) {
+        res.status(500).json({ error: error.message });
       }
-      
-      // Return error if file not found
-      res.status(404).json({ error: "Original document file not found in storage" });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
     }
-  });
+  );
 
   // Unread messages count for team portal
-  app.get("/api/federation-requests/unread-count", requireAuth, async (req, res) => {
-    try {
-      const messages = await storage.getUnreadMessagesForPortal('team');
-      res.json({ count: messages.length });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+  app.get(
+    "/api/federation-requests/unread-count",
+    requireAuth,
+    async (req, res) => {
+      try {
+        const messages = await storage.getUnreadMessagesForPortal("team");
+        res.json({ count: messages.length });
+      } catch (error: any) {
+        res.status(500).json({ error: error.message });
+      }
     }
-  });
+  );
 
   // Videos routes
   app.get("/api/videos", requireAuth, async (req, res) => {
@@ -2106,11 +2650,11 @@ export async function registerRoutes(
         teamId: req.session.teamId,
       });
       const video = await storage.createVideo(videoData);
-      
+
       if (video.playerId && video.minutesPlayed && video.minutesPlayed > 0) {
         await updatePlayerStatsFromVideos(video.playerId);
       }
-      
+
       res.json(video);
     } catch (error: any) {
       res.status(400).json({ error: error.message });
@@ -2124,11 +2668,11 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Video not found" });
       }
       const updatedVideo = await storage.updateVideo(req.params.id, req.body);
-      
+
       if (updatedVideo && updatedVideo.playerId) {
         await updatePlayerStatsFromVideos(updatedVideo.playerId);
       }
-      
+
       res.json(updatedVideo);
     } catch (error: any) {
       res.status(400).json({ error: error.message });
@@ -2146,12 +2690,20 @@ export async function registerRoutes(
       if (!player) {
         return res.status(404).json({ error: "Player not found" });
       }
-      
+
       const userId = req.session.userId!;
       const userRole = req.session.userRole || "sporting_director";
-      const tokenResult = await spendTokensForAction(userId, userRole, "video_analysis", video.playerId, video.id);
+      const tokenResult = await spendTokensForAction(
+        userId,
+        userRole,
+        "video_analysis",
+        video.playerId,
+        video.id
+      );
       if (!tokenResult.success) {
-        return res.status(402).json({ error: tokenResult.error, needsTokens: true });
+        return res
+          .status(402)
+          .json({ error: tokenResult.error, needsTokens: true });
       }
 
       const analysisPrompt = `Analyze this football match video data for player performance metrics:
@@ -2185,7 +2737,7 @@ Based on typical match analysis, provide estimated metrics in JSON format:
       });
 
       const analysis = JSON.parse(response.text || "{}");
-      
+
       const insights = await storage.createVideoInsights({
         videoId: video.id,
         playerId: video.playerId,
@@ -2222,16 +2774,18 @@ Based on typical match analysis, provide estimated metrics in JSON format:
     try {
       const existingTags = await storage.getVideoPlayerTags(req.params.id);
       if (existingTags.length >= MAX_PLAYERS_PER_VIDEO) {
-        return res.status(400).json({ 
-          error: `Maximum ${MAX_PLAYERS_PER_VIDEO} players can be tagged per video` 
+        return res.status(400).json({
+          error: `Maximum ${MAX_PLAYERS_PER_VIDEO} players can be tagged per video`,
         });
       }
 
       const { playerId, minutesPlayed, position } = req.body;
-      
-      const alreadyTagged = existingTags.find(t => t.playerId === playerId);
+
+      const alreadyTagged = existingTags.find((t) => t.playerId === playerId);
       if (alreadyTagged) {
-        return res.status(400).json({ error: "This player is already tagged to this video" });
+        return res
+          .status(400)
+          .json({ error: "This player is already tagged to this video" });
       }
 
       const tag = await storage.createVideoPlayerTag({
@@ -2240,11 +2794,11 @@ Based on typical match analysis, provide estimated metrics in JSON format:
         minutesPlayed: minutesPlayed || 0,
         position,
       });
-      
+
       if (playerId && minutesPlayed && minutesPlayed > 0) {
         await updatePlayerStatsFromVideos(playerId);
       }
-      
+
       res.json(tag);
     } catch (error: any) {
       res.status(400).json({ error: error.message });
@@ -2257,13 +2811,13 @@ Based on typical match analysis, provide estimated metrics in JSON format:
       if (!existingTag) {
         return res.status(404).json({ error: "Tag not found" });
       }
-      
+
       const tag = await storage.updateVideoPlayerTag(req.params.id, req.body);
-      
+
       if (existingTag.playerId) {
         await updatePlayerStatsFromVideos(existingTag.playerId);
       }
-      
+
       res.json(tag);
     } catch (error: any) {
       res.status(400).json({ error: error.message });
@@ -2280,28 +2834,31 @@ Based on typical match analysis, provide estimated metrics in JSON format:
   });
 
   // Analyze a specific tagged player in a video using positional metrics
-  app.post("/api/video-player-tags/:id/analyze", requireAuth, async (req, res) => {
-    try {
-      const tag = await storage.getVideoPlayerTag(req.params.id);
-      if (!tag) {
-        return res.status(404).json({ error: "Player tag not found" });
-      }
+  app.post(
+    "/api/video-player-tags/:id/analyze",
+    requireAuth,
+    async (req, res) => {
+      try {
+        const tag = await storage.getVideoPlayerTag(req.params.id);
+        if (!tag) {
+          return res.status(404).json({ error: "Player tag not found" });
+        }
 
-      const video = await storage.getVideo(tag.videoId);
-      if (!video) {
-        return res.status(404).json({ error: "Video not found" });
-      }
+        const video = await storage.getVideo(tag.videoId);
+        if (!video) {
+          return res.status(404).json({ error: "Video not found" });
+        }
 
-      const player = await storage.getPlayer(tag.playerId);
-      if (!player) {
-        return res.status(404).json({ error: "Player not found" });
-      }
+        const player = await storage.getPlayer(tag.playerId);
+        if (!player) {
+          return res.status(404).json({ error: "Player not found" });
+        }
 
-      const position = tag.position || player.position || "Unknown";
-      
-      const positionalMetricsPrompt = getPositionalMetricsPrompt(position);
-      
-      const analysisPrompt = `Analyze this football match video for a specific player's performance based on their position.
+        const position = tag.position || player.position || "Unknown";
+
+        const positionalMetricsPrompt = getPositionalMetricsPrompt(position);
+
+        const analysisPrompt = `Analyze this football match video for a specific player's performance based on their position.
 
 Player: ${player.firstName} ${player.lastName}
 Position Played in This Match: ${position}
@@ -2342,44 +2899,45 @@ Provide a comprehensive analysis in JSON format:
   "areasToImprove": ["list of areas needing improvement"]
 }`;
 
-      const response = await gemini.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: analysisPrompt,
-        config: {
-          responseMimeType: "application/json",
-        },
-      });
+        const response = await gemini.models.generateContent({
+          model: "gemini-2.5-flash",
+          contents: analysisPrompt,
+          config: {
+            responseMimeType: "application/json",
+          },
+        });
 
-      const analysis = JSON.parse(response.text || "{}");
-      
-      const updatedTag = await storage.updateVideoPlayerTag(tag.id, {
-        performanceRating: analysis.performanceRating,
-        goals: analysis.goals || 0,
-        assists: analysis.assists || 0,
-        passesCompleted: analysis.passesCompleted || 0,
-        passesAttempted: analysis.passesAttempted || 0,
-        tackles: analysis.tackles || 0,
-        interceptions: analysis.interceptions || 0,
-        saves: analysis.saves || 0,
-        shotsOnTarget: analysis.shotsOnTarget || 0,
-        distanceCovered: analysis.distanceCovered,
-        sprintCount: analysis.sprintCount || 0,
-        duelsWon: analysis.duelsWon || 0,
-        duelsLost: analysis.duelsLost || 0,
-        aiAnalysis: analysis.summary,
-        positionalMetrics: analysis.positionalMetrics || {},
-        keyMoments: analysis.keyMoments || [],
-        strengths: analysis.strengths || [],
-        areasToImprove: analysis.areasToImprove || [],
-        analyzed: true,
-      });
+        const analysis = JSON.parse(response.text || "{}");
 
-      res.json({ tag: updatedTag, analysis });
-    } catch (error: any) {
-      console.error("Player tag analysis error:", error);
-      res.status(500).json({ error: error.message });
+        const updatedTag = await storage.updateVideoPlayerTag(tag.id, {
+          performanceRating: analysis.performanceRating,
+          goals: analysis.goals || 0,
+          assists: analysis.assists || 0,
+          passesCompleted: analysis.passesCompleted || 0,
+          passesAttempted: analysis.passesAttempted || 0,
+          tackles: analysis.tackles || 0,
+          interceptions: analysis.interceptions || 0,
+          saves: analysis.saves || 0,
+          shotsOnTarget: analysis.shotsOnTarget || 0,
+          distanceCovered: analysis.distanceCovered,
+          sprintCount: analysis.sprintCount || 0,
+          duelsWon: analysis.duelsWon || 0,
+          duelsLost: analysis.duelsLost || 0,
+          aiAnalysis: analysis.summary,
+          positionalMetrics: analysis.positionalMetrics || {},
+          keyMoments: analysis.keyMoments || [],
+          strengths: analysis.strengths || [],
+          areasToImprove: analysis.areasToImprove || [],
+          analyzed: true,
+        });
+
+        res.json({ tag: updatedTag, analysis });
+      } catch (error: any) {
+        console.error("Player tag analysis error:", error);
+        res.status(500).json({ error: error.message });
+      }
     }
-  });
+  );
 
   // Get total video minutes for a player
   app.get("/api/players/:id/video-minutes", requireAuth, async (req, res) => {
@@ -2401,17 +2959,20 @@ Provide a comprehensive analysis in JSON format:
     }
   });
 
-  app.post("/api/eligibility/:playerId/calculate", requireAuth, async (req, res) => {
-    try {
-      const player = await storage.getPlayer(req.params.playerId);
-      if (!player) {
-        return res.status(404).json({ error: "Player not found" });
-      }
+  app.post(
+    "/api/eligibility/:playerId/calculate",
+    requireAuth,
+    async (req, res) => {
+      try {
+        const player = await storage.getPlayer(req.params.playerId);
+        if (!player) {
+          return res.status(404).json({ error: "Player not found" });
+        }
 
-      const metrics = await storage.getPlayerMetrics(player.id);
-      const latestMetrics = metrics[0];
+        const metrics = await storage.getPlayerMetrics(player.id);
+        const latestMetrics = metrics[0];
 
-      const eligibilityPrompt = `Calculate visa eligibility scores for this football player across multiple visa types.
+        const eligibilityPrompt = `Calculate visa eligibility scores for this football player across multiple visa types.
 
 Player Profile:
 - Name: ${player.firstName} ${player.lastName}
@@ -2465,35 +3026,39 @@ Respond in JSON format:
   ]
 }`;
 
-      const response = await gemini.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: eligibilityPrompt,
-        config: {
-          responseMimeType: "application/json",
-        },
-      });
-
-      const result = JSON.parse(response.text || "{}");
-      
-      const savedScores = [];
-      for (const scoreData of result.scores || []) {
-        const saved = await storage.createEligibilityScore({
-          playerId: player.id,
-          visaType: scoreData.visaType,
-          score: scoreData.score,
-          status: scoreData.status,
-          breakdown: scoreData.breakdown,
-          leagueBandApplied: 3,
+        const response = await gemini.models.generateContent({
+          model: "gemini-2.5-flash",
+          contents: eligibilityPrompt,
+          config: {
+            responseMimeType: "application/json",
+          },
         });
-        savedScores.push({ ...saved, recommendation: scoreData.recommendation });
-      }
 
-      res.json({ eligibilityScores: savedScores });
-    } catch (error: any) {
-      console.error("Eligibility calculation error:", error);
-      res.status(500).json({ error: error.message });
+        const result = JSON.parse(response.text || "{}");
+
+        const savedScores = [];
+        for (const scoreData of result.scores || []) {
+          const saved = await storage.createEligibilityScore({
+            playerId: player.id,
+            visaType: scoreData.visaType,
+            score: scoreData.score,
+            status: scoreData.status,
+            breakdown: scoreData.breakdown,
+            leagueBandApplied: 3,
+          });
+          savedScores.push({
+            ...saved,
+            recommendation: scoreData.recommendation,
+          });
+        }
+
+        res.json({ eligibilityScores: savedScores });
+      } catch (error: any) {
+        console.error("Eligibility calculation error:", error);
+        res.status(500).json({ error: error.message });
+      }
     }
-  });
+  );
 
   // Compliance orders routes
   app.get("/api/compliance/orders", requireAuth, async (req, res) => {
@@ -2547,29 +3112,34 @@ Respond in JSON format:
     }
   });
 
-  app.post("/api/compliance/orders/:id/generate", requireAuth, async (req, res) => {
-    try {
-      const order = await storage.getComplianceOrder(req.params.id);
-      if (!order) {
-        return res.status(404).json({ error: "Order not found" });
-      }
+  app.post(
+    "/api/compliance/orders/:id/generate",
+    requireAuth,
+    async (req, res) => {
+      try {
+        const order = await storage.getComplianceOrder(req.params.id);
+        if (!order) {
+          return res.status(404).json({ error: "Order not found" });
+        }
 
-      if (order.status !== "paid") {
-        return res.status(400).json({ error: "Order must be paid before generating document" });
-      }
+        if (order.status !== "paid") {
+          return res
+            .status(400)
+            .json({ error: "Order must be paid before generating document" });
+        }
 
-      const player = await storage.getPlayer(order.playerId);
-      if (!player) {
-        return res.status(404).json({ error: "Player not found" });
-      }
+        const player = await storage.getPlayer(order.playerId);
+        if (!player) {
+          return res.status(404).json({ error: "Player not found" });
+        }
 
-      const metrics = await storage.getPlayerMetrics(player.id);
-      const eligibilityScores = await storage.getEligibilityScores(player.id);
-      const medicalRecords = await storage.getMedicalRecords(player.id);
-      const biometricData = await storage.getBiometricData(player.id);
-      const latestMetrics = metrics[0];
+        const metrics = await storage.getPlayerMetrics(player.id);
+        const eligibilityScores = await storage.getEligibilityScores(player.id);
+        const medicalRecords = await storage.getMedicalRecords(player.id);
+        const biometricData = await storage.getBiometricData(player.id);
+        const latestMetrics = metrics[0];
 
-      const documentPrompt = `Generate a comprehensive compliance document summary for embassy submission.
+        const documentPrompt = `Generate a comprehensive compliance document summary for embassy submission.
 
 Player: ${player.firstName} ${player.lastName}
 Nationality: ${player.nationality}
@@ -2604,44 +3174,49 @@ Generate a professional summary suitable for embassy submission that highlights:
 
 Provide the summary as a formal document text.`;
 
-      const response = await gemini.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: documentPrompt,
-      });
+        const response = await gemini.models.generateContent({
+          model: "gemini-2.5-flash",
+          contents: documentPrompt,
+        });
 
-      const aiSummary = response.text || "";
+        const aiSummary = response.text || "";
 
-      const document = await storage.createComplianceDocument({
-        orderId: order.id,
-        playerId: player.id,
-        documentType: "pre_transfer_verification",
-        generatedBy: req.session.userId,
-        dataRangeStart: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString(),
-        dataRangeEnd: new Date().toISOString(),
-        aiSummary,
-        playerProfile: {
-          fullName: `${player.firstName} ${player.lastName}`,
-          nationality: player.nationality,
-          dateOfBirth: player.dateOfBirth,
-          position: player.position,
-          currentClub: player.currentClubId,
-          height: player.height,
-          weight: player.weight,
-        },
-        physicalData: biometricData[0] || {},
-        performanceStats: latestMetrics || {},
-        eligibilityData: eligibilityScores,
-        status: "completed",
-      });
+        const document = await storage.createComplianceDocument({
+          orderId: order.id,
+          playerId: player.id,
+          documentType: "pre_transfer_verification",
+          generatedBy: req.session.userId,
+          dataRangeStart: new Date(
+            Date.now() - 365 * 24 * 60 * 60 * 1000
+          ).toISOString(),
+          dataRangeEnd: new Date().toISOString(),
+          aiSummary,
+          playerProfile: {
+            fullName: `${player.firstName} ${player.lastName}`,
+            nationality: player.nationality,
+            dateOfBirth: player.dateOfBirth,
+            position: player.position,
+            currentClub: player.currentClubId,
+            height: player.height,
+            weight: player.weight,
+          },
+          physicalData: biometricData[0] || {},
+          performanceStats: latestMetrics || {},
+          eligibilityData: eligibilityScores,
+          status: "completed",
+        });
 
-      await storage.updateComplianceOrder(order.id, { status: "completed" } as any);
+        await storage.updateComplianceOrder(order.id, {
+          status: "completed",
+        } as any);
 
-      res.json({ document, aiSummary });
-    } catch (error: any) {
-      console.error("Document generation error:", error);
-      res.status(500).json({ error: error.message });
+        res.json({ document, aiSummary });
+      } catch (error: any) {
+        console.error("Document generation error:", error);
+        res.status(500).json({ error: error.message });
+      }
     }
-  });
+  );
 
   // Embassy verifications routes
   app.get("/api/embassy/verifications", requireAuth, async (req, res) => {
@@ -2692,8 +3267,9 @@ Provide the summary as a formal document text.`;
   // Embassy verification submission
   app.post("/api/embassy/verifications", requireAuth, async (req, res) => {
     try {
-      const { documentId, playerId, embassyCountry, verificationCode } = req.body;
-      
+      const { documentId, playerId, embassyCountry, verificationCode } =
+        req.body;
+
       const verification = await storage.createEmbassyVerification({
         documentId,
         playerId,
@@ -2717,33 +3293,40 @@ Provide the summary as a formal document text.`;
     }
   });
 
-  app.put("/api/embassy/verifications/:id", requireEmbassyRole, async (req, res) => {
-    try {
-      const { status, notes } = req.body;
-      const verification = await storage.updateEmbassyVerification(req.params.id, {
-        status,
-        notes,
-        verifiedAt: status === "verified" ? new Date() : undefined,
-      } as any);
+  app.put(
+    "/api/embassy/verifications/:id",
+    requireEmbassyRole,
+    async (req, res) => {
+      try {
+        const { status, notes } = req.body;
+        const verification = await storage.updateEmbassyVerification(
+          req.params.id,
+          {
+            status,
+            notes,
+            verifiedAt: status === "verified" ? new Date() : undefined,
+          } as any
+        );
 
-      if (!verification) {
-        return res.status(404).json({ error: "Verification not found" });
+        if (!verification) {
+          return res.status(404).json({ error: "Verification not found" });
+        }
+
+        await storage.logAction({
+          userId: req.session.userId,
+          userRole: "embassy",
+          action: "update_verification",
+          entityType: "embassy_verification",
+          entityId: verification.id,
+          details: { status, notes },
+        });
+
+        res.json(verification);
+      } catch (error: any) {
+        res.status(400).json({ error: error.message });
       }
-
-      await storage.logAction({
-        userId: req.session.userId,
-        userRole: "embassy",
-        action: "update_verification",
-        entityType: "embassy_verification",
-        entityId: verification.id,
-        details: { status, notes },
-      });
-
-      res.json(verification);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
     }
-  });
+  );
 
   // Dashboard stats
   app.get("/api/dashboard/stats", requireAuth, async (req, res) => {
@@ -2751,13 +3334,16 @@ Provide the summary as a formal document text.`;
       const players = await storage.getPlayers();
       const verifications = await storage.getEmbassyVerifications();
       const inquiries = await storage.getScoutingInquiries();
-      
-      let greenCount = 0, yellowCount = 0, redCount = 0;
-      
+
+      let greenCount = 0,
+        yellowCount = 0,
+        redCount = 0;
+
       for (const player of players) {
         const scores = await storage.getEligibilityScores(player.id);
         if (scores.length > 0) {
-          const avgScore = scores.reduce((sum, s) => sum + s.score, 0) / scores.length;
+          const avgScore =
+            scores.reduce((sum, s) => sum + s.score, 0) / scores.length;
           if (avgScore >= 60) greenCount++;
           else if (avgScore >= 35) yellowCount++;
           else redCount++;
@@ -2769,8 +3355,10 @@ Provide the summary as a formal document text.`;
         greenStatus: greenCount,
         yellowStatus: yellowCount,
         redStatus: redCount,
-        pendingVerifications: verifications.filter(v => v.status === "pending").length,
-        activeInquiries: inquiries.filter(i => i.status !== "closed").length,
+        pendingVerifications: verifications.filter(
+          (v) => v.status === "pending"
+        ).length,
+        activeInquiries: inquiries.filter((i) => i.status !== "closed").length,
         reportsGenerated: 0,
       });
     } catch (error: any) {
@@ -2783,20 +3371,23 @@ Provide the summary as a formal document text.`;
     try {
       const players = await storage.getPlayers();
       const invitationLetters = await storage.getAllInvitationLetters();
-      
+
       // Build a player lookup map for efficient access
-      const playerMap = new Map<string, typeof players[0]>();
+      const playerMap = new Map<string, (typeof players)[0]>();
       for (const player of players) {
         playerMap.set(player.id, player);
       }
-      
+
       // Aggregate player origins by nationality
-      const originsMap = new Map<string, { count: number; players: Array<{ id: string; name: string }> }>();
-      
+      const originsMap = new Map<
+        string,
+        { count: number; players: Array<{ id: string; name: string }> }
+      >();
+
       for (const player of players) {
         const nationality = player.nationality?.toLowerCase() || "";
         if (!nationality) continue;
-        
+
         if (!originsMap.has(nationality)) {
           originsMap.set(nationality, { count: 0, players: [] });
         }
@@ -2807,13 +3398,15 @@ Provide the summary as a formal document text.`;
           name: `${player.firstName} ${player.lastName}`,
         });
       }
-      
-      const playerOrigins = Array.from(originsMap.entries()).map(([country, data]) => ({
-        country,
-        count: data.count,
-        players: data.players,
-      }));
-      
+
+      const playerOrigins = Array.from(originsMap.entries()).map(
+        ([country, data]) => ({
+          country,
+          count: data.count,
+          players: data.players,
+        })
+      );
+
       // Get transfer destinations from invitation letters - use playerMap for O(1) lookup
       const transferDestinations: Array<{
         fromCountry: string;
@@ -2821,12 +3414,12 @@ Provide the summary as a formal document text.`;
         playerName: string;
         playerId: string;
       }> = [];
-      
+
       for (const letter of invitationLetters) {
         if (!letter.targetCountry) continue;
         const player = playerMap.get(letter.playerId);
         if (!player || !player.nationality) continue;
-        
+
         transferDestinations.push({
           fromCountry: player.nationality.toLowerCase(),
           toCountry: letter.targetCountry.toLowerCase(),
@@ -2834,7 +3427,7 @@ Provide the summary as a formal document text.`;
           playerId: player.id,
         });
       }
-      
+
       res.json({
         playerOrigins,
         transferDestinations,
@@ -2863,7 +3456,7 @@ Provide the summary as a formal document text.`;
         type: type || "general",
         status: "active",
       });
-      
+
       await storage.addConversationParticipant({
         conversationId: conversation.id,
         actorId: req.session.userId!,
@@ -2891,7 +3484,9 @@ Provide the summary as a formal document text.`;
       if (!conversation) {
         return res.status(404).json({ error: "Conversation not found" });
       }
-      const participants = await storage.getConversationParticipants(conversation.id);
+      const participants = await storage.getConversationParticipants(
+        conversation.id
+      );
       const messages = await storage.getMessages(conversation.id);
       res.json({ conversation, participants, messages });
     } catch (error: any) {
@@ -2904,17 +3499,23 @@ Provide the summary as a formal document text.`;
       const { content, attachmentUrl, attachmentType } = req.body;
       const userId = req.session.userId!;
       const userRole = req.session.userRole || "unknown";
-      
+
       if (userRole !== "scout") {
         const conversation = await storage.getConversation(req.params.id);
         if (conversation && conversation.type === "scouting") {
-          const tokenResult = await spendTokensForAction(userId, userRole, "scouting_messaging");
+          const tokenResult = await spendTokensForAction(
+            userId,
+            userRole,
+            "scouting_messaging"
+          );
           if (!tokenResult.success) {
-            return res.status(402).json({ error: tokenResult.error, needsTokens: true });
+            return res
+              .status(402)
+              .json({ error: tokenResult.error, needsTokens: true });
           }
         }
       }
-      
+
       const message = await storage.createMessage({
         conversationId: req.params.id,
         senderId: userId,
@@ -2944,19 +3545,32 @@ Provide the summary as a formal document text.`;
   });
 
   // Invitation letter routes
-  app.get("/api/invitation-letters/:playerId", requireAuth, async (req, res) => {
-    try {
-      const letters = await storage.getInvitationLetters(req.params.playerId);
-      res.json(letters);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+  app.get(
+    "/api/invitation-letters/:playerId",
+    requireAuth,
+    async (req, res) => {
+      try {
+        const letters = await storage.getInvitationLetters(req.params.playerId);
+        res.json(letters);
+      } catch (error: any) {
+        res.status(500).json({ error: error.message });
+      }
     }
-  });
+  );
 
   app.post("/api/invitation-letters", requireAuth, async (req, res) => {
     try {
-      const { playerId, targetClubName, targetLeague, targetLeagueBand, targetCountry, scoutAgentName, scoutAgentId, fileUrl } = req.body;
-      
+      const {
+        playerId,
+        targetClubName,
+        targetLeague,
+        targetLeagueBand,
+        targetCountry,
+        scoutAgentName,
+        scoutAgentId,
+        fileUrl,
+      } = req.body;
+
       const letter = await storage.createInvitationLetter({
         playerId,
         fromTeamId: req.session.teamId || "",
@@ -3001,22 +3615,29 @@ Provide the summary as a formal document text.`;
     }
   });
 
-  app.get("/api/invitation-letters/single/:id", requireAuth, async (req, res) => {
-    try {
-      const letter = await storage.getInvitationLetter(req.params.id);
-      if (!letter) {
-        return res.status(404).json({ error: "Invitation letter not found" });
+  app.get(
+    "/api/invitation-letters/single/:id",
+    requireAuth,
+    async (req, res) => {
+      try {
+        const letter = await storage.getInvitationLetter(req.params.id);
+        if (!letter) {
+          return res.status(404).json({ error: "Invitation letter not found" });
+        }
+        const player = await storage.getPlayer(letter.playerId);
+        res.json({ ...letter, player });
+      } catch (error: any) {
+        res.status(500).json({ error: error.message });
       }
-      const player = await storage.getPlayer(letter.playerId);
-      res.json({ ...letter, player });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
     }
-  });
+  );
 
   app.patch("/api/invitation-letters/:id", requireAuth, async (req, res) => {
     try {
-      const letter = await storage.updateInvitationLetter(req.params.id, req.body);
+      const letter = await storage.updateInvitationLetter(
+        req.params.id,
+        req.body
+      );
       if (!letter) {
         return res.status(404).json({ error: "Invitation letter not found" });
       }
@@ -3035,91 +3656,100 @@ Provide the summary as a formal document text.`;
     }
   });
 
-  app.post("/api/invitation-letters/:id/generate-consular-report", requireAuth, async (req, res) => {
-    try {
-      const letter = await storage.getInvitationLetter(req.params.id);
-      if (!letter) {
-        return res.status(404).json({ error: "Invitation letter not found" });
+  app.post(
+    "/api/invitation-letters/:id/generate-consular-report",
+    requireAuth,
+    async (req, res) => {
+      try {
+        const letter = await storage.getInvitationLetter(req.params.id);
+        if (!letter) {
+          return res.status(404).json({ error: "Invitation letter not found" });
+        }
+
+        const player = await storage.getPlayer(letter.playerId);
+        if (!player) {
+          return res.status(404).json({ error: "Player not found" });
+        }
+
+        const eligibilityScores = await storage.getEligibilityScores(
+          letter.playerId
+        );
+        const playerVideos = await storage.getVideos(letter.playerId);
+        const metrics = await storage.getPlayerMetrics(letter.playerId);
+
+        const verificationCode = `VR-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+
+        const videoQrCodes = playerVideos.slice(0, 5).map((video) => ({
+          videoId: video.id,
+          title: video.title,
+          qrUrl: `/api/verify/video/${video.id}?code=${verificationCode}`,
+          competition: video.competition,
+          matchDate: video.matchDate,
+        }));
+
+        const consularReport = await storage.createConsularReport({
+          invitationLetterId: letter.id,
+          playerId: letter.playerId,
+          playerProfile: {
+            firstName: player.firstName,
+            lastName: player.lastName,
+            nationality: player.nationality,
+            dateOfBirth: player.dateOfBirth,
+            position: player.position,
+            currentClub: player.currentClubName,
+            nationalTeamCaps: player.nationalTeamCaps,
+            internationalCaps: player.internationalCaps,
+          },
+          playerStats:
+            metrics.length > 0
+              ? {
+                  gamesPlayed: metrics[0].gamesPlayed,
+                  goals: metrics[0].goals,
+                  assists: metrics[0].assists,
+                  currentSeasonMinutes: metrics[0].currentSeasonMinutes,
+                }
+              : null,
+          eligibilityScores: eligibilityScores.map((score) => ({
+            visaType: score.visaType,
+            score: score.score,
+            status: score.status,
+            leagueBandApplied: score.leagueBandApplied,
+          })),
+          videoQrCodes,
+          proofOfPlaySummary: `${player.firstName} ${player.lastName} has ${playerVideos.length} verified match videos demonstrating professional-level performance.`,
+          targetClubDetails: {
+            clubName: letter.targetClubName,
+            clubAddress: letter.targetClubAddress,
+            league: letter.targetLeague,
+            leagueBand: letter.targetLeagueBand,
+            country: letter.targetCountry,
+          },
+          verificationCode,
+          validUntil: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
+        });
+
+        await storage.updateInvitationLetter(letter.id, {
+          consularReportGenerated: true,
+          consularReportUrl: `/api/consular-reports/${consularReport.id}`,
+          qrCodeData: verificationCode,
+          embassyAccessible: true,
+        });
+
+        await storage.logAction({
+          userId: req.session.userId,
+          userRole: req.session.userRole,
+          action: "generate_consular_report",
+          entityType: "consular_report",
+          entityId: consularReport.id,
+          details: { playerId: letter.playerId, verificationCode },
+        });
+
+        res.json(consularReport);
+      } catch (error: any) {
+        res.status(400).json({ error: error.message });
       }
-
-      const player = await storage.getPlayer(letter.playerId);
-      if (!player) {
-        return res.status(404).json({ error: "Player not found" });
-      }
-
-      const eligibilityScores = await storage.getEligibilityScores(letter.playerId);
-      const playerVideos = await storage.getVideos(letter.playerId);
-      const metrics = await storage.getPlayerMetrics(letter.playerId);
-      
-      const verificationCode = `VR-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-      
-      const videoQrCodes = playerVideos.slice(0, 5).map(video => ({
-        videoId: video.id,
-        title: video.title,
-        qrUrl: `/api/verify/video/${video.id}?code=${verificationCode}`,
-        competition: video.competition,
-        matchDate: video.matchDate,
-      }));
-
-      const consularReport = await storage.createConsularReport({
-        invitationLetterId: letter.id,
-        playerId: letter.playerId,
-        playerProfile: {
-          firstName: player.firstName,
-          lastName: player.lastName,
-          nationality: player.nationality,
-          dateOfBirth: player.dateOfBirth,
-          position: player.position,
-          currentClub: player.currentClubName,
-          nationalTeamCaps: player.nationalTeamCaps,
-          internationalCaps: player.internationalCaps,
-        },
-        playerStats: metrics.length > 0 ? {
-          gamesPlayed: metrics[0].gamesPlayed,
-          goals: metrics[0].goals,
-          assists: metrics[0].assists,
-          currentSeasonMinutes: metrics[0].currentSeasonMinutes,
-        } : null,
-        eligibilityScores: eligibilityScores.map(score => ({
-          visaType: score.visaType,
-          score: score.score,
-          status: score.status,
-          leagueBandApplied: score.leagueBandApplied,
-        })),
-        videoQrCodes,
-        proofOfPlaySummary: `${player.firstName} ${player.lastName} has ${playerVideos.length} verified match videos demonstrating professional-level performance.`,
-        targetClubDetails: {
-          clubName: letter.targetClubName,
-          clubAddress: letter.targetClubAddress,
-          league: letter.targetLeague,
-          leagueBand: letter.targetLeagueBand,
-          country: letter.targetCountry,
-        },
-        verificationCode,
-        validUntil: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
-      });
-
-      await storage.updateInvitationLetter(letter.id, {
-        consularReportGenerated: true,
-        consularReportUrl: `/api/consular-reports/${consularReport.id}`,
-        qrCodeData: verificationCode,
-        embassyAccessible: true,
-      });
-
-      await storage.logAction({
-        userId: req.session.userId,
-        userRole: req.session.userRole,
-        action: "generate_consular_report",
-        entityType: "consular_report",
-        entityId: consularReport.id,
-        details: { playerId: letter.playerId, verificationCode },
-      });
-
-      res.json(consularReport);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
     }
-  });
+  );
 
   app.get("/api/consular-reports/:id", requireAuth, async (req, res) => {
     try {
@@ -3134,93 +3764,117 @@ Provide the summary as a formal document text.`;
   });
 
   // Notify Embassy route (tokenized at 4 tokens)
-  app.post("/api/invitation-letters/:id/notify-embassy", requireTeamRole, async (req, res) => {
-    try {
-      const letter = await storage.getInvitationLetter(req.params.id);
-      if (!letter) {
-        return res.status(404).json({ error: "Invitation letter not found" });
+  app.post(
+    "/api/invitation-letters/:id/notify-embassy",
+    requireTeamRole,
+    async (req, res) => {
+      try {
+        const letter = await storage.getInvitationLetter(req.params.id);
+        if (!letter) {
+          return res.status(404).json({ error: "Invitation letter not found" });
+        }
+
+        if (letter.embassyNotificationStatus === "notified") {
+          return res.status(400).json({
+            error: "Embassy has already been notified for this invitation",
+          });
+        }
+
+        const userId = req.session.userId!;
+        const tokenBalance = await storage.getTokenBalance(userId);
+        const currentBalance = tokenBalance?.balance || 0;
+        const notificationCost = 4;
+
+        if (currentBalance < notificationCost) {
+          return res.status(400).json({
+            error: `Insufficient tokens. Requires ${notificationCost} tokens, you have ${currentBalance}.`,
+          });
+        }
+
+        const newBalance = currentBalance - notificationCost;
+        await storage.updateTokenBalance(
+          userId,
+          newBalance,
+          undefined,
+          (tokenBalance?.lifetimeSpent || 0) + notificationCost
+        );
+
+        await storage.createTokenTransaction({
+          userId,
+          amount: -notificationCost,
+          type: "debit",
+          action: "embassy_notification",
+          description: `Embassy notification for invitation to ${letter.targetClubName}`,
+          playerId: letter.playerId,
+          balanceAfter: newBalance,
+        });
+
+        await storage.updateInvitationLetter(letter.id, {
+          embassyNotificationStatus: "notified",
+          embassyNotifiedAt: new Date(),
+          embassyNotifiedBy: userId,
+          embassyNotificationTokensSpent: notificationCost,
+          embassyAccessible: true,
+        });
+
+        await storage.createEmbassyNotification({
+          invitationLetterId: letter.id,
+          playerId: letter.playerId,
+          teamId: letter.fromTeamId,
+          embassyCountry: letter.targetCountry,
+          status: "pending",
+          tokensSpent: notificationCost,
+          notifiedBy: userId,
+        });
+
+        await storage.logAction({
+          userId,
+          userRole: req.session.userRole,
+          action: "notify_embassy",
+          entityType: "invitation_letter",
+          entityId: letter.id,
+          details: {
+            targetCountry: letter.targetCountry,
+            tokensSpent: notificationCost,
+          },
+        });
+
+        res.json({
+          success: true,
+          message: `Embassy notified successfully. ${notificationCost} tokens deducted.`,
+          newBalance,
+          letter: { ...letter, embassyNotificationStatus: "notified" },
+        });
+      } catch (error: any) {
+        res.status(500).json({ error: error.message });
       }
-
-      if (letter.embassyNotificationStatus === "notified") {
-        return res.status(400).json({ error: "Embassy has already been notified for this invitation" });
-      }
-
-      const userId = req.session.userId!;
-      const tokenBalance = await storage.getTokenBalance(userId);
-      const currentBalance = tokenBalance?.balance || 0;
-      const notificationCost = 4;
-
-      if (currentBalance < notificationCost) {
-        return res.status(400).json({ error: `Insufficient tokens. Requires ${notificationCost} tokens, you have ${currentBalance}.` });
-      }
-
-      const newBalance = currentBalance - notificationCost;
-      await storage.updateTokenBalance(userId, newBalance, undefined, (tokenBalance?.lifetimeSpent || 0) + notificationCost);
-
-      await storage.createTokenTransaction({
-        userId,
-        amount: -notificationCost,
-        type: "debit",
-        action: "embassy_notification",
-        description: `Embassy notification for invitation to ${letter.targetClubName}`,
-        playerId: letter.playerId,
-        balanceAfter: newBalance,
-      });
-
-      await storage.updateInvitationLetter(letter.id, {
-        embassyNotificationStatus: "notified",
-        embassyNotifiedAt: new Date(),
-        embassyNotifiedBy: userId,
-        embassyNotificationTokensSpent: notificationCost,
-        embassyAccessible: true,
-      });
-
-      await storage.createEmbassyNotification({
-        invitationLetterId: letter.id,
-        playerId: letter.playerId,
-        teamId: letter.fromTeamId,
-        embassyCountry: letter.targetCountry,
-        status: "pending",
-        tokensSpent: notificationCost,
-        notifiedBy: userId,
-      });
-
-      await storage.logAction({
-        userId,
-        userRole: req.session.userRole,
-        action: "notify_embassy",
-        entityType: "invitation_letter",
-        entityId: letter.id,
-        details: { targetCountry: letter.targetCountry, tokensSpent: notificationCost },
-      });
-
-      res.json({ 
-        success: true, 
-        message: `Embassy notified successfully. ${notificationCost} tokens deducted.`,
-        newBalance,
-        letter: { ...letter, embassyNotificationStatus: "notified" }
-      });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
     }
-  });
+  );
 
-  app.get("/api/consular-reports/player/:playerId", requireAuth, async (req, res) => {
-    try {
-      const reports = await storage.getConsularReports(req.params.playerId);
-      res.json(reports);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+  app.get(
+    "/api/consular-reports/player/:playerId",
+    requireAuth,
+    async (req, res) => {
+      try {
+        const reports = await storage.getConsularReports(req.params.playerId);
+        res.json(reports);
+      } catch (error: any) {
+        res.status(500).json({ error: error.message });
+      }
     }
-  });
+  );
 
   app.get("/api/verify/consular-report/:code", async (req, res) => {
     try {
-      const report = await storage.getConsularReportByVerificationCode(req.params.code);
+      const report = await storage.getConsularReportByVerificationCode(
+        req.params.code
+      );
       if (!report) {
-        return res.status(404).json({ error: "Invalid verification code", valid: false });
+        return res
+          .status(404)
+          .json({ error: "Invalid verification code", valid: false });
       }
-      
+
       if (report.validUntil && new Date(report.validUntil) < new Date()) {
         return res.json({ valid: false, error: "Report has expired" });
       }
@@ -3228,13 +3882,15 @@ Provide the summary as a formal document text.`;
       await storage.updateConsularReport(report.id, {
         accessedByEmbassy: true,
         embassyAccessLogs: [
-          ...(Array.isArray(report.embassyAccessLogs) ? report.embassyAccessLogs : []),
-          { accessedAt: new Date().toISOString(), ip: req.ip }
+          ...(Array.isArray(report.embassyAccessLogs)
+            ? report.embassyAccessLogs
+            : []),
+          { accessedAt: new Date().toISOString(), ip: req.ip },
         ],
       });
 
-      res.json({ 
-        valid: true, 
+      res.json({
+        valid: true,
         playerProfile: report.playerProfile,
         eligibilityScores: report.eligibilityScores,
         targetClubDetails: report.targetClubDetails,
@@ -3248,220 +3904,255 @@ Provide the summary as a formal document text.`;
   });
 
   // Transfer Eligibility Assessment - Calculate and return multi-visa eligibility scoring
-  app.get("/api/players/:id/transfer-eligibility", requireTeamRole, async (req, res) => {
-    try {
-      const playerId = req.params.id;
-      const player = await storage.getPlayer(playerId);
-      if (!player) {
-        return res.status(404).json({ error: "Player not found" });
+  app.get(
+    "/api/players/:id/transfer-eligibility",
+    requireTeamRole,
+    async (req, res) => {
+      try {
+        const playerId = req.params.id;
+        const player = await storage.getPlayer(playerId);
+        if (!player) {
+          return res.status(404).json({ error: "Player not found" });
+        }
+
+        const { calculateTransferEligibility } =
+          await import("./eligibilityScoring");
+
+        const metrics = await storage.getPlayerMetrics(playerId);
+        const videos = await storage.getVideos(playerId);
+        const internationalRecords =
+          await storage.getPlayerInternationalRecords(playerId);
+        const invitationLetters = await storage.getInvitationLetters(playerId);
+
+        const videoInsightsPromises = videos.map((v) =>
+          storage.getVideoInsights(v.id)
+        );
+        const videoInsightsResults = await Promise.all(videoInsightsPromises);
+        const videoInsights = videoInsightsResults.filter(
+          (i): i is NonNullable<typeof i> => i !== undefined
+        );
+
+        const latestInvitation = invitationLetters[0];
+        const leagueBand = latestInvitation?.targetLeagueBand || 3;
+
+        const eligibilityResult = calculateTransferEligibility({
+          player,
+          metrics,
+          videos,
+          videoInsights,
+          internationalRecords,
+          invitationLetters,
+          leagueBand,
+        });
+
+        const existingAssessment =
+          await storage.getTransferEligibilityAssessment(playerId);
+
+        const assessmentData = {
+          playerId,
+          totalMinutesVerified: eligibilityResult.totalMinutesVerified,
+          clubMinutes: eligibilityResult.clubMinutes,
+          internationalMinutes: eligibilityResult.internationalMinutes,
+          videoMinutes: eligibilityResult.videoMinutes,
+          totalCaps: eligibilityResult.totalCaps,
+          seniorCaps: eligibilityResult.seniorCaps,
+          continentalAppearances: eligibilityResult.continentalAppearances,
+          overallStatus: eligibilityResult.overallStatus,
+          schengenScore: eligibilityResult.schengen.score,
+          schengenStatus: eligibilityResult.schengen.status,
+          o1Score: eligibilityResult.o1.score,
+          o1Status: eligibilityResult.o1.status,
+          p1Score: eligibilityResult.p1.score,
+          p1Status: eligibilityResult.p1.status,
+          ukGbeScore: eligibilityResult.ukGbe.score,
+          ukGbeStatus: eligibilityResult.ukGbe.status,
+          escScore: eligibilityResult.esc.score,
+          escStatus: eligibilityResult.esc.status,
+          escEligible: eligibilityResult.escEligible,
+          minutesNeeded: eligibilityResult.minutesNeeded,
+          capsNeeded: eligibilityResult.capsNeeded,
+          recommendations: eligibilityResult.recommendations,
+          visaBreakdown: {
+            schengen: eligibilityResult.schengen,
+            o1: eligibilityResult.o1,
+            p1: eligibilityResult.p1,
+            ukGbe: eligibilityResult.ukGbe,
+            esc: eligibilityResult.esc,
+          },
+          validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        };
+
+        let assessment;
+        if (existingAssessment) {
+          assessment = await storage.updateTransferEligibilityAssessment(
+            existingAssessment.id,
+            assessmentData
+          );
+        } else {
+          assessment =
+            await storage.createTransferEligibilityAssessment(assessmentData);
+        }
+
+        res.json({
+          assessment,
+          player: {
+            id: player.id,
+            name: `${player.firstName} ${player.lastName}`,
+            position: player.position,
+            nationality: player.nationality,
+            currentClub: player.currentClubName,
+            marketValue: player.marketValue,
+          },
+          minutesBreakdown: {
+            club: eligibilityResult.clubMinutes,
+            international: eligibilityResult.internationalMinutes,
+            video: eligibilityResult.videoMinutes,
+            total: eligibilityResult.totalMinutesVerified,
+            minimum: 800,
+            needed: eligibilityResult.minutesNeeded,
+          },
+          visaScores: {
+            schengen: eligibilityResult.schengen,
+            o1: eligibilityResult.o1,
+            p1: eligibilityResult.p1,
+            ukGbe: eligibilityResult.ukGbe,
+            esc: eligibilityResult.esc,
+          },
+          overallStatus: eligibilityResult.overallStatus,
+          recommendations: eligibilityResult.recommendations,
+          capsNeeded: eligibilityResult.capsNeeded,
+          leagueBandApplied: leagueBand,
+        });
+      } catch (error: any) {
+        res.status(500).json({ error: error.message });
       }
-
-      const { calculateTransferEligibility } = await import("./eligibilityScoring");
-
-      const metrics = await storage.getPlayerMetrics(playerId);
-      const videos = await storage.getVideos(playerId);
-      const internationalRecords = await storage.getPlayerInternationalRecords(playerId);
-      const invitationLetters = await storage.getInvitationLetters(playerId);
-      
-      const videoInsightsPromises = videos.map(v => storage.getVideoInsights(v.id));
-      const videoInsightsResults = await Promise.all(videoInsightsPromises);
-      const videoInsights = videoInsightsResults.filter((i): i is NonNullable<typeof i> => i !== undefined);
-
-      const latestInvitation = invitationLetters[0];
-      const leagueBand = latestInvitation?.targetLeagueBand || 3;
-
-      const eligibilityResult = calculateTransferEligibility({
-        player,
-        metrics,
-        videos,
-        videoInsights,
-        internationalRecords,
-        invitationLetters,
-        leagueBand,
-      });
-
-      const existingAssessment = await storage.getTransferEligibilityAssessment(playerId);
-      
-      const assessmentData = {
-        playerId,
-        totalMinutesVerified: eligibilityResult.totalMinutesVerified,
-        clubMinutes: eligibilityResult.clubMinutes,
-        internationalMinutes: eligibilityResult.internationalMinutes,
-        videoMinutes: eligibilityResult.videoMinutes,
-        totalCaps: eligibilityResult.totalCaps,
-        seniorCaps: eligibilityResult.seniorCaps,
-        continentalAppearances: eligibilityResult.continentalAppearances,
-        overallStatus: eligibilityResult.overallStatus,
-        schengenScore: eligibilityResult.schengen.score,
-        schengenStatus: eligibilityResult.schengen.status,
-        o1Score: eligibilityResult.o1.score,
-        o1Status: eligibilityResult.o1.status,
-        p1Score: eligibilityResult.p1.score,
-        p1Status: eligibilityResult.p1.status,
-        ukGbeScore: eligibilityResult.ukGbe.score,
-        ukGbeStatus: eligibilityResult.ukGbe.status,
-        escScore: eligibilityResult.esc.score,
-        escStatus: eligibilityResult.esc.status,
-        escEligible: eligibilityResult.escEligible,
-        minutesNeeded: eligibilityResult.minutesNeeded,
-        capsNeeded: eligibilityResult.capsNeeded,
-        recommendations: eligibilityResult.recommendations,
-        visaBreakdown: {
-          schengen: eligibilityResult.schengen,
-          o1: eligibilityResult.o1,
-          p1: eligibilityResult.p1,
-          ukGbe: eligibilityResult.ukGbe,
-          esc: eligibilityResult.esc,
-        },
-        validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-      };
-
-      let assessment;
-      if (existingAssessment) {
-        assessment = await storage.updateTransferEligibilityAssessment(existingAssessment.id, assessmentData);
-      } else {
-        assessment = await storage.createTransferEligibilityAssessment(assessmentData);
-      }
-
-      res.json({
-        assessment,
-        player: {
-          id: player.id,
-          name: `${player.firstName} ${player.lastName}`,
-          position: player.position,
-          nationality: player.nationality,
-          currentClub: player.currentClubName,
-          marketValue: player.marketValue,
-        },
-        minutesBreakdown: {
-          club: eligibilityResult.clubMinutes,
-          international: eligibilityResult.internationalMinutes,
-          video: eligibilityResult.videoMinutes,
-          total: eligibilityResult.totalMinutesVerified,
-          minimum: 800,
-          needed: eligibilityResult.minutesNeeded,
-        },
-        visaScores: {
-          schengen: eligibilityResult.schengen,
-          o1: eligibilityResult.o1,
-          p1: eligibilityResult.p1,
-          ukGbe: eligibilityResult.ukGbe,
-          esc: eligibilityResult.esc,
-        },
-        overallStatus: eligibilityResult.overallStatus,
-        recommendations: eligibilityResult.recommendations,
-        capsNeeded: eligibilityResult.capsNeeded,
-        leagueBandApplied: leagueBand,
-      });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
     }
-  });
+  );
 
   // Recalculate Transfer Eligibility Assessment
-  app.post("/api/players/:id/transfer-eligibility/recalculate", requireTeamRole, async (req, res) => {
-    try {
-      const playerId = req.params.id;
-      const { leagueBand: overrideLeagueBand } = req.body;
-      
-      const player = await storage.getPlayer(playerId);
-      if (!player) {
-        return res.status(404).json({ error: "Player not found" });
+  app.post(
+    "/api/players/:id/transfer-eligibility/recalculate",
+    requireTeamRole,
+    async (req, res) => {
+      try {
+        const playerId = req.params.id;
+        const { leagueBand: overrideLeagueBand } = req.body;
+
+        const player = await storage.getPlayer(playerId);
+        if (!player) {
+          return res.status(404).json({ error: "Player not found" });
+        }
+
+        const { calculateTransferEligibility } =
+          await import("./eligibilityScoring");
+
+        const metrics = await storage.getPlayerMetrics(playerId);
+        const videos = await storage.getVideos(playerId);
+        const internationalRecords =
+          await storage.getPlayerInternationalRecords(playerId);
+        const invitationLetters = await storage.getInvitationLetters(playerId);
+
+        const videoInsightsPromises = videos.map((v) =>
+          storage.getVideoInsights(v.id)
+        );
+        const videoInsightsResults = await Promise.all(videoInsightsPromises);
+        const videoInsights = videoInsightsResults.filter(
+          (i): i is NonNullable<typeof i> => i !== undefined
+        );
+
+        const latestInvitation = invitationLetters[0];
+        const leagueBand =
+          overrideLeagueBand || latestInvitation?.targetLeagueBand || 3;
+
+        const eligibilityResult = calculateTransferEligibility({
+          player,
+          metrics,
+          videos,
+          videoInsights,
+          internationalRecords,
+          invitationLetters,
+          leagueBand,
+        });
+
+        const existingAssessment =
+          await storage.getTransferEligibilityAssessment(playerId);
+
+        const assessmentData = {
+          playerId,
+          totalMinutesVerified: eligibilityResult.totalMinutesVerified,
+          clubMinutes: eligibilityResult.clubMinutes,
+          internationalMinutes: eligibilityResult.internationalMinutes,
+          videoMinutes: eligibilityResult.videoMinutes,
+          totalCaps: eligibilityResult.totalCaps,
+          seniorCaps: eligibilityResult.seniorCaps,
+          continentalAppearances: eligibilityResult.continentalAppearances,
+          overallStatus: eligibilityResult.overallStatus,
+          schengenScore: eligibilityResult.schengen.score,
+          schengenStatus: eligibilityResult.schengen.status,
+          o1Score: eligibilityResult.o1.score,
+          o1Status: eligibilityResult.o1.status,
+          p1Score: eligibilityResult.p1.score,
+          p1Status: eligibilityResult.p1.status,
+          ukGbeScore: eligibilityResult.ukGbe.score,
+          ukGbeStatus: eligibilityResult.ukGbe.status,
+          escScore: eligibilityResult.esc.score,
+          escStatus: eligibilityResult.esc.status,
+          escEligible: eligibilityResult.escEligible,
+          minutesNeeded: eligibilityResult.minutesNeeded,
+          capsNeeded: eligibilityResult.capsNeeded,
+          recommendations: eligibilityResult.recommendations,
+          visaBreakdown: {
+            schengen: eligibilityResult.schengen,
+            o1: eligibilityResult.o1,
+            p1: eligibilityResult.p1,
+            ukGbe: eligibilityResult.ukGbe,
+            esc: eligibilityResult.esc,
+          },
+          validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        };
+
+        let assessment;
+        if (existingAssessment) {
+          assessment = await storage.updateTransferEligibilityAssessment(
+            existingAssessment.id,
+            assessmentData
+          );
+        } else {
+          assessment =
+            await storage.createTransferEligibilityAssessment(assessmentData);
+        }
+
+        res.json({
+          success: true,
+          assessment,
+          overallStatus: eligibilityResult.overallStatus,
+          recommendations: eligibilityResult.recommendations,
+        });
+      } catch (error: any) {
+        res.status(500).json({ error: error.message });
       }
-
-      const { calculateTransferEligibility } = await import("./eligibilityScoring");
-
-      const metrics = await storage.getPlayerMetrics(playerId);
-      const videos = await storage.getVideos(playerId);
-      const internationalRecords = await storage.getPlayerInternationalRecords(playerId);
-      const invitationLetters = await storage.getInvitationLetters(playerId);
-      
-      const videoInsightsPromises = videos.map(v => storage.getVideoInsights(v.id));
-      const videoInsightsResults = await Promise.all(videoInsightsPromises);
-      const videoInsights = videoInsightsResults.filter((i): i is NonNullable<typeof i> => i !== undefined);
-
-      const latestInvitation = invitationLetters[0];
-      const leagueBand = overrideLeagueBand || latestInvitation?.targetLeagueBand || 3;
-
-      const eligibilityResult = calculateTransferEligibility({
-        player,
-        metrics,
-        videos,
-        videoInsights,
-        internationalRecords,
-        invitationLetters,
-        leagueBand,
-      });
-
-      const existingAssessment = await storage.getTransferEligibilityAssessment(playerId);
-      
-      const assessmentData = {
-        playerId,
-        totalMinutesVerified: eligibilityResult.totalMinutesVerified,
-        clubMinutes: eligibilityResult.clubMinutes,
-        internationalMinutes: eligibilityResult.internationalMinutes,
-        videoMinutes: eligibilityResult.videoMinutes,
-        totalCaps: eligibilityResult.totalCaps,
-        seniorCaps: eligibilityResult.seniorCaps,
-        continentalAppearances: eligibilityResult.continentalAppearances,
-        overallStatus: eligibilityResult.overallStatus,
-        schengenScore: eligibilityResult.schengen.score,
-        schengenStatus: eligibilityResult.schengen.status,
-        o1Score: eligibilityResult.o1.score,
-        o1Status: eligibilityResult.o1.status,
-        p1Score: eligibilityResult.p1.score,
-        p1Status: eligibilityResult.p1.status,
-        ukGbeScore: eligibilityResult.ukGbe.score,
-        ukGbeStatus: eligibilityResult.ukGbe.status,
-        escScore: eligibilityResult.esc.score,
-        escStatus: eligibilityResult.esc.status,
-        escEligible: eligibilityResult.escEligible,
-        minutesNeeded: eligibilityResult.minutesNeeded,
-        capsNeeded: eligibilityResult.capsNeeded,
-        recommendations: eligibilityResult.recommendations,
-        visaBreakdown: {
-          schengen: eligibilityResult.schengen,
-          o1: eligibilityResult.o1,
-          p1: eligibilityResult.p1,
-          ukGbe: eligibilityResult.ukGbe,
-          esc: eligibilityResult.esc,
-        },
-        validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-      };
-
-      let assessment;
-      if (existingAssessment) {
-        assessment = await storage.updateTransferEligibilityAssessment(existingAssessment.id, assessmentData);
-      } else {
-        assessment = await storage.createTransferEligibilityAssessment(assessmentData);
-      }
-
-      res.json({
-        success: true,
-        assessment,
-        overallStatus: eligibilityResult.overallStatus,
-        recommendations: eligibilityResult.recommendations,
-      });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
     }
-  });
+  );
 
   // Transfer Reports - Generate comprehensive downloadable reports
   app.get("/api/reports", requireTeamRole, async (req, res) => {
     try {
       const teamId = req.session.teamId || "demo-team";
       const reports = await storage.getTransferReports(teamId);
-      
-      const enrichedReports = await Promise.all(reports.map(async (report) => {
-        const player = await storage.getPlayer(report.playerId);
-        return {
-          ...report,
-          playerName: player ? `${player.firstName} ${player.lastName}` : "Unknown",
-          playerPosition: player?.position || "Unknown",
-        };
-      }));
-      
+
+      const enrichedReports = await Promise.all(
+        reports.map(async (report) => {
+          const player = await storage.getPlayer(report.playerId);
+          return {
+            ...report,
+            playerName: player
+              ? `${player.firstName} ${player.lastName}`
+              : "Unknown",
+            playerPosition: player?.position || "Unknown",
+          };
+        })
+      );
+
       res.json(enrichedReports);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -3474,11 +4165,13 @@ Provide the summary as a formal document text.`;
       if (!report) {
         return res.status(404).json({ error: "Report not found" });
       }
-      
+
       const player = await storage.getPlayer(report.playerId);
       res.json({
         ...report,
-        playerName: player ? `${player.firstName} ${player.lastName}` : "Unknown",
+        playerName: player
+          ? `${player.firstName} ${player.lastName}`
+          : "Unknown",
       });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -3488,51 +4181,68 @@ Provide the summary as a formal document text.`;
   app.post("/api/reports/generate", requireTeamRole, async (req, res) => {
     try {
       const { playerId, reportType = "comprehensive" } = req.body;
-      
+
       if (!playerId) {
         return res.status(400).json({ error: "Player ID is required" });
       }
-      
+
       const player = await storage.getPlayer(playerId);
       if (!player) {
         return res.status(404).json({ error: "Player not found" });
       }
-      
+
       const teamId = req.session.teamId || "demo-team";
       const userId = req.session.userId!;
       const userRole = req.session.userRole || "sporting_director";
       const userName = req.session.userId || "System";
-      
-      const tokenResult = await spendTokensForAction(userId, userRole, "transfer_report", playerId);
+
+      const tokenResult = await spendTokensForAction(
+        userId,
+        userRole,
+        "transfer_report",
+        playerId
+      );
       if (!tokenResult.success) {
-        return res.status(402).json({ error: tokenResult.error, needsTokens: true });
+        return res
+          .status(402)
+          .json({ error: tokenResult.error, needsTokens: true });
       }
-      
+
       const sixMonthsAgo = new Date();
       sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-      
+
       const metrics = await storage.getPlayerMetrics(playerId);
       const eligibilityScores = await storage.getEligibilityScores(playerId);
-      const transferAssessment = await storage.getTransferEligibilityAssessment(playerId);
+      const transferAssessment =
+        await storage.getTransferEligibilityAssessment(playerId);
       const videos = await storage.getVideos(playerId);
-      const invitationLettersData = await storage.getInvitationLetters(playerId);
+      const invitationLettersData =
+        await storage.getInvitationLetters(playerId);
       const consularReportsData = await storage.getConsularReports(playerId);
-      const internationalRecords = await storage.getPlayerInternationalRecords(playerId);
+      const internationalRecords =
+        await storage.getPlayerInternationalRecords(playerId);
       const embassyVerifications = await storage.getEmbassyVerifications();
-      const playerVerifications = embassyVerifications.filter(v => v.playerId === playerId);
-      
-      const recentVideos = videos.filter(v => {
+      const playerVerifications = embassyVerifications.filter(
+        (v) => v.playerId === playerId
+      );
+
+      const recentVideos = videos.filter((v) => {
         if (!v.uploadDate) return true;
         return new Date(v.uploadDate) >= sixMonthsAgo;
       });
-      
+
       const verificationCode = `TR-${Date.now().toString(36).toUpperCase()}-${playerId.substring(0, 4).toUpperCase()}`;
-      
+
       const playerProfile = {
         id: player.id,
         name: `${player.firstName} ${player.lastName}`,
         dateOfBirth: player.dateOfBirth,
-        age: player.dateOfBirth ? Math.floor((Date.now() - new Date(player.dateOfBirth).getTime()) / (365.25 * 24 * 60 * 60 * 1000)) : null,
+        age: player.dateOfBirth
+          ? Math.floor(
+              (Date.now() - new Date(player.dateOfBirth).getTime()) /
+                (365.25 * 24 * 60 * 60 * 1000)
+            )
+          : null,
         nationality: player.nationality,
         secondNationality: player.secondNationality,
         position: player.position,
@@ -3550,8 +4260,8 @@ Provide the summary as a formal document text.`;
         nationalTeamCaps: player.nationalTeamCaps,
         nationalTeamGoals: player.nationalTeamGoals,
       };
-      
-      const internationalCareer = internationalRecords.map(r => ({
+
+      const internationalCareer = internationalRecords.map((r) => ({
         nationalTeam: r.nationalTeam,
         teamLevel: r.teamLevel,
         caps: r.caps,
@@ -3560,8 +4270,8 @@ Provide the summary as a formal document text.`;
         debutDate: r.debutDate,
         lastAppearance: r.lastAppearance,
       }));
-      
-      const performanceStats = metrics.map(m => ({
+
+      const performanceStats = metrics.map((m) => ({
         season: m.season,
         gamesPlayed: m.gamesPlayed,
         goals: m.goals,
@@ -3571,23 +4281,40 @@ Provide the summary as a formal document text.`;
         tacklesWon: m.tacklesWon,
         aerialDuelsWon: m.aerialDuelsWon,
       }));
-      
-      const eligibilityData = transferAssessment ? {
-        overallStatus: transferAssessment.overallStatus,
-        totalMinutes: transferAssessment.totalMinutesVerified,
-        minutesNeeded: transferAssessment.minutesNeeded,
-        capsNeeded: transferAssessment.capsNeeded,
-        visaScores: {
-          schengen: { score: transferAssessment.schengenScore, status: transferAssessment.schengenStatus },
-          o1: { score: transferAssessment.o1Score, status: transferAssessment.o1Status },
-          p1: { score: transferAssessment.p1Score, status: transferAssessment.p1Status },
-          ukGbe: { score: transferAssessment.ukGbeScore, status: transferAssessment.ukGbeStatus },
-          esc: { score: transferAssessment.escScore, status: transferAssessment.escStatus },
-        },
-        recommendations: transferAssessment.recommendations,
-      } : null;
-      
-      const videosIncluded = recentVideos.map(v => ({
+
+      const eligibilityData = transferAssessment
+        ? {
+            overallStatus: transferAssessment.overallStatus,
+            totalMinutes: transferAssessment.totalMinutesVerified,
+            minutesNeeded: transferAssessment.minutesNeeded,
+            capsNeeded: transferAssessment.capsNeeded,
+            visaScores: {
+              schengen: {
+                score: transferAssessment.schengenScore,
+                status: transferAssessment.schengenStatus,
+              },
+              o1: {
+                score: transferAssessment.o1Score,
+                status: transferAssessment.o1Status,
+              },
+              p1: {
+                score: transferAssessment.p1Score,
+                status: transferAssessment.p1Status,
+              },
+              ukGbe: {
+                score: transferAssessment.ukGbeScore,
+                status: transferAssessment.ukGbeStatus,
+              },
+              esc: {
+                score: transferAssessment.escScore,
+                status: transferAssessment.escStatus,
+              },
+            },
+            recommendations: transferAssessment.recommendations,
+          }
+        : null;
+
+      const videosIncluded = recentVideos.map((v) => ({
         id: v.id,
         title: v.title,
         source: v.source,
@@ -3597,16 +4324,16 @@ Provide the summary as a formal document text.`;
         minutesPlayed: v.minutesPlayed,
         uploadDate: v.uploadDate,
       }));
-      
-      const documentsIncluded = consularReportsData.map(r => ({
+
+      const documentsIncluded = consularReportsData.map((r) => ({
         id: r.id,
         verificationCode: r.verificationCode,
         generatedAt: r.generatedAt,
         validUntil: r.validUntil,
         accessedByEmbassy: r.accessedByEmbassy,
       }));
-      
-      const invitationLettersIncluded = invitationLettersData.map(l => ({
+
+      const invitationLettersIncluded = invitationLettersData.map((l) => ({
         id: l.id,
         targetClubName: l.targetClubName,
         targetCountry: l.targetCountry,
@@ -3617,8 +4344,8 @@ Provide the summary as a formal document text.`;
         trialStartDate: l.trialStartDate,
         trialEndDate: l.trialEndDate,
       }));
-      
-      const verificationsIncluded = playerVerifications.map(v => ({
+
+      const verificationsIncluded = playerVerifications.map((v) => ({
         id: v.id,
         embassyCountry: v.embassyCountry,
         status: v.status,
@@ -3626,13 +4353,14 @@ Provide the summary as a formal document text.`;
         submittedAt: v.submittedAt,
         verifiedAt: v.verifiedAt,
       }));
-      
-      const totalMinutesVerified = (player.clubMinutesCurrentSeason || 0) + 
-        (player.internationalMinutesCurrentSeason || 0) + 
+
+      const totalMinutesVerified =
+        (player.clubMinutesCurrentSeason || 0) +
+        (player.internationalMinutesCurrentSeason || 0) +
         recentVideos.reduce((sum, v) => sum + (v.minutesPlayed || 0), 0);
-      
+
       const recommendations = transferAssessment?.recommendations || [];
-      
+
       const report = await storage.createTransferReport({
         playerId,
         teamId,
@@ -3656,7 +4384,7 @@ Provide the summary as a formal document text.`;
         verificationCode,
         validUntil: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
       });
-      
+
       await storage.logAction({
         userId,
         userRole: req.session.userRole,
@@ -3665,7 +4393,7 @@ Provide the summary as a formal document text.`;
         entityId: report.id,
         details: { playerId, reportType },
       });
-      
+
       res.json({
         success: true,
         report: {
@@ -3687,173 +4415,191 @@ Provide the summary as a formal document text.`;
     }
   });
 
-  app.post("/api/reports/:id/notify-embassy", requireTeamRole, async (req, res) => {
-    try {
-      const report = await storage.getTransferReport(req.params.id);
-      if (!report) {
-        return res.status(404).json({ error: "Report not found" });
+  app.post(
+    "/api/reports/:id/notify-embassy",
+    requireTeamRole,
+    async (req, res) => {
+      try {
+        const report = await storage.getTransferReport(req.params.id);
+        if (!report) {
+          return res.status(404).json({ error: "Report not found" });
+        }
+
+        const updatedReport = await storage.updateTransferReport(report.id, {
+          embassyNotified: true,
+          embassyNotifiedAt: new Date(),
+        });
+
+        await storage.logAction({
+          userId: req.session.userId,
+          userRole: req.session.userRole,
+          action: "notify_embassy",
+          entityType: "transfer_report",
+          entityId: report.id,
+          details: { playerId: report.playerId },
+        });
+
+        res.json({ success: true, report: updatedReport });
+      } catch (error: any) {
+        res.status(500).json({ error: error.message });
       }
-      
-      const updatedReport = await storage.updateTransferReport(report.id, {
-        embassyNotified: true,
-        embassyNotifiedAt: new Date(),
-      });
-      
-      await storage.logAction({
-        userId: req.session.userId,
-        userRole: req.session.userRole,
-        action: "notify_embassy",
-        entityType: "transfer_report",
-        entityId: report.id,
-        details: { playerId: report.playerId },
-      });
-      
-      res.json({ success: true, report: updatedReport });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
     }
-  });
+  );
 
   // 6-Month Player Activity Audit Report
-  app.get("/api/players/:id/audit-report", requireTeamRole, async (req, res) => {
-    try {
-      const playerId = req.params.id;
-      const player = await storage.getPlayer(playerId);
-      if (!player) {
-        return res.status(404).json({ error: "Player not found" });
+  app.get(
+    "/api/players/:id/audit-report",
+    requireTeamRole,
+    async (req, res) => {
+      try {
+        const playerId = req.params.id;
+        const player = await storage.getPlayer(playerId);
+        if (!player) {
+          return res.status(404).json({ error: "Player not found" });
+        }
+
+        const sixMonthsAgo = new Date();
+        sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+        // Gather all player data
+        const metrics = await storage.getPlayerMetrics(playerId);
+        const eligibilityScores = await storage.getEligibilityScores(playerId);
+        const videos = await storage.getVideos(playerId);
+        const invitationLettersData =
+          await storage.getInvitationLetters(playerId);
+        const consularReportsData = await storage.getConsularReports(playerId);
+        const internationalRecords =
+          await storage.getPlayerInternationalRecords(playerId);
+
+        // Filter data from last 6 months - include items without dates (assume recent)
+        const recentVideos = videos.filter((v) => {
+          if (!v.uploadDate) return true;
+          return new Date(v.uploadDate) >= sixMonthsAgo;
+        });
+        const recentMetrics = metrics.filter((m) => {
+          if (!m.updatedAt) return true;
+          return new Date(m.updatedAt) >= sixMonthsAgo;
+        });
+        const recentInvitations = invitationLettersData.filter((l) => {
+          if (!l.uploadedAt) return true;
+          return new Date(l.uploadedAt) >= sixMonthsAgo;
+        });
+        const recentConsularReports = consularReportsData.filter((r) => {
+          if (!r.generatedAt) return true;
+          return new Date(r.generatedAt) >= sixMonthsAgo;
+        });
+
+        // Get the most recent consular report (already sorted by generatedAt desc from storage)
+        const latestConsularReport =
+          consularReportsData.length > 0 ? consularReportsData[0] : null;
+
+        // Build comprehensive audit data
+        const auditReport = {
+          generatedAt: new Date().toISOString(),
+          reportPeriod: {
+            startDate: sixMonthsAgo.toISOString(),
+            endDate: new Date().toISOString(),
+          },
+          player: {
+            id: player.id,
+            name: `${player.firstName} ${player.lastName}`,
+            dateOfBirth: player.dateOfBirth,
+            nationality: player.nationality,
+            secondaryNationality: player.secondNationality,
+            position: player.position,
+            jerseyNumber: player.jerseyNumber,
+            height: player.height,
+            weight: player.weight,
+            preferredFoot: player.preferredFoot,
+            currentClub: player.currentClubName,
+            marketValue: player.marketValue,
+          },
+          consularVerification: latestConsularReport
+            ? {
+                verificationCode: latestConsularReport.verificationCode,
+                generatedAt: latestConsularReport.generatedAt,
+                validUntil: latestConsularReport.validUntil,
+                accessedByEmbassy: latestConsularReport.accessedByEmbassy,
+              }
+            : null,
+          activitySummary: {
+            totalVideosTagged: recentVideos.length,
+            totalMetricsRecorded: recentMetrics.length,
+            totalInvitationLetters: recentInvitations.length,
+            totalInternationalCaps: internationalRecords.reduce(
+              (sum, r) => sum + (r.caps || 0),
+              0
+            ),
+          },
+          eligibilityScores: eligibilityScores.map((score) => ({
+            visaType: score.visaType,
+            score: score.score,
+            status: score.status,
+            leagueBandApplied: score.leagueBandApplied,
+            calculatedAt: score.calculatedAt,
+          })),
+          videoAnalysis: recentVideos.map((video) => ({
+            id: video.id,
+            title: video.title,
+            uploadedAt: video.uploadDate,
+            source: video.source,
+            duration: video.duration,
+          })),
+          performanceMetrics: recentMetrics.map((m) => ({
+            season: m.season,
+            goals: m.goals,
+            assists: m.assists,
+            gamesPlayed: m.gamesPlayed,
+            currentSeasonMinutes: m.currentSeasonMinutes,
+            passAccuracy: m.passAccuracy,
+            tacklesWon: m.tacklesWon,
+            aerialDuelsWon: m.aerialDuelsWon,
+            updatedAt: m.updatedAt,
+          })),
+          internationalRecords: internationalRecords.map((r) => ({
+            nationalTeam: r.nationalTeam,
+            teamLevel: r.teamLevel,
+            caps: r.caps,
+            goals: r.goals,
+            assists: r.assists,
+            debutDate: r.debutDate,
+          })),
+          invitationLetters: recentInvitations.map((l) => ({
+            targetClubName: l.targetClubName,
+            targetCountry: l.targetCountry,
+            targetLeague: l.targetLeague,
+            targetLeagueBand: l.targetLeagueBand,
+            offerType: l.offerType,
+            trialStartDate: l.trialStartDate,
+            trialEndDate: l.trialEndDate,
+            status: l.status,
+            consularReportGenerated: l.consularReportGenerated,
+          })),
+        };
+
+        await storage.logAction({
+          userId: req.session.userId,
+          userRole: req.session.userRole,
+          action: "generate_audit_report",
+          entityType: "player",
+          entityId: playerId,
+          details: { reportPeriod: "6_months" },
+        });
+
+        res.json(auditReport);
+      } catch (error: any) {
+        res.status(500).json({ error: error.message });
       }
-
-      const sixMonthsAgo = new Date();
-      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-
-      // Gather all player data
-      const metrics = await storage.getPlayerMetrics(playerId);
-      const eligibilityScores = await storage.getEligibilityScores(playerId);
-      const videos = await storage.getVideos(playerId);
-      const invitationLettersData = await storage.getInvitationLetters(playerId);
-      const consularReportsData = await storage.getConsularReports(playerId);
-      const internationalRecords = await storage.getPlayerInternationalRecords(playerId);
-
-      // Filter data from last 6 months - include items without dates (assume recent)
-      const recentVideos = videos.filter(v => {
-        if (!v.uploadDate) return true;
-        return new Date(v.uploadDate) >= sixMonthsAgo;
-      });
-      const recentMetrics = metrics.filter(m => {
-        if (!m.updatedAt) return true;
-        return new Date(m.updatedAt) >= sixMonthsAgo;
-      });
-      const recentInvitations = invitationLettersData.filter(l => {
-        if (!l.uploadedAt) return true;
-        return new Date(l.uploadedAt) >= sixMonthsAgo;
-      });
-      const recentConsularReports = consularReportsData.filter(r => {
-        if (!r.generatedAt) return true;
-        return new Date(r.generatedAt) >= sixMonthsAgo;
-      });
-
-      // Get the most recent consular report (already sorted by generatedAt desc from storage)
-      const latestConsularReport = consularReportsData.length > 0 ? consularReportsData[0] : null;
-
-      // Build comprehensive audit data
-      const auditReport = {
-        generatedAt: new Date().toISOString(),
-        reportPeriod: {
-          startDate: sixMonthsAgo.toISOString(),
-          endDate: new Date().toISOString(),
-        },
-        player: {
-          id: player.id,
-          name: `${player.firstName} ${player.lastName}`,
-          dateOfBirth: player.dateOfBirth,
-          nationality: player.nationality,
-          secondaryNationality: player.secondNationality,
-          position: player.position,
-          jerseyNumber: player.jerseyNumber,
-          height: player.height,
-          weight: player.weight,
-          preferredFoot: player.preferredFoot,
-          currentClub: player.currentClubName,
-          marketValue: player.marketValue,
-        },
-        consularVerification: latestConsularReport ? {
-          verificationCode: latestConsularReport.verificationCode,
-          generatedAt: latestConsularReport.generatedAt,
-          validUntil: latestConsularReport.validUntil,
-          accessedByEmbassy: latestConsularReport.accessedByEmbassy,
-        } : null,
-        activitySummary: {
-          totalVideosTagged: recentVideos.length,
-          totalMetricsRecorded: recentMetrics.length,
-          totalInvitationLetters: recentInvitations.length,
-          totalInternationalCaps: internationalRecords.reduce((sum, r) => sum + (r.caps || 0), 0),
-        },
-        eligibilityScores: eligibilityScores.map(score => ({
-          visaType: score.visaType,
-          score: score.score,
-          status: score.status,
-          leagueBandApplied: score.leagueBandApplied,
-          calculatedAt: score.calculatedAt,
-        })),
-        videoAnalysis: recentVideos.map(video => ({
-          id: video.id,
-          title: video.title,
-          uploadedAt: video.uploadDate,
-          source: video.source,
-          duration: video.duration,
-        })),
-        performanceMetrics: recentMetrics.map(m => ({
-          season: m.season,
-          goals: m.goals,
-          assists: m.assists,
-          gamesPlayed: m.gamesPlayed,
-          currentSeasonMinutes: m.currentSeasonMinutes,
-          passAccuracy: m.passAccuracy,
-          tacklesWon: m.tacklesWon,
-          aerialDuelsWon: m.aerialDuelsWon,
-          updatedAt: m.updatedAt,
-        })),
-        internationalRecords: internationalRecords.map(r => ({
-          nationalTeam: r.nationalTeam,
-          teamLevel: r.teamLevel,
-          caps: r.caps,
-          goals: r.goals,
-          assists: r.assists,
-          debutDate: r.debutDate,
-        })),
-        invitationLetters: recentInvitations.map(l => ({
-          targetClubName: l.targetClubName,
-          targetCountry: l.targetCountry,
-          targetLeague: l.targetLeague,
-          targetLeagueBand: l.targetLeagueBand,
-          offerType: l.offerType,
-          trialStartDate: l.trialStartDate,
-          trialEndDate: l.trialEndDate,
-          status: l.status,
-          consularReportGenerated: l.consularReportGenerated,
-        })),
-      };
-
-      await storage.logAction({
-        userId: req.session.userId,
-        userRole: req.session.userRole,
-        action: "generate_audit_report",
-        entityType: "player",
-        entityId: playerId,
-        details: { reportPeriod: "6_months" },
-      });
-
-      res.json(auditReport);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
     }
-  });
+  );
 
   // Embassy document access routes - now includes notified invitation letters and federation letters
   app.get("/api/embassy/documents", requireEmbassyRole, async (req, res) => {
     try {
-      let embassyProfile = await storage.getEmbassyProfileByUserId(req.session.userId!);
-      
+      let embassyProfile = await storage.getEmbassyProfileByUserId(
+        req.session.userId!
+      );
+
       // Auto-create embassy profile if it doesn't exist
       if (!embassyProfile) {
         const user = await storage.getUser(req.session.userId!);
@@ -3872,35 +4618,49 @@ Provide the summary as a formal document text.`;
 
       // Get ALL notified invitation letters (embassy can see all notified documents)
       const notifiedLetters = await storage.getAllEmbassyNotifiedLetters();
-      
+
       for (const letter of notifiedLetters) {
         const player = await storage.getPlayer(letter.playerId);
         const team = await storage.getTeam(letter.fromTeamId);
-        
+
         // Get document verification status
-        const invitationVerification = await storage.getDocumentVerification("invitation_letter", letter.id);
+        const invitationVerification = await storage.getDocumentVerification(
+          "invitation_letter",
+          letter.id
+        );
         let federationLetterVerification = null;
         let federationLetter = null;
 
         if (letter.federationLetterRequestId) {
-          federationLetter = await storage.getFederationLetterRequest(letter.federationLetterRequestId);
+          federationLetter = await storage.getFederationLetterRequest(
+            letter.federationLetterRequestId
+          );
           if (federationLetter) {
-            federationLetterVerification = await storage.getDocumentVerification("federation_letter", federationLetter.id);
+            federationLetterVerification =
+              await storage.getDocumentVerification(
+                "federation_letter",
+                federationLetter.id
+              );
           }
         }
 
         // Get transfer reports for this player/invitation
-        const transferReports = await storage.getTransferReportsByPlayer(letter.playerId);
-        const relevantReport = transferReports.length > 0 ? transferReports[0] : null;
+        const transferReports = await storage.getTransferReportsByPlayer(
+          letter.playerId
+        );
+        const relevantReport =
+          transferReports.length > 0 ? transferReports[0] : null;
 
         // Determine if this is an external upload (no federation letter or federation letter not issued)
-        const hasFederationLetter = federationLetter && federationLetter.status === "issued";
+        const hasFederationLetter =
+          federationLetter && federationLetter.status === "issued";
         const isExternalUpload = !hasFederationLetter;
-        
+
         // Check if issuing club country matches embassy country for local verification
         const issuingClubCountry = team?.country?.toLowerCase() || "";
         const embassyCountryLower = embassyProfile.country.toLowerCase();
-        const requiresLocalVerification = isExternalUpload && issuingClubCountry === embassyCountryLower;
+        const requiresLocalVerification =
+          isExternalUpload && issuingClubCountry === embassyCountryLower;
 
         documents.push({
           id: letter.id,
@@ -3910,8 +4670,15 @@ Provide the summary as a formal document text.`;
           invitationLetter: letter,
           federationLetter,
           transferReport: relevantReport,
-          invitationVerification: invitationVerification || { verificationStatus: "pending", isSystemVerified: false },
-          federationLetterVerification: federationLetterVerification || (letter.federationLetterRequestId ? { verificationStatus: "pending", isSystemVerified: false } : null),
+          invitationVerification: invitationVerification || {
+            verificationStatus: "pending",
+            isSystemVerified: false,
+          },
+          federationLetterVerification:
+            federationLetterVerification ||
+            (letter.federationLetterRequestId
+              ? { verificationStatus: "pending", isSystemVerified: false }
+              : null),
           notifiedAt: letter.embassyNotifiedAt,
           status: "pending_review",
           isExternalUpload,
@@ -3922,22 +4689,31 @@ Provide the summary as a formal document text.`;
 
       // Also include ALL transfer reports generated by teams
       const allTransferReports = await storage.getAllTransferReports();
-      const addedReportIds = new Set(documents.filter(d => d.transferReport).map(d => d.transferReport?.id));
-      
+      const addedReportIds = new Set(
+        documents
+          .filter((d) => d.transferReport)
+          .map((d) => d.transferReport?.id)
+      );
+
       for (const report of allTransferReports) {
         // Skip if already added via invitation letter
         if (addedReportIds.has(report.id)) continue;
-        
+
         const player = await storage.getPlayer(report.playerId);
-        const team = report.teamId ? await storage.getTeam(report.teamId) : null;
-        
+        const team = report.teamId
+          ? await storage.getTeam(report.teamId)
+          : null;
+
         documents.push({
           id: report.id,
           type: "transfer_report",
           player,
           team,
           transferReport: report,
-          invitationVerification: { verificationStatus: "verified", isSystemVerified: true },
+          invitationVerification: {
+            verificationStatus: "verified",
+            isSystemVerified: true,
+          },
           notifiedAt: report.generatedAt,
           status: "verified",
         });
@@ -3945,10 +4721,14 @@ Provide the summary as a formal document text.`;
 
       // Also include old compliance documents
       const verifications = await storage.getEmbassyVerifications();
-      const countryVerifications = verifications.filter(v => v.embassyCountry === embassyProfile.country);
-      
+      const countryVerifications = verifications.filter(
+        (v) => v.embassyCountry === embassyProfile.country
+      );
+
       for (const verification of countryVerifications) {
-        const doc = await storage.getComplianceDocument(verification.documentId);
+        const doc = await storage.getComplianceDocument(
+          verification.documentId
+        );
         if (doc) {
           const player = await storage.getPlayer(doc.playerId);
           documents.push({
@@ -3967,315 +4747,373 @@ Provide the summary as a formal document text.`;
   });
 
   // Get all issued federation letters for embassy viewing
-  app.get("/api/embassy/issued-letters", requireEmbassyRole, async (req, res) => {
-    try {
-      const issuedLetters = await storage.getAllIssuedFederationLetters();
-      
-      const lettersWithDetails = await Promise.all(
-        issuedLetters.map(async (letter) => {
-          const player = letter.playerId ? await storage.getPlayer(letter.playerId) : null;
-          const documents = await storage.getFederationIssuedDocuments(letter.id);
-          
-          return {
-            ...letter,
-            player,
-            documents,
-            documentCount: documents.length,
-          };
-        })
-      );
-      
-      res.json(lettersWithDetails);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+  app.get(
+    "/api/embassy/issued-letters",
+    requireEmbassyRole,
+    async (req, res) => {
+      try {
+        const issuedLetters = await storage.getAllIssuedFederationLetters();
+
+        const lettersWithDetails = await Promise.all(
+          issuedLetters.map(async (letter) => {
+            const player = letter.playerId
+              ? await storage.getPlayer(letter.playerId)
+              : null;
+            const documents = await storage.getFederationIssuedDocuments(
+              letter.id
+            );
+
+            return {
+              ...letter,
+              player,
+              documents,
+              documentCount: documents.length,
+            };
+          })
+        );
+
+        res.json(lettersWithDetails);
+      } catch (error: any) {
+        res.status(500).json({ error: error.message });
+      }
     }
-  });
+  );
 
   // Download issued federation letter as PDF for embassy
-  app.get("/api/embassy/issued-letters/:id/pdf", requireEmbassyRole, async (req, res) => {
-    try {
-      const letter = await storage.getFederationLetterRequest(req.params.id);
-      if (!letter || letter.status !== "issued") {
-        return res.status(404).json({ error: "Issued letter not found" });
+  app.get(
+    "/api/embassy/issued-letters/:id/pdf",
+    requireEmbassyRole,
+    async (req, res) => {
+      try {
+        const letter = await storage.getFederationLetterRequest(req.params.id);
+        if (!letter || letter.status !== "issued") {
+          return res.status(404).json({ error: "Issued letter not found" });
+        }
+
+        const player = letter.playerId
+          ? await storage.getPlayer(letter.playerId)
+          : null;
+        const documents = await storage.getFederationIssuedDocuments(letter.id);
+
+        res.json({
+          letter,
+          player,
+          documents,
+          generatedAt: new Date().toISOString(),
+          verificationCode: `SR-FED-${letter.requestNumber}-${Date.now().toString(36).toUpperCase()}`,
+        });
+      } catch (error: any) {
+        res.status(500).json({ error: error.message });
       }
-      
-      const player = letter.playerId ? await storage.getPlayer(letter.playerId) : null;
-      const documents = await storage.getFederationIssuedDocuments(letter.id);
-      
-      res.json({
-        letter,
-        player,
-        documents,
-        generatedAt: new Date().toISOString(),
-        verificationCode: `SR-FED-${letter.requestNumber}-${Date.now().toString(36).toUpperCase()}`,
-      });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
     }
-  });
+  );
 
-  app.get("/api/embassy/documents/:id", requireEmbassyRole, async (req, res) => {
-    try {
-      const embassyProfile = await storage.getEmbassyProfileByUserId(req.session.userId!);
-      if (!embassyProfile) {
-        return res.status(404).json({ error: "Embassy profile not found" });
+  app.get(
+    "/api/embassy/documents/:id",
+    requireEmbassyRole,
+    async (req, res) => {
+      try {
+        const embassyProfile = await storage.getEmbassyProfileByUserId(
+          req.session.userId!
+        );
+        if (!embassyProfile) {
+          return res.status(404).json({ error: "Embassy profile not found" });
+        }
+
+        const doc = await storage.getComplianceDocument(req.params.id);
+        if (!doc) {
+          return res.status(404).json({ error: "Document not found" });
+        }
+
+        await storage.logEmbassyDocumentAccess({
+          documentId: doc.id,
+          embassyProfileId: embassyProfile.id,
+          accessedBy: req.session.userId,
+          accessType: "view",
+        });
+
+        await storage.logAction({
+          userId: req.session.userId,
+          userRole: "embassy",
+          action: "view_document",
+          entityType: "compliance_document",
+          entityId: doc.id,
+          details: { embassyCountry: embassyProfile.country },
+        });
+
+        const player = await storage.getPlayer(doc.playerId);
+        const accessLogs = await storage.getEmbassyDocumentAccessLogs(doc.id);
+
+        res.json({ document: doc, player, accessLogs });
+      } catch (error: any) {
+        res.status(500).json({ error: error.message });
       }
-
-      const doc = await storage.getComplianceDocument(req.params.id);
-      if (!doc) {
-        return res.status(404).json({ error: "Document not found" });
-      }
-
-      await storage.logEmbassyDocumentAccess({
-        documentId: doc.id,
-        embassyProfileId: embassyProfile.id,
-        accessedBy: req.session.userId,
-        accessType: "view",
-      });
-
-      await storage.logAction({
-        userId: req.session.userId,
-        userRole: "embassy",
-        action: "view_document",
-        entityType: "compliance_document",
-        entityId: doc.id,
-        details: { embassyCountry: embassyProfile.country },
-      });
-
-      const player = await storage.getPlayer(doc.playerId);
-      const accessLogs = await storage.getEmbassyDocumentAccessLogs(doc.id);
-
-      res.json({ document: doc, player, accessLogs });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
     }
-  });
+  );
 
   // AI Document Verification for Embassy
-  app.post("/api/embassy/documents/verify", requireEmbassyRole, async (req, res) => {
-    try {
-      const { documentType, documentId } = req.body;
-      
-      if (!documentType || !documentId) {
-        return res.status(400).json({ error: "documentType and documentId are required" });
-      }
+  app.post(
+    "/api/embassy/documents/verify",
+    requireEmbassyRole,
+    async (req, res) => {
+      try {
+        const { documentType, documentId } = req.body;
 
-      // Check if document exists in our system (system-verified)
-      let isSystemVerified = false;
-      let sourceType = "external";
-      let systemVerificationNote = "";
-
-      if (documentType === "federation_letter") {
-        const federationLetter = await storage.getFederationLetterRequest(documentId);
-        if (federationLetter && federationLetter.status === "issued") {
-          isSystemVerified = true;
-          sourceType = "federation_system";
-          systemVerificationNote = `Verified through Sports Reels federation workflow. Issued by ${federationLetter.federationName || federationLetter.federationCountry} on ${federationLetter.issuedAt ? new Date(federationLetter.issuedAt).toLocaleDateString() : 'N/A'}`;
+        if (!documentType || !documentId) {
+          return res
+            .status(400)
+            .json({ error: "documentType and documentId are required" });
         }
-      } else if (documentType === "invitation_letter") {
-        const letter = await storage.getInvitationLetter(documentId);
-        if (letter) {
-          isSystemVerified = letter.federationLetterRequestId ? true : false;
-          sourceType = letter.federationLetterRequestId ? "team_with_federation" : "team_upload";
-          systemVerificationNote = letter.federationLetterRequestId 
-            ? "Invitation letter submitted with verified federation letter attached"
-            : "Invitation letter uploaded by team - external document";
+
+        // Check if document exists in our system (system-verified)
+        let isSystemVerified = false;
+        let sourceType = "external";
+        let systemVerificationNote = "";
+
+        if (documentType === "federation_letter") {
+          const federationLetter =
+            await storage.getFederationLetterRequest(documentId);
+          if (federationLetter && federationLetter.status === "issued") {
+            isSystemVerified = true;
+            sourceType = "federation_system";
+            systemVerificationNote = `Verified through Sports Reels federation workflow. Issued by ${federationLetter.federationName || federationLetter.federationCountry} on ${federationLetter.issuedAt ? new Date(federationLetter.issuedAt).toLocaleDateString() : "N/A"}`;
+          }
+        } else if (documentType === "invitation_letter") {
+          const letter = await storage.getInvitationLetter(documentId);
+          if (letter) {
+            isSystemVerified = letter.federationLetterRequestId ? true : false;
+            sourceType = letter.federationLetterRequestId
+              ? "team_with_federation"
+              : "team_upload";
+            systemVerificationNote = letter.federationLetterRequestId
+              ? "Invitation letter submitted with verified federation letter attached"
+              : "Invitation letter uploaded by team - external document";
+          }
         }
-      }
 
-      // AI verification analysis
-      let aiVerdict = isSystemVerified ? "verified" : "requires_review";
-      let aiConfidence = isSystemVerified ? 0.95 : 0.5;
-      let aiAnalysis = "";
+        // AI verification analysis
+        let aiVerdict = isSystemVerified ? "verified" : "requires_review";
+        let aiConfidence = isSystemVerified ? 0.95 : 0.5;
+        let aiAnalysis = "";
 
-      if (isSystemVerified) {
-        aiAnalysis = "Document has been verified through the Sports Reels platform workflow. This document passed through our federation verification process and is considered authentic.";
-        aiVerdict = "verified";
-      } else {
-        aiAnalysis = "Document was uploaded externally and has not been processed through our verification workflow. Manual review recommended. Flag as POTENTIAL FORGERY if document claims to be from a federation but was not issued through our system.";
-        aiVerdict = "potential_fake";
-        aiConfidence = 0.3;
-      }
+        if (isSystemVerified) {
+          aiAnalysis =
+            "Document has been verified through the Sports Reels platform workflow. This document passed through our federation verification process and is considered authentic.";
+          aiVerdict = "verified";
+        } else {
+          aiAnalysis =
+            "Document was uploaded externally and has not been processed through our verification workflow. Manual review recommended. Flag as POTENTIAL FORGERY if document claims to be from a federation but was not issued through our system.";
+          aiVerdict = "potential_fake";
+          aiConfidence = 0.3;
+        }
 
-      // Check if verification record exists
-      let verification = await storage.getDocumentVerification(documentType, documentId);
-      
-      if (verification) {
-        verification = await storage.updateDocumentVerification(verification.id, {
-          verificationStatus: aiVerdict,
-          aiVerdict,
-          aiConfidence,
-          aiAnalysis,
-          isSystemVerified,
-          systemVerificationNote,
-          lastCheckedAt: new Date(),
-          checkedBy: req.session.userId,
-        });
-      } else {
-        verification = await storage.createDocumentVerification({
+        // Check if verification record exists
+        let verification = await storage.getDocumentVerification(
           documentType,
-          documentId,
-          sourceType,
-          verificationStatus: aiVerdict,
-          aiVerdict,
-          aiConfidence,
-          aiAnalysis,
-          isSystemVerified,
-          systemVerificationNote,
-          lastCheckedAt: new Date(),
-          checkedBy: req.session.userId,
+          documentId
+        );
+
+        if (verification) {
+          verification = await storage.updateDocumentVerification(
+            verification.id,
+            {
+              verificationStatus: aiVerdict,
+              aiVerdict,
+              aiConfidence,
+              aiAnalysis,
+              isSystemVerified,
+              systemVerificationNote,
+              lastCheckedAt: new Date(),
+              checkedBy: req.session.userId,
+            }
+          );
+        } else {
+          verification = await storage.createDocumentVerification({
+            documentType,
+            documentId,
+            sourceType,
+            verificationStatus: aiVerdict,
+            aiVerdict,
+            aiConfidence,
+            aiAnalysis,
+            isSystemVerified,
+            systemVerificationNote,
+            lastCheckedAt: new Date(),
+            checkedBy: req.session.userId,
+          });
+        }
+
+        await storage.logAction({
+          userId: req.session.userId,
+          userRole: "embassy",
+          action: "verify_document",
+          entityType: documentType,
+          entityId: documentId,
+          details: { aiVerdict, isSystemVerified },
         });
+
+        res.json(verification);
+      } catch (error: any) {
+        res.status(500).json({ error: error.message });
       }
-
-      await storage.logAction({
-        userId: req.session.userId,
-        userRole: "embassy",
-        action: "verify_document",
-        entityType: documentType,
-        entityId: documentId,
-        details: { aiVerdict, isSystemVerified },
-      });
-
-      res.json(verification);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
     }
-  });
+  );
 
   // Embassy Transfer Report PDF with logo
-  app.get("/api/embassy/transfer-report/:invitationId/pdf", requireEmbassyRole, async (req, res) => {
-    try {
-      const letter = await storage.getInvitationLetter(req.params.invitationId);
-      if (!letter) {
-        return res.status(404).json({ error: "Invitation letter not found" });
+  app.get(
+    "/api/embassy/transfer-report/:invitationId/pdf",
+    requireEmbassyRole,
+    async (req, res) => {
+      try {
+        const letter = await storage.getInvitationLetter(
+          req.params.invitationId
+        );
+        if (!letter) {
+          return res.status(404).json({ error: "Invitation letter not found" });
+        }
+
+        const player = await storage.getPlayer(letter.playerId);
+        if (!player) {
+          return res.status(404).json({ error: "Player not found" });
+        }
+
+        const eligibilityScores = await storage.getEligibilityScores(player.id);
+        const metrics = await storage.getPlayerMetrics(player.id);
+        const videos = await storage.getVideos(player.id);
+        const team = await storage.getTeam(letter.fromTeamId);
+
+        // Get federation letter and document verification status
+        let federationLetter = null;
+        let documentVerification = null;
+        if (letter.federationLetterRequestId) {
+          federationLetter = await storage.getFederationLetterRequest(
+            letter.federationLetterRequestId
+          );
+        }
+        documentVerification = await storage.getDocumentVerification(
+          "invitation_letter",
+          letter.id
+        );
+
+        // Determine verification status
+        const hasFederationLetter =
+          federationLetter && federationLetter.status === "issued";
+        const isExternalUpload = !hasFederationLetter;
+        const verificationStatus = hasFederationLetter
+          ? "Federation Verified"
+          : documentVerification?.isSystemVerified
+            ? "AI Verified"
+            : "External Upload - Pending Verification";
+
+        // Generate a comprehensive transfer report data structure
+        const transferReportData = {
+          reportId: `TR-${Date.now().toString(36).toUpperCase()}`,
+          generatedAt: new Date().toISOString(),
+          timestamp: new Date().toISOString(),
+          player: {
+            fullName: `${player.firstName} ${player.lastName}`,
+            firstName: player.firstName,
+            lastName: player.lastName,
+            nationality: player.nationality,
+            secondNationality: player.secondNationality,
+            dateOfBirth: player.dateOfBirth,
+            birthPlace: player.birthPlace,
+            position: player.position,
+            secondaryPosition: player.secondaryPosition,
+            currentClub: player.currentClubName,
+            height: player.height,
+            heightUnit: player.heightUnit,
+            weight: player.weight,
+            weightUnit: player.weightUnit,
+            preferredFoot: player.preferredFoot,
+            jerseyNumber: player.jerseyNumber,
+            nationalTeamCaps: player.nationalTeamCaps,
+            nationalTeamGoals: player.nationalTeamGoals,
+            internationalCaps: player.internationalCaps,
+            internationalGoals: player.internationalGoals,
+            continentalGames: player.continentalGames,
+            marketValue: player.marketValue,
+            contractEndDate: player.contractEndDate,
+            agentName: player.agentName,
+            agentContact: player.agentContact,
+          },
+          sourceTeam: team
+            ? {
+                name: team.name,
+                clubName: team.clubName,
+                country: team.country,
+              }
+            : null,
+          targetClub: {
+            name: letter.targetClubName,
+            address: letter.targetClubAddress,
+            league: letter.targetLeague,
+            leagueBand: letter.targetLeagueBand,
+            country: letter.targetCountry,
+          },
+          offerDetails: {
+            type: letter.offerType,
+            trialStartDate: letter.trialStartDate,
+            trialEndDate: letter.trialEndDate,
+            scoutAgent: letter.scoutAgentName,
+          },
+          eligibility: eligibilityScores.map((score) => ({
+            visaType: score.visaType,
+            score: score.score,
+            status: score.status,
+            breakdown: score.breakdown,
+          })),
+          performance:
+            metrics.length > 0
+              ? {
+                  gamesPlayed: metrics[0].gamesPlayed,
+                  goals: metrics[0].goals,
+                  assists: metrics[0].assists,
+                  minutes: metrics[0].currentSeasonMinutes,
+                  distanceCovered: metrics[0].distanceCovered,
+                  passAccuracy: metrics[0].passAccuracy,
+                  aerialDuelsWon: metrics[0].aerialDuelsWon,
+                }
+              : null,
+          videosCount: videos.length,
+          verificationCode: `VR-${Date.now().toString(36).toUpperCase()}-EMB`,
+          compliance: {
+            verificationStatus,
+            isExternalUpload,
+            hasFederationLetter,
+            federationName: federationLetter?.federationName || null,
+            federationIssuedAt: federationLetter?.issuedAt || null,
+            documentVerifiedAt: documentVerification?.lastCheckedAt || null,
+            auditNote:
+              `This document has been generated by Sports Reels compliance system. ` +
+              `Verification Status: ${verificationStatus}. ` +
+              `All data has been cross-referenced with player records and eligibility calculations. ` +
+              `This report is for official visa processing purposes only.`,
+          },
+        };
+
+        await storage.logAction({
+          userId: req.session.userId,
+          userRole: "embassy",
+          action: "download_transfer_report",
+          entityType: "invitation_letter",
+          entityId: letter.id,
+          details: { playerId: player.id },
+        });
+
+        res.json(transferReportData);
+      } catch (error: any) {
+        res.status(500).json({ error: error.message });
       }
-
-      const player = await storage.getPlayer(letter.playerId);
-      if (!player) {
-        return res.status(404).json({ error: "Player not found" });
-      }
-
-      const eligibilityScores = await storage.getEligibilityScores(player.id);
-      const metrics = await storage.getPlayerMetrics(player.id);
-      const videos = await storage.getVideos(player.id);
-      const team = await storage.getTeam(letter.fromTeamId);
-
-      // Get federation letter and document verification status
-      let federationLetter = null;
-      let documentVerification = null;
-      if (letter.federationLetterRequestId) {
-        federationLetter = await storage.getFederationLetterRequest(letter.federationLetterRequestId);
-      }
-      documentVerification = await storage.getDocumentVerification("invitation_letter", letter.id);
-
-      // Determine verification status
-      const hasFederationLetter = federationLetter && federationLetter.status === "issued";
-      const isExternalUpload = !hasFederationLetter;
-      const verificationStatus = hasFederationLetter ? "Federation Verified" : 
-        (documentVerification?.isSystemVerified ? "AI Verified" : "External Upload - Pending Verification");
-
-      // Generate a comprehensive transfer report data structure
-      const transferReportData = {
-        reportId: `TR-${Date.now().toString(36).toUpperCase()}`,
-        generatedAt: new Date().toISOString(),
-        timestamp: new Date().toISOString(),
-        player: {
-          fullName: `${player.firstName} ${player.lastName}`,
-          firstName: player.firstName,
-          lastName: player.lastName,
-          nationality: player.nationality,
-          secondNationality: player.secondNationality,
-          dateOfBirth: player.dateOfBirth,
-          birthPlace: player.birthPlace,
-          position: player.position,
-          secondaryPosition: player.secondaryPosition,
-          currentClub: player.currentClubName,
-          height: player.height,
-          heightUnit: player.heightUnit,
-          weight: player.weight,
-          weightUnit: player.weightUnit,
-          preferredFoot: player.preferredFoot,
-          jerseyNumber: player.jerseyNumber,
-          nationalTeamCaps: player.nationalTeamCaps,
-          nationalTeamGoals: player.nationalTeamGoals,
-          internationalCaps: player.internationalCaps,
-          internationalGoals: player.internationalGoals,
-          continentalGames: player.continentalGames,
-          marketValue: player.marketValue,
-          contractEndDate: player.contractEndDate,
-          agentName: player.agentName,
-          agentContact: player.agentContact,
-        },
-        sourceTeam: team ? {
-          name: team.name,
-          clubName: team.clubName,
-          country: team.country,
-        } : null,
-        targetClub: {
-          name: letter.targetClubName,
-          address: letter.targetClubAddress,
-          league: letter.targetLeague,
-          leagueBand: letter.targetLeagueBand,
-          country: letter.targetCountry,
-        },
-        offerDetails: {
-          type: letter.offerType,
-          trialStartDate: letter.trialStartDate,
-          trialEndDate: letter.trialEndDate,
-          scoutAgent: letter.scoutAgentName,
-        },
-        eligibility: eligibilityScores.map(score => ({
-          visaType: score.visaType,
-          score: score.score,
-          status: score.status,
-          breakdown: score.breakdown,
-        })),
-        performance: metrics.length > 0 ? {
-          gamesPlayed: metrics[0].gamesPlayed,
-          goals: metrics[0].goals,
-          assists: metrics[0].assists,
-          minutes: metrics[0].currentSeasonMinutes,
-          distanceCovered: metrics[0].distanceCovered,
-          passAccuracy: metrics[0].passAccuracy,
-          aerialDuelsWon: metrics[0].aerialDuelsWon,
-        } : null,
-        videosCount: videos.length,
-        verificationCode: `VR-${Date.now().toString(36).toUpperCase()}-EMB`,
-        compliance: {
-          verificationStatus,
-          isExternalUpload,
-          hasFederationLetter,
-          federationName: federationLetter?.federationName || null,
-          federationIssuedAt: federationLetter?.issuedAt || null,
-          documentVerifiedAt: documentVerification?.lastCheckedAt || null,
-          auditNote: `This document has been generated by Sports Reels compliance system. ` +
-            `Verification Status: ${verificationStatus}. ` +
-            `All data has been cross-referenced with player records and eligibility calculations. ` +
-            `This report is for official visa processing purposes only.`,
-        },
-      };
-
-      await storage.logAction({
-        userId: req.session.userId,
-        userRole: "embassy",
-        action: "download_transfer_report",
-        entityType: "invitation_letter",
-        entityId: letter.id,
-        details: { playerId: player.id },
-      });
-
-      res.json(transferReportData);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
     }
-  });
+  );
 
   // Scout/Agent player access routes
   app.get("/api/scout/players", requireScoutRole, async (req, res) => {
     try {
       // Only return players that have been published to scouts
       const publishedPlayers = await storage.getPublishedPlayers();
-      
+
       const playersWithScores = [];
       for (const player of publishedPlayers) {
         const scores = await storage.getEligibilityScores(player.id);
@@ -4304,7 +5142,9 @@ Provide the summary as a formal document text.`;
       const eligibilityScores = await storage.getEligibilityScores(player.id);
       const videos = await storage.getVideos(player.id);
       const sharedVideos = await storage.getSharedVideos(req.session.userId!);
-      const playerSharedVideos = sharedVideos.filter(sv => sv.playerId === player.id);
+      const playerSharedVideos = sharedVideos.filter(
+        (sv) => sv.playerId === player.id
+      );
 
       await storage.logAction({
         userId: req.session.userId,
@@ -4329,7 +5169,9 @@ Provide the summary as a formal document text.`;
   // Scout shortlist routes
   app.get("/api/scout/shortlist", requireScoutRole, async (req, res) => {
     try {
-      const shortlist = await storage.getScoutShortlistWithPlayers(req.session.userId!);
+      const shortlist = await storage.getScoutShortlistWithPlayers(
+        req.session.userId!
+      );
       res.json(shortlist);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -4339,24 +5181,29 @@ Provide the summary as a formal document text.`;
   app.post("/api/scout/shortlist", requireScoutRole, async (req, res) => {
     try {
       const { playerId, priority = "green", notes } = req.body;
-      
+
       const validPriorities = ["amber", "green", "red"];
       if (!validPriorities.includes(priority)) {
-        return res.status(400).json({ error: "Invalid priority. Must be amber, green, or red." });
+        return res
+          .status(400)
+          .json({ error: "Invalid priority. Must be amber, green, or red." });
       }
-      
-      const existing = await storage.getShortlistEntry(req.session.userId!, playerId);
+
+      const existing = await storage.getShortlistEntry(
+        req.session.userId!,
+        playerId
+      );
       if (existing) {
         return res.status(400).json({ error: "Player already in shortlist" });
       }
-      
+
       const entry = await storage.addToShortlist({
         scoutId: req.session.userId!,
         playerId,
         priority,
         notes,
       });
-      
+
       res.json(entry);
     } catch (error: any) {
       res.status(400).json({ error: error.message });
@@ -4366,19 +5213,25 @@ Provide the summary as a formal document text.`;
   app.patch("/api/scout/shortlist/:id", requireScoutRole, async (req, res) => {
     try {
       const { priority, notes } = req.body;
-      
+
       const validPriorities = ["amber", "green", "red"];
       if (!validPriorities.includes(priority)) {
-        return res.status(400).json({ error: "Invalid priority. Must be amber, green, or red." });
+        return res
+          .status(400)
+          .json({ error: "Invalid priority. Must be amber, green, or red." });
       }
-      
+
       const shortlist = await storage.getScoutShortlist(req.session.userId!);
-      const entry = shortlist.find(s => s.id === req.params.id);
+      const entry = shortlist.find((s) => s.id === req.params.id);
       if (!entry) {
         return res.status(404).json({ error: "Shortlist entry not found" });
       }
-      
-      const updated = await storage.updateShortlistPriority(req.params.id, priority, notes);
+
+      const updated = await storage.updateShortlistPriority(
+        req.params.id,
+        priority,
+        notes
+      );
       res.json(updated);
     } catch (error: any) {
       res.status(400).json({ error: error.message });
@@ -4388,11 +5241,11 @@ Provide the summary as a formal document text.`;
   app.delete("/api/scout/shortlist/:id", requireScoutRole, async (req, res) => {
     try {
       const shortlist = await storage.getScoutShortlist(req.session.userId!);
-      const entry = shortlist.find(s => s.id === req.params.id);
+      const entry = shortlist.find((s) => s.id === req.params.id);
       if (!entry) {
         return res.status(404).json({ error: "Shortlist entry not found" });
       }
-      
+
       await storage.removeFromShortlist(req.params.id);
       res.json({ success: true });
     } catch (error: any) {
@@ -4408,52 +5261,68 @@ Provide the summary as a formal document text.`;
     watch_video: 1,
     contact_request: 2,
   };
-  
+
   const TEAM_TOKEN_COSTS = {
     video_analysis: 8,
     scouting_messaging: 3,
     transfer_report: 5,
     federation_letter_request: 10,
   };
-  
+
   const WELCOME_BONUS = 50;
   const TOKEN_EXPIRY_MONTHS = 6;
-  
+
   function getTokenCostsForRole(role: string): Record<string, number> {
     if (role === "scout") {
       return SCOUT_TOKEN_COSTS;
     }
     return TEAM_TOKEN_COSTS;
   }
-  
+
   async function spendTokensForAction(
     userId: string,
     userRole: string,
     action: string,
     playerId?: string,
     videoId?: string
-  ): Promise<{ success: boolean; error?: string; newBalance?: number; cost?: number }> {
+  ): Promise<{
+    success: boolean;
+    error?: string;
+    newBalance?: number;
+    cost?: number;
+  }> {
     const roleCosts = getTokenCostsForRole(userRole);
     const cost = roleCosts[action];
-    
+
     if (!cost) {
-      return { success: false, error: `Invalid action "${action}" for role "${userRole}"` };
+      return {
+        success: false,
+        error: `Invalid action "${action}" for role "${userRole}"`,
+      };
     }
-    
+
     let balance = await storage.getTokenBalance(userId);
     if (!balance) {
       return { success: false, error: "No token balance found" };
     }
-    
+
     if (balance.balance < cost) {
-      return { success: false, error: `Insufficient tokens. Need ${cost}, have ${balance.balance}` };
+      return {
+        success: false,
+        error: `Insufficient tokens. Need ${cost}, have ${balance.balance}`,
+      };
     }
-    
+
     const newBalance = balance.balance - cost;
     const newLifetimeSpent = balance.lifetimeSpent + cost;
-    
-    await storage.updateTokenBalance(userId, newBalance, undefined, newLifetimeSpent);
-    
+
+    await storage.updateTokenBalance(
+      userId,
+      newBalance,
+      undefined,
+      newLifetimeSpent
+    );
+
     const actionDescriptions: Record<string, string> = {
       view_profile: "Viewed player profile",
       shortlist: "Added player to shortlist",
@@ -4463,7 +5332,7 @@ Provide the summary as a formal document text.`;
       scouting_messaging: "Sent scouting message",
       transfer_report: "Generated transfer report",
     };
-    
+
     await storage.createTokenTransaction({
       userId,
       amount: cost,
@@ -4474,7 +5343,7 @@ Provide the summary as a formal document text.`;
       videoId,
       balanceAfter: newBalance,
     });
-    
+
     return { success: true, newBalance, cost };
   }
 
@@ -4483,18 +5352,18 @@ Provide the summary as a formal document text.`;
     try {
       const userId = req.session.userId!;
       let balance = await storage.getTokenBalance(userId);
-      
+
       if (!balance) {
         const expiresAt = new Date();
         expiresAt.setMonth(expiresAt.getMonth() + TOKEN_EXPIRY_MONTHS);
-        
+
         balance = await storage.createTokenBalance({
           userId,
           balance: WELCOME_BONUS,
           lifetimePurchased: WELCOME_BONUS,
           lifetimeSpent: 0,
         });
-        
+
         await storage.createTokenTransaction({
           userId,
           amount: WELCOME_BONUS,
@@ -4505,7 +5374,7 @@ Provide the summary as a formal document text.`;
           expiresAt,
         });
       }
-      
+
       res.json(balance);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -4516,7 +5385,9 @@ Provide the summary as a formal document text.`;
   app.get("/api/tokens/transactions", requireAuth, async (req, res) => {
     try {
       const userId = req.session.userId!;
-      const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+      const limit = req.query.limit
+        ? parseInt(req.query.limit as string)
+        : undefined;
       const transactions = await storage.getTokenTransactions(userId, limit);
       res.json(transactions);
     } catch (error: any) {
@@ -4535,20 +5406,44 @@ Provide the summary as a formal document text.`;
   app.get("/api/tokens/packs", async (req, res) => {
     try {
       let packs = await storage.getTokenPacks();
-      
+
       if (packs.length === 0) {
         const defaultPacks = [
-          { name: "Starter Pack", tokens: 50, priceUsd: 999, description: "50 tokens - Perfect for getting started", sortOrder: 1 },
-          { name: "Standard Pack", tokens: 100, priceUsd: 1799, description: "100 tokens - Best value for regular users", sortOrder: 2 },
-          { name: "Pro Pack", tokens: 150, priceUsd: 2499, description: "150 tokens - For power users", sortOrder: 3 },
-          { name: "Enterprise Pack", tokens: 200, priceUsd: 2999, description: "200 tokens - Maximum value", sortOrder: 4 },
+          {
+            name: "Starter Pack",
+            tokens: 50,
+            priceUsd: 999,
+            description: "50 tokens - Perfect for getting started",
+            sortOrder: 1,
+          },
+          {
+            name: "Standard Pack",
+            tokens: 100,
+            priceUsd: 1799,
+            description: "100 tokens - Best value for regular users",
+            sortOrder: 2,
+          },
+          {
+            name: "Pro Pack",
+            tokens: 150,
+            priceUsd: 2499,
+            description: "150 tokens - For power users",
+            sortOrder: 3,
+          },
+          {
+            name: "Enterprise Pack",
+            tokens: 200,
+            priceUsd: 2999,
+            description: "200 tokens - Maximum value",
+            sortOrder: 4,
+          },
         ];
         for (const pack of defaultPacks) {
           await storage.createTokenPack(pack);
         }
         packs = await storage.getTokenPacks();
       }
-      
+
       res.json(packs);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -4561,32 +5456,41 @@ Provide the summary as a formal document text.`;
       const userId = req.session.userId!;
       const userRole = req.session.userRole || "sporting_director";
       const { action, playerId, videoId } = req.body;
-      
+
       const roleCosts = getTokenCostsForRole(userRole);
       const cost = roleCosts[action];
       if (!cost) {
-        return res.status(400).json({ error: `Invalid action "${action}" for role "${userRole}"` });
+        return res
+          .status(400)
+          .json({ error: `Invalid action "${action}" for role "${userRole}"` });
       }
-      
+
       let balance = await storage.getTokenBalance(userId);
       if (!balance) {
-        return res.status(400).json({ error: "No token balance found", needsPurchase: true });
+        return res
+          .status(400)
+          .json({ error: "No token balance found", needsPurchase: true });
       }
-      
+
       if (balance.balance < cost) {
-        return res.status(400).json({ 
-          error: "Insufficient tokens", 
+        return res.status(400).json({
+          error: "Insufficient tokens",
           needsPurchase: true,
           currentBalance: balance.balance,
-          required: cost 
+          required: cost,
         });
       }
-      
+
       const newBalance = balance.balance - cost;
       const newLifetimeSpent = balance.lifetimeSpent + cost;
-      
-      await storage.updateTokenBalance(userId, newBalance, undefined, newLifetimeSpent);
-      
+
+      await storage.updateTokenBalance(
+        userId,
+        newBalance,
+        undefined,
+        newLifetimeSpent
+      );
+
       const actionDescriptions: Record<string, string> = {
         view_profile: "Viewed player profile",
         shortlist: "Added player to shortlist",
@@ -4597,7 +5501,7 @@ Provide the summary as a formal document text.`;
         transfer_report: "Generated transfer report",
         federation_letter_request: "Created federation letter request",
       };
-      
+
       await storage.createTokenTransaction({
         userId,
         amount: cost,
@@ -4608,7 +5512,7 @@ Provide the summary as a formal document text.`;
         videoId,
         balanceAfter: newBalance,
       });
-      
+
       res.json({ success: true, newBalance, cost, action });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -4620,15 +5524,15 @@ Provide the summary as a formal document text.`;
     try {
       const userId = req.session.userId!;
       const { packId } = req.body;
-      
+
       const pack = await storage.getTokenPack(packId);
       if (!pack) {
         return res.status(404).json({ error: "Token pack not found" });
       }
-      
+
       const expiresAt = new Date();
       expiresAt.setMonth(expiresAt.getMonth() + TOKEN_EXPIRY_MONTHS);
-      
+
       const purchase = await storage.createTokenPurchase({
         userId,
         packId,
@@ -4639,11 +5543,12 @@ Provide the summary as a formal document text.`;
         status: "pending",
         expiresAt,
       });
-      
-      res.json({ 
+
+      res.json({
         purchase,
-        message: "Payment integration required. Connect Stripe to enable real payments.",
-        simulatedCheckout: true 
+        message:
+          "Payment integration required. Connect Stripe to enable real payments.",
+        simulatedCheckout: true,
       });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -4651,59 +5556,68 @@ Provide the summary as a formal document text.`;
   });
 
   // Confirm purchase (simulated - call after Stripe payment success)
-  app.post("/api/tokens/purchase/:id/confirm", requireAuth, async (req, res) => {
-    try {
-      const userId = req.session.userId!;
-      const purchaseId = req.params.id;
-      
-      const purchases = await storage.getTokenPurchases(userId);
-      const purchase = purchases.find(p => p.id === purchaseId);
-      
-      if (!purchase || purchase.userId !== userId) {
-        return res.status(404).json({ error: "Purchase not found" });
-      }
-      
-      if (purchase.status === "completed") {
-        return res.status(400).json({ error: "Purchase already completed" });
-      }
-      
-      await storage.updateTokenPurchase(purchaseId, { 
-        status: "completed",
-        paymentMethod: "simulated",
-        paymentReference: `SIM-${Date.now()}`
-      });
-      
-      let balance = await storage.getTokenBalance(userId);
-      const newBalance = (balance?.balance || 0) + purchase.tokens;
-      const newLifetimePurchased = (balance?.lifetimePurchased || 0) + purchase.tokens;
-      
-      if (balance) {
-        await storage.updateTokenBalance(userId, newBalance, newLifetimePurchased);
-      } else {
-        await storage.createTokenBalance({
-          userId,
-          balance: newBalance,
-          lifetimePurchased: newLifetimePurchased,
-          lifetimeSpent: 0,
+  app.post(
+    "/api/tokens/purchase/:id/confirm",
+    requireAuth,
+    async (req, res) => {
+      try {
+        const userId = req.session.userId!;
+        const purchaseId = req.params.id;
+
+        const purchases = await storage.getTokenPurchases(userId);
+        const purchase = purchases.find((p) => p.id === purchaseId);
+
+        if (!purchase || purchase.userId !== userId) {
+          return res.status(404).json({ error: "Purchase not found" });
+        }
+
+        if (purchase.status === "completed") {
+          return res.status(400).json({ error: "Purchase already completed" });
+        }
+
+        await storage.updateTokenPurchase(purchaseId, {
+          status: "completed",
+          paymentMethod: "simulated",
+          paymentReference: `SIM-${Date.now()}`,
         });
+
+        let balance = await storage.getTokenBalance(userId);
+        const newBalance = (balance?.balance || 0) + purchase.tokens;
+        const newLifetimePurchased =
+          (balance?.lifetimePurchased || 0) + purchase.tokens;
+
+        if (balance) {
+          await storage.updateTokenBalance(
+            userId,
+            newBalance,
+            newLifetimePurchased
+          );
+        } else {
+          await storage.createTokenBalance({
+            userId,
+            balance: newBalance,
+            lifetimePurchased: newLifetimePurchased,
+            lifetimeSpent: 0,
+          });
+        }
+
+        await storage.createTokenTransaction({
+          userId,
+          amount: purchase.tokens,
+          type: "credit",
+          action: "purchase",
+          description: `Purchased ${purchase.tokens} tokens`,
+          packId: purchase.packId,
+          balanceAfter: newBalance,
+          expiresAt: purchase.expiresAt,
+        });
+
+        res.json({ success: true, newBalance, tokensAdded: purchase.tokens });
+      } catch (error: any) {
+        res.status(500).json({ error: error.message });
       }
-      
-      await storage.createTokenTransaction({
-        userId,
-        amount: purchase.tokens,
-        type: "credit",
-        action: "purchase",
-        description: `Purchased ${purchase.tokens} tokens`,
-        packId: purchase.packId,
-        balanceAfter: newBalance,
-        expiresAt: purchase.expiresAt,
-      });
-      
-      res.json({ success: true, newBalance, tokensAdded: purchase.tokens });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
     }
-  });
+  );
 
   // Get purchase history
   app.get("/api/tokens/purchases", requireAuth, async (req, res) => {
@@ -4754,8 +5668,18 @@ Provide the summary as a formal document text.`;
   // Transfer targets
   app.post("/api/transfer-targets", requireTeamRole, async (req, res) => {
     try {
-      const { complianceOrderId, playerId, targetClubName, targetLeague, targetCountry, targetLeagueBand, invitationLetterId, scoutAgentId, proposedTransferFee } = req.body;
-      
+      const {
+        complianceOrderId,
+        playerId,
+        targetClubName,
+        targetLeague,
+        targetCountry,
+        targetLeagueBand,
+        invitationLetterId,
+        scoutAgentId,
+        proposedTransferFee,
+      } = req.body;
+
       const target = await storage.createTransferTarget({
         complianceOrderId,
         playerId,
@@ -4794,14 +5718,21 @@ Provide the summary as a formal document text.`;
   });
 
   // Action logs
-  app.get("/api/action-logs/:entityType/:entityId", requireAuth, async (req, res) => {
-    try {
-      const logs = await storage.getActionLogs(req.params.entityType, req.params.entityId);
-      res.json(logs);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+  app.get(
+    "/api/action-logs/:entityType/:entityId",
+    requireAuth,
+    async (req, res) => {
+      try {
+        const logs = await storage.getActionLogs(
+          req.params.entityType,
+          req.params.entityId
+        );
+        res.json(logs);
+      } catch (error: any) {
+        res.status(500).json({ error: error.message });
+      }
     }
-  });
+  );
 
   // Team Sheets routes
   app.get("/api/team-sheets", requireAuth, async (req, res) => {
@@ -4835,16 +5766,20 @@ Provide the summary as a formal document text.`;
         teamId,
       });
       const sheet = await storage.createTeamSheet(sheetData);
-      
+
       await storage.logAction({
         userId: req.session.userId,
         userRole: req.session.userRole,
         action: "create_team_sheet",
         entityType: "team_sheet",
         entityId: sheet.id,
-        details: { title: sheet.title, matchDate: sheet.matchDate, competition: sheet.competition },
+        details: {
+          title: sheet.title,
+          matchDate: sheet.matchDate,
+          competition: sheet.competition,
+        },
       });
-      
+
       res.json(sheet);
     } catch (error: any) {
       res.status(400).json({ error: error.message });
@@ -4857,7 +5792,10 @@ Provide the summary as a formal document text.`;
       if (!sheet) {
         return res.status(404).json({ error: "Team sheet not found" });
       }
-      const updatedSheet = await storage.updateTeamSheet(req.params.id, req.body);
+      const updatedSheet = await storage.updateTeamSheet(
+        req.params.id,
+        req.body
+      );
       res.json(updatedSheet);
     } catch (error: any) {
       res.status(400).json({ error: error.message });
@@ -4895,16 +5833,22 @@ Provide the summary as a formal document text.`;
       }
 
       const existingPlayers = await storage.getTeamSheetPlayers(req.params.id);
-      const starters = existingPlayers.filter(p => p.role === "starting");
+      const starters = existingPlayers.filter((p) => p.role === "starting");
       const { role } = req.body;
 
       if (role === "starting" && starters.length >= 11) {
-        return res.status(400).json({ error: "Maximum 11 starting players allowed" });
+        return res
+          .status(400)
+          .json({ error: "Maximum 11 starting players allowed" });
       }
 
-      const alreadyAdded = existingPlayers.find(p => p.playerId === req.body.playerId);
+      const alreadyAdded = existingPlayers.find(
+        (p) => p.playerId === req.body.playerId
+      );
       if (alreadyAdded) {
-        return res.status(400).json({ error: "Player already added to this team sheet" });
+        return res
+          .status(400)
+          .json({ error: "Player already added to this team sheet" });
       }
 
       const playerData = insertTeamSheetPlayerSchema.parse({
@@ -4920,7 +5864,10 @@ Provide the summary as a formal document text.`;
 
   app.put("/api/team-sheet-players/:id", requireAuth, async (req, res) => {
     try {
-      const player = await storage.updateTeamSheetPlayer(req.params.id, req.body);
+      const player = await storage.updateTeamSheetPlayer(
+        req.params.id,
+        req.body
+      );
       if (!player) {
         return res.status(404).json({ error: "Team sheet player not found" });
       }
@@ -4951,8 +5898,12 @@ Provide the summary as a formal document text.`;
   });
 
   // ==================== PLATFORM ADMIN PORTAL ROUTES ====================
-  
-  const requireAdminRole = (req: Request, res: Response, next: NextFunction) => {
+
+  const requireAdminRole = (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
     if (!req.session.userId) {
       req.session.userId = "demo-admin";
       req.session.userRole = "admin";
@@ -4967,7 +5918,9 @@ Provide the summary as a formal document text.`;
   app.get("/api/admin/users", requireAdminRole, async (req, res) => {
     try {
       const { role } = req.query;
-      const users = role ? await storage.getUsersByRole(role as string) : await storage.getAllUsers();
+      const users = role
+        ? await storage.getUsersByRole(role as string)
+        : await storage.getAllUsers();
       res.json(users);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -4977,14 +5930,15 @@ Provide the summary as a formal document text.`;
   // Admin: Create user (federation/embassy accounts)
   app.post("/api/admin/users", requireAdminRole, async (req, res) => {
     try {
-      const { username, email, password, firstName, lastName, role, country } = req.body;
-      
+      const { username, email, password, firstName, lastName, role, country } =
+        req.body;
+
       // Check if username already exists
       const existingUser = await storage.getUserByUsername(username);
       if (existingUser) {
         return res.status(400).json({ error: "Username already exists" });
       }
-      
+
       const hashedPwd = hashPassword(password);
       const user = await storage.createUser({
         username,
@@ -4994,14 +5948,14 @@ Provide the summary as a formal document text.`;
         lastName,
         role: role || "embassy",
       });
-      
+
       // Create embassy/federation profile if applicable
       if (role === "embassy" && country) {
         await storage.createEmbassyProfile({
           country,
         });
       }
-      
+
       // Log the action
       await storage.createPlatformAuditLog({
         actorId: req.session.userId!,
@@ -5013,7 +5967,7 @@ Provide the summary as a formal document text.`;
         ipAddress: req.ip,
         userAgent: req.get("User-Agent"),
       });
-      
+
       res.status(201).json(user);
     } catch (error: any) {
       res.status(400).json({ error: error.message });
@@ -5027,7 +5981,7 @@ Provide the summary as a formal document text.`;
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
-      
+
       await storage.createPlatformAuditLog({
         actorId: req.session.userId!,
         action: "update_user",
@@ -5038,7 +5992,7 @@ Provide the summary as a formal document text.`;
         ipAddress: req.ip,
         userAgent: req.get("User-Agent"),
       });
-      
+
       res.json(user);
     } catch (error: any) {
       res.status(400).json({ error: error.message });
@@ -5049,7 +6003,7 @@ Provide the summary as a formal document text.`;
   app.delete("/api/admin/users/:id", requireAdminRole, async (req, res) => {
     try {
       await storage.deleteUser(req.params.id);
-      
+
       await storage.createPlatformAuditLog({
         actorId: req.session.userId!,
         action: "delete_user",
@@ -5060,7 +6014,7 @@ Provide the summary as a formal document text.`;
         ipAddress: req.ip,
         userAgent: req.get("User-Agent"),
       });
-      
+
       res.json({ success: true });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -5068,40 +6022,44 @@ Provide the summary as a formal document text.`;
   });
 
   // Admin: Password reset token generation
-  app.post("/api/admin/users/:id/reset-password", requireAdminRole, async (req, res) => {
-    try {
-      const user = await storage.getUser(req.params.id);
-      if (!user) {
-        return res.status(404).json({ error: "User not found" });
+  app.post(
+    "/api/admin/users/:id/reset-password",
+    requireAdminRole,
+    async (req, res) => {
+      try {
+        const user = await storage.getUser(req.params.id);
+        if (!user) {
+          return res.status(404).json({ error: "User not found" });
+        }
+
+        const token = crypto.randomBytes(32).toString("hex");
+        const expiresAt = new Date();
+        expiresAt.setHours(expiresAt.getHours() + 24); // 24 hour expiry
+
+        const resetToken = await storage.createPasswordResetToken({
+          userId: req.params.id,
+          token,
+          expiresAt,
+        });
+
+        await storage.createPlatformAuditLog({
+          actorId: req.session.userId!,
+          action: "create_password_reset",
+          entityType: "user",
+          entityId: req.params.id,
+          category: "authentication",
+          metadata: { tokenId: resetToken.id },
+          ipAddress: req.ip,
+          userAgent: req.get("User-Agent"),
+        });
+
+        // In production, send email with reset link
+        res.json({ success: true, token, expiresAt });
+      } catch (error: any) {
+        res.status(500).json({ error: error.message });
       }
-      
-      const token = crypto.randomBytes(32).toString("hex");
-      const expiresAt = new Date();
-      expiresAt.setHours(expiresAt.getHours() + 24); // 24 hour expiry
-      
-      const resetToken = await storage.createPasswordResetToken({
-        userId: req.params.id,
-        token,
-        expiresAt,
-      });
-      
-      await storage.createPlatformAuditLog({
-        actorId: req.session.userId!,
-        action: "create_password_reset",
-        entityType: "user",
-        entityId: req.params.id,
-        category: "authentication",
-        metadata: { tokenId: resetToken.id },
-        ipAddress: req.ip,
-        userAgent: req.get("User-Agent"),
-      });
-      
-      // In production, send email with reset link
-      res.json({ success: true, token, expiresAt });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
     }
-  });
+  );
 
   // Admin: Message inbox - get all scout-to-player messages
   app.get("/api/admin/messages", requireAdminRole, async (req, res) => {
@@ -5128,7 +6086,7 @@ Provide the summary as a formal document text.`;
       if (!message) {
         return res.status(404).json({ error: "Message not found" });
       }
-      
+
       await storage.createPlatformAuditLog({
         actorId: req.session.userId!,
         action: "review_message",
@@ -5139,7 +6097,7 @@ Provide the summary as a formal document text.`;
         ipAddress: req.ip,
         userAgent: req.get("User-Agent"),
       });
-      
+
       res.json(message);
     } catch (error: any) {
       res.status(400).json({ error: error.message });
@@ -5184,7 +6142,9 @@ Provide the summary as a formal document text.`;
   app.get("/api/admin/gdpr-requests", requireAdminRole, async (req, res) => {
     try {
       const { status } = req.query;
-      const requests = await storage.getGdprRequests(status as string | undefined);
+      const requests = await storage.getGdprRequests(
+        status as string | undefined
+      );
       res.json(requests);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -5192,78 +6152,86 @@ Provide the summary as a formal document text.`;
   });
 
   // Admin: Update GDPR request
-  app.patch("/api/admin/gdpr-requests/:id", requireAdminRole, async (req, res) => {
-    try {
-      const request = await storage.updateGdprRequest(req.params.id, {
-        ...req.body,
-        processedBy: req.session.userId,
-        processedAt: new Date(),
-      });
-      if (!request) {
-        return res.status(404).json({ error: "GDPR request not found" });
+  app.patch(
+    "/api/admin/gdpr-requests/:id",
+    requireAdminRole,
+    async (req, res) => {
+      try {
+        const request = await storage.updateGdprRequest(req.params.id, {
+          ...req.body,
+          processedBy: req.session.userId,
+          processedAt: new Date(),
+        });
+        if (!request) {
+          return res.status(404).json({ error: "GDPR request not found" });
+        }
+
+        await storage.createPlatformAuditLog({
+          actorId: req.session.userId!,
+          action: `process_gdpr_${req.body.requestType}`,
+          entityType: "gdpr_request",
+          entityId: req.params.id,
+          category: "gdpr",
+          metadata: req.body,
+          ipAddress: req.ip,
+          userAgent: req.get("User-Agent"),
+        });
+
+        res.json(request);
+      } catch (error: any) {
+        res.status(400).json({ error: error.message });
       }
-      
-      await storage.createPlatformAuditLog({
-        actorId: req.session.userId!,
-        action: `process_gdpr_${req.body.requestType}`,
-        entityType: "gdpr_request",
-        entityId: req.params.id,
-        category: "gdpr",
-        metadata: req.body,
-        ipAddress: req.ip,
-        userAgent: req.get("User-Agent"),
-      });
-      
-      res.json(request);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
     }
-  });
+  );
 
   // Admin: Execute GDPR data export
-  app.post("/api/admin/gdpr-requests/:id/export", requireAdminRole, async (req, res) => {
-    try {
-      const request = await storage.getGdprRequest(req.params.id);
-      if (!request) {
-        return res.status(404).json({ error: "GDPR request not found" });
+  app.post(
+    "/api/admin/gdpr-requests/:id/export",
+    requireAdminRole,
+    async (req, res) => {
+      try {
+        const request = await storage.getGdprRequest(req.params.id);
+        if (!request) {
+          return res.status(404).json({ error: "GDPR request not found" });
+        }
+
+        // Get all user data
+        const user = await storage.getUser(request.userId);
+        const teams = user ? await storage.getTeamsByUser(user.id) : [];
+        const consents = await storage.getUserConsents(request.userId);
+
+        const exportData = {
+          user,
+          teams,
+          consents,
+          exportedAt: new Date().toISOString(),
+          requestId: req.params.id,
+        };
+
+        await storage.updateGdprRequest(req.params.id, {
+          status: "completed",
+          processedBy: req.session.userId,
+          processedAt: new Date(),
+          completionNotes: JSON.stringify(exportData),
+        });
+
+        await storage.createPlatformAuditLog({
+          actorId: req.session.userId!,
+          action: "export_user_data",
+          entityType: "gdpr_request",
+          entityId: req.params.id,
+          category: "gdpr",
+          metadata: { userId: request.userId },
+          ipAddress: req.ip,
+          userAgent: req.get("User-Agent"),
+        });
+
+        res.json(exportData);
+      } catch (error: any) {
+        res.status(500).json({ error: error.message });
       }
-      
-      // Get all user data
-      const user = await storage.getUser(request.userId);
-      const teams = user ? await storage.getTeamsByUser(user.id) : [];
-      const consents = await storage.getUserConsents(request.userId);
-      
-      const exportData = {
-        user,
-        teams,
-        consents,
-        exportedAt: new Date().toISOString(),
-        requestId: req.params.id,
-      };
-      
-      await storage.updateGdprRequest(req.params.id, {
-        status: "completed",
-        processedBy: req.session.userId,
-        processedAt: new Date(),
-        completionNotes: JSON.stringify(exportData),
-      });
-      
-      await storage.createPlatformAuditLog({
-        actorId: req.session.userId!,
-        action: "export_user_data",
-        entityType: "gdpr_request",
-        entityId: req.params.id,
-        category: "gdpr",
-        metadata: { userId: request.userId },
-        ipAddress: req.ip,
-        userAgent: req.get("User-Agent"),
-      });
-      
-      res.json(exportData);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
     }
-  });
+  );
 
   // Admin: User consents
   app.get("/api/admin/consents/:userId", requireAdminRole, async (req, res) => {
@@ -5304,7 +6272,7 @@ Provide the summary as a formal document text.`;
   app.delete("/api/admin/sessions/:id", requireAdminRole, async (req, res) => {
     try {
       await storage.endUserSession(req.params.id);
-      
+
       await storage.createPlatformAuditLog({
         actorId: req.session.userId!,
         action: "terminate_session",
@@ -5315,7 +6283,7 @@ Provide the summary as a formal document text.`;
         ipAddress: req.ip,
         userAgent: req.get("User-Agent"),
       });
-      
+
       res.json({ success: true });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -5328,9 +6296,13 @@ Provide the summary as a formal document text.`;
       const { federationId, limit } = req.query;
       let payments;
       if (federationId) {
-        payments = await storage.getFederationPaymentHistory(federationId as string);
+        payments = await storage.getFederationPaymentHistory(
+          federationId as string
+        );
       } else {
-        payments = await storage.getAllFederationPayments(limit ? parseInt(limit as string) : undefined);
+        payments = await storage.getAllFederationPayments(
+          limit ? parseInt(limit as string) : undefined
+        );
       }
       res.json(payments);
     } catch (error: any) {
@@ -5365,7 +6337,13 @@ Provide the summary as a formal document text.`;
       const allFees = [];
       for (const fed of federations) {
         const fees = await storage.getFederationFeeSchedules(fed.id);
-        allFees.push(...fees.map(f => ({ ...f, federationName: fed.name, federationCountry: fed.country })));
+        allFees.push(
+          ...fees.map((f) => ({
+            ...f,
+            federationName: fed.name,
+            federationCountry: fed.country,
+          }))
+        );
       }
       res.json(allFees);
     } catch (error: any) {
@@ -5376,7 +6354,9 @@ Provide the summary as a formal document text.`;
   return httpServer;
 }
 
-function getCompetitionsByCountry(country?: string): { name: string; type: string }[] {
+function getCompetitionsByCountry(
+  country?: string
+): { name: string; type: string }[] {
   const internationalCompetitions = [
     { name: "FIFA World Cup", type: "international" },
     { name: "FIFA World Cup Qualifiers", type: "international" },
@@ -5470,5 +6450,9 @@ function getCompetitionsByCountry(country?: string): { name: string; type: strin
   const countryLower = country?.toLowerCase() || "";
   const countryCompetitions = leaguesByCountry[countryLower] || [];
 
-  return [...countryCompetitions, ...continentalCompetitions, ...internationalCompetitions];
+  return [
+    ...countryCompetitions,
+    ...continentalCompetitions,
+    ...internationalCompetitions,
+  ];
 }

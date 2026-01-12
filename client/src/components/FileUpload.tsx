@@ -3,7 +3,8 @@ import React, { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+// import { supabase } from '@/integrations/supabase/client'; // Removed
+import { fileUploadService } from '@/services/fileUploadService';
 import { Upload, X, File, Image } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -48,21 +49,16 @@ export const FileUpload: React.FC<FileUploadProps> = ({ onFileUploaded, disabled
         });
       }, 200);
 
-      const { data, error } = await supabase.storage
-        .from('message-attachments')
-        .upload(fileName, file);
+      // 1. Upload file using service
+      const objectPath = await fileUploadService.uploadFile(file);
 
+      // 2. Clear interval and set progress
       clearInterval(progressInterval);
       setUploadProgress(100);
 
-      if (error) throw error;
+      // 3. Return object path as the URL
+      onFileUploaded(objectPath, file.name, file.size, file.type);
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('message-attachments')
-        .getPublicUrl(fileName);
-
-      onFileUploaded(publicUrl, file.name, file.size, file.type);
-      
       toast({
         title: "File uploaded",
         description: "Your file has been uploaded successfully",
@@ -93,7 +89,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({ onFileUploaded, disabled
         accept="image/*,.pdf,.doc,.docx,.txt"
         disabled={disabled || uploading || !user}
       />
-      
+
       <Button
         type="button"
         variant="outline"

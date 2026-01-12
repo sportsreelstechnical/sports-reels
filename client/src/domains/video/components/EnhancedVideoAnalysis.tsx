@@ -18,6 +18,7 @@ import {
   Crosshair, Navigation, Compass, Map, Layers, Grid, Layout as LayoutIcon
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { ComprehensiveAIAnalysisService } from '@/domains/video/services/comprehensiveAIAnalysisService';
 import { VideoFrameExtractor } from '@/utils/videoFrameExtractor';
@@ -59,9 +60,11 @@ const VideoAnalysisResults = () => {
   const [enhancedAnalysisData, setEnhancedAnalysisData] = useState<any>(null);
   const [activeSubTab, setActiveSubTab] = useState<string>('overview');
 
+  const { profile } = useAuth();
+
   useEffect(() => {
     fetchCurrentTeam();
-  }, []);
+  }, [profile?.id]);
 
   useEffect(() => {
     if (videoTitle && currentTeamId) {
@@ -71,16 +74,7 @@ const VideoAnalysisResults = () => {
 
   const fetchCurrentTeam = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('user_id', user.id)
-        .single();
-
-      if (!profile) return;
+      if (!profile?.id) return;
 
       const { data: teamData } = await supabase
         .from('teams')
