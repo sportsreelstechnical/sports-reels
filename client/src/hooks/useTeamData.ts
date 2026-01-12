@@ -1,7 +1,5 @@
-
-import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+import { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface TeamData {
   id: string;
@@ -26,70 +24,53 @@ interface UseTeamDataReturn {
 }
 
 export const useTeamData = (): UseTeamDataReturn => {
-  const { profile } = useAuth();
+  const { team, loading: authLoading, refreshUser } = useAuth();
   const [teamData, setTeamData] = useState<TeamData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchTeamData = async () => {
-    if (!profile?.id || profile.user_type !== 'team') {
-      setLoading(false);
+  useEffect(() => {
+    if (authLoading) {
       return;
     }
 
-    try {
-      setLoading(true);
-      setError(null);
-
-      const { data, error: fetchError } = await supabase
-        .from('teams')
-        .select(`
-          id,
-          team_name,
-          sport_type,
-          country,
-          league,
-          logo_url,
-          member_association,
-          year_founded,
-          description,
-          titles,
-          subscription_tier,
-          verified
-        `)
-        .eq('profile_id', profile.id)
-        .single();
-
-      if (fetchError) {
-        if (fetchError.code === 'PGRST116') {
-          // No team found - this is expected for new users
-          setTeamData(null);
-        } else {
-          throw fetchError;
-        }
-      } else {
-        setTeamData(data);
-      }
-    } catch (err) {
-      console.error('Error fetching team data:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch team data');
-    } finally {
-      setLoading(false);
+    if (team) {
+      setTeamData({
+        id: team.id,
+        team_name: team.name,
+        sport_type: team.sportType || "football",
+        country: team.country || "",
+        league: team.leagueBand ? `Band ${team.leagueBand}` : "", // Map leagueBand to string
+        logo_url: team.logoUrl || undefined,
+        member_association: "",
+        year_founded: team.yearFounded || undefined,
+        description: team.description || undefined,
+        titles: team.titles || [],
+        subscription_tier: team.subscriptionTier || "Standard",
+        verified: team.verified || false,
+      });
+    } else {
+      setTeamData(null);
     }
-  };
-
-  useEffect(() => {
-    fetchTeamData();
-  }, [profile]);
+    setLoading(false);
+  }, [team, authLoading]);
 
   const refetchTeam = async () => {
-    await fetchTeamData();
+    try {
+      setLoading(true);
+      await refreshUser();
+    } catch (err) {
+      console.error("Failed to refresh team data", err);
+      setError("Failed to refresh team data");
+    } finally {
+      // Loading state will be updated by useEffect when authLoading changes or completes
+    }
   };
 
   return {
     teamData,
-    loading,
+    loading: loading || authLoading,
     error,
-    refetchTeam
+    refetchTeam,
   };
 };

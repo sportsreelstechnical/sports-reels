@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { api } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
+import type { Team } from '@shared/schema';
 
 // Define types that match the Server's response
 export interface User {
@@ -29,6 +30,7 @@ export interface Profile {
 interface AuthContextType {
   user: User | null;
   profile: Profile | null;
+  team: Team | null;
   loading: boolean;
   isAdmin: boolean;
   signUp: (email: string, password: string, userData: any) => Promise<{ error: any }>;
@@ -37,12 +39,14 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   updateProfile: (updates: Partial<Profile>) => Promise<{ error: any }>;
   checkAdminRole: () => Promise<boolean>;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [team, setTeam] = useState<Team | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -52,6 +56,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       const data = await api.get('/api/auth/me');
       setUser(data.user);
+      setTeam(data.team || null);
 
       // Map server user to "Profile" shape for compatibility
       if (data.user) {
@@ -71,6 +76,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       // Not authenticated
       setUser(null);
       setProfile(null);
+      setTeam(null);
       setIsAdmin(false);
     } finally {
       setLoading(false);
@@ -99,6 +105,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const data = await api.post('/api/auth/signup', payload);
 
       setUser(data.user);
+      setTeam(data.team || null);
       // Profile mapping would happen here or via fetchUser
       await fetchUser(); // Refresh state
 
@@ -116,21 +123,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const signIn = async (email: string, password: string) => {
     try {
-      // Server expects username, but we allow email login in UI?
-      // Check server/routes.ts: gets user by username. 
-      // We might need to send email as username if they registered with email as username?
-      // Or server needs to support email login.
-      // For now assume username = email or username is provided.
-      // Wait, the UI asks for email? 
-      // AuthForm.tsx doesn't show the form fields (it's likely hidden in "Create Account" or "Sign In" components not fully shown in previous view).
-      // Assuming email is used as username for now.
-
       const data = await api.post('/api/auth/login', { username: email, password });
       setUser(data.user);
+      setTeam(data.team || null);
       await fetchUser();
 
       console.log('Sign in successful, redirecting to dashboard');
-      // window.location.href = '/dashboard'; // Let the component handle redirect or use router
 
       return { error: null };
     } catch (error: any) {
@@ -158,6 +156,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       await api.post('/api/auth/logout');
       setUser(null);
       setProfile(null);
+      setTeam(null);
       setIsAdmin(false);
       window.location.href = '/auth';
     } catch (error: any) {
@@ -182,6 +181,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const value = {
     user,
     profile,
+    team,
     loading,
     isAdmin,
     signUp,
@@ -189,7 +189,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     signInWithGoogle,
     signOut,
     updateProfile,
-    checkAdminRole
+    checkAdminRole,
+    refreshUser: fetchUser
   };
 
   return (
