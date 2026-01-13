@@ -1,15 +1,48 @@
-// Re-export all repositories for easy import
-export { usersRepository } from "./users";
-export { teamsRepository } from "./teams";
-export { playersRepository } from "./players";
-export { videosRepository } from "./videos";
-export { documentsRepository } from "./documents";
-export { transfersRepository } from "./transfers";
-export { messagingRepository } from "./messaging";
-export { complianceRepository } from "./compliance";
-export { scoutingRepository } from "./scouting";
-export { tokensRepository } from "./tokens";
-export { adminRepository } from "./admin";
-export { embassyRepository } from "./embassy";
-export { federationRepository } from "./federation";
-export { miscRepository } from "./misc";
+import { usersRepository } from "./users";
+import { teamsRepository } from "./teams";
+import { playersRepository } from "./players";
+import { videosRepository } from "./videos";
+import { documentsRepository } from "./documents";
+import { transfersRepository } from "./transfers";
+import { messagingRepository } from "./messaging";
+import { complianceRepository } from "./compliance";
+import { scoutingRepository } from "./scouting";
+import { tokensRepository } from "./tokens";
+import { adminRepository } from "./admin";
+import { embassyRepository } from "./embassy";
+import { federationRepository } from "./federation";
+import { miscRepository } from "./misc";
+
+export const storage = {
+  ...usersRepository,
+  ...teamsRepository,
+  ...playersRepository,
+  ...videosRepository,
+  ...documentsRepository,
+  ...transfersRepository,
+  ...messagingRepository,
+  ...complianceRepository,
+  ...scoutingRepository,
+  ...tokensRepository,
+  ...adminRepository,
+  ...embassyRepository,
+  ...federationRepository,
+  ...miscRepository,
+};
+
+export {
+  usersRepository,
+  teamsRepository,
+  playersRepository,
+  videosRepository,
+  documentsRepository,
+  transfersRepository,
+  messagingRepository,
+  complianceRepository,
+  scoutingRepository,
+  tokensRepository,
+  adminRepository,
+  embassyRepository,
+  federationRepository,
+  miscRepository,
+};

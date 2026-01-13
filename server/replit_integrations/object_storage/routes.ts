@@ -1,4 +1,6 @@
 import type { Express } from "express";
+import fs from "fs";
+import path from "path";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 
 /**
@@ -28,12 +30,9 @@ export function registerObjectStorageRoutes(app: Express): void {
    *
    * Response:
    * {
-   *   "uploadURL": "https://storage.googleapis.com/...",
+   *   "uploadURL": "/api/uploads/uuid",
    *   "objectPath": "/objects/uploads/uuid"
    * }
-   *
-   * IMPORTANT: The client should NOT send the file to this endpoint.
-   * Send JSON metadata only, then upload the file directly to uploadURL.
    */
   app.post("/api/uploads/request-url", async (req, res) => {
     try {
@@ -47,8 +46,9 @@ export function registerObjectStorageRoutes(app: Express): void {
 
       const uploadURL = await objectStorageService.getObjectEntityUploadURL();
 
-      // Extract object path from the presigned URL for later reference
-      const objectPath = objectStorageService.normalizeObjectEntityPath(uploadURL);
+      // Extract object path from the URL
+      // For local storage, uploadURL IS the path we want to use, but let's normalize it
+      const objectPath = `/objects/uploads/${uploadURL.split("/").pop()}`;
 
       res.json({
         uploadURL,
@@ -63,16 +63,56 @@ export function registerObjectStorageRoutes(app: Express): void {
   });
 
   /**
+   * Handle actual file upload (PUT) for local storage.
+   * This mimics the GCS signed URL behavior but works locally.
+   */
+  app.put("/api/uploads/:id", async (req, res) => {
+    try {
+      const objectId = req.params.id;
+      // removing leading slash if present in uploadURL logic,
+      // but here we construct path manually to match objectStorage logic
+      // We need to save to storage_data/objectId (or filename)
+
+      // objectStorage.ts uses simple logic: storage_data/filename
+      // So let's save it as that ID.
+
+      // We need to import fs and path here or delegate to service.
+      // Let's delegate to service if possible, or just do it here since it's simple local logic.
+      const STORAGE_DIR = path.join(process.cwd(), "storage_data");
+
+      if (!fs.existsSync(STORAGE_DIR)) {
+        fs.mkdirSync(STORAGE_DIR, { recursive: true });
+      }
+
+      const filePath = path.join(STORAGE_DIR, objectId);
+      const writeStream = fs.createWriteStream(filePath);
+
+      req.pipe(writeStream);
+
+      writeStream.on("finish", () => {
+        res.status(200).json({ success: true, id: objectId });
+      });
+
+      writeStream.on("error", (err: unknown) => {
+        console.error("Upload error:", err);
+        res.status(500).json({ error: "Upload failed" });
+      });
+    } catch (error) {
+      console.error("Upload error:", error);
+      res.status(500).json({ error: "Upload failed" });
+    }
+  });
+
+  /**
    * Serve uploaded objects.
    *
    * GET /objects/:objectPath(*)
-   *
-   * This serves files from object storage. For public files, no auth needed.
-   * For protected files, add authentication middleware and ACL checks.
    */
   app.get("/objects/:objectPath(*)", async (req, res) => {
     try {
-      const objectFile = await objectStorageService.getObjectEntityFile(req.path);
+      const objectFile = await objectStorageService.getObjectEntityFile(
+        req.path
+      );
       await objectStorageService.downloadObject(objectFile, res);
     } catch (error) {
       console.error("Error serving object:", error);
@@ -83,4 +123,3 @@ export function registerObjectStorageRoutes(app: Express): void {
     }
   });
 }
-
