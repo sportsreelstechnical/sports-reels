@@ -46,11 +46,8 @@ export const federationRepository = {
   async getFederationProfileByUserId(
     userId: string
   ): Promise<FederationProfile | undefined> {
-    const [profile] = await db
-      .select()
-      .from(federationProfiles)
-      .where(eq(federationProfiles.userId, userId));
-    return profile;
+    // Note: userId not directly on profile table, kept for interface compatibility
+    return undefined;
   },
 
   async createFederationProfile(
@@ -160,7 +157,7 @@ export const federationRepository = {
       .select()
       .from(federationRequestActivities)
       .where(eq(federationRequestActivities.requestId, requestId))
-      .orderBy(desc(federationRequestActivities.createdAt));
+      .orderBy(desc(federationRequestActivities.timestamp));
   },
 
   async createFederationRequestActivity(

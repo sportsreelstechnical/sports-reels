@@ -87,7 +87,7 @@ export const playersRepository = {
       .select()
       .from(playerPhotos)
       .where(eq(playerPhotos.playerId, playerId))
-      .orderBy(desc(playerPhotos.createdAt));
+      .orderBy(desc(playerPhotos.uploadedAt));
   },
 
   async createPlayerPhoto(photo: InsertPlayerPhoto): Promise<PlayerPhoto> {
@@ -138,7 +138,7 @@ export const playersRepository = {
       .select()
       .from(playerInternationalRecords)
       .where(eq(playerInternationalRecords.playerId, playerId))
-      .orderBy(desc(playerInternationalRecords.matchDate));
+      .orderBy(desc(playerInternationalRecords.createdAt));
   },
 
   async getPlayerInternationalRecord(

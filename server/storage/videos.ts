@@ -145,6 +145,6 @@ export const videosRepository = {
     return db
       .select()
       .from(sharedVideos)
-      .where(eq(sharedVideos.sharedWithId, userId));
+      .where(eq(sharedVideos.sharedWithUserId, userId));
   },
 };

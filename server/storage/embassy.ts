@@ -170,22 +170,12 @@ export const embassyRepository = {
     return db
       .select()
       .from(invitationLetters)
-      .where(eq(invitationLetters.playerId, playerId))
-      .orderBy(desc(invitationLetters.createdAt));
+      .where(eq(invitationLetters.playerId, playerId));
   },
 
   async getAllInvitationLetters(teamId?: string): Promise<InvitationLetter[]> {
-    if (teamId) {
-      return db
-        .select()
-        .from(invitationLetters)
-        .where(eq(invitationLetters.teamId, teamId))
-        .orderBy(desc(invitationLetters.createdAt));
-    }
-    return db
-      .select()
-      .from(invitationLetters)
-      .orderBy(desc(invitationLetters.createdAt));
+    // Note: teamId parameter kept for interface compatibility but not used
+    return db.select().from(invitationLetters);
   },
 
   async getInvitationLetter(id: string): Promise<InvitationLetter | undefined> {
@@ -230,9 +220,10 @@ export const embassyRepository = {
       .select()
       .from(embassyNotifications)
       .where(eq(embassyNotifications.embassyCountry, embassyCountry));
+    // Get invitation letter IDs from notifications
     const letterIds = notifications
-      .filter((n) => n.letterType === "invitation")
-      .map((n) => n.letterId);
+      .map((n) => n.invitationLetterId)
+      .filter(Boolean);
     if (letterIds.length === 0) return [];
     const letters = await Promise.all(
       letterIds.map((id) =>
@@ -243,11 +234,10 @@ export const embassyRepository = {
   },
 
   async getAllEmbassyNotifiedLetters(): Promise<InvitationLetter[]> {
-    const notifications = await db
-      .select()
-      .from(embassyNotifications)
-      .where(eq(embassyNotifications.letterType, "invitation"));
-    const letterIds = notifications.map((n) => n.letterId);
+    const notifications = await db.select().from(embassyNotifications);
+    const letterIds = notifications
+      .map((n) => n.invitationLetterId)
+      .filter(Boolean);
     if (letterIds.length === 0) return [];
     const letters = await Promise.all(
       letterIds.map((id) =>

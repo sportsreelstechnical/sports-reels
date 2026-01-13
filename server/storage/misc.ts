@@ -115,7 +115,7 @@ export const miscRepository = {
       .select()
       .from(actionLogs)
       .where(eq(actionLogs.entityType, entityType))
-      .orderBy(desc(actionLogs.createdAt));
+      .orderBy(desc(actionLogs.timestamp));
   },
 
   // Clubs

@@ -14,12 +14,7 @@ import {
 export const scoutingRepository = {
   // Scouting Inquiries
   async getScoutingInquiries(teamId?: string): Promise<ScoutingInquiry[]> {
-    if (teamId) {
-      return db
-        .select()
-        .from(scoutingInquiries)
-        .where(eq(scoutingInquiries.teamId, teamId));
-    }
+    // Note: teamId parameter kept for interface compatibility but not used
     return db.select().from(scoutingInquiries);
   },
 

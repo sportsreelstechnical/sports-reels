@@ -74,8 +74,7 @@ export const transfersRepository = {
     return db
       .select()
       .from(transferReports)
-      .where(eq(transferReports.teamId, teamId))
-      .orderBy(desc(transferReports.createdAt));
+      .where(eq(transferReports.teamId, teamId));
   },
 
   async getTransferReport(id: string): Promise<TransferReport | undefined> {
@@ -92,15 +91,11 @@ export const transfersRepository = {
     return db
       .select()
       .from(transferReports)
-      .where(eq(transferReports.playerId, playerId))
-      .orderBy(desc(transferReports.createdAt));
+      .where(eq(transferReports.playerId, playerId));
   },
 
   async getAllTransferReports(): Promise<TransferReport[]> {
-    return db
-      .select()
-      .from(transferReports)
-      .orderBy(desc(transferReports.createdAt));
+    return db.select().from(transferReports);
   },
 
   async createTransferReport(
