@@ -66,6 +66,16 @@ export async function registerRoutes(
   registerObjectStorageRoutes(app);
   const objectStorageService = new ObjectStorageService();
 
+  // Register modular routes
+  registerAuthRoutes(app);
+  registerPlayerRoutes(app);
+  registerVideoRoutes(app);
+  registerMessagingRoutes(app);
+  registerDashboardRoutes(app);
+  registerEligibilityRoutes(app);
+  registerComplianceRoutes(app);
+  registerScoutingRoutes(app);
+
   // Object storage upload URL endpoint
   app.get("/api/object-storage/upload-url", requireAuth, async (req, res) => {
     try {
