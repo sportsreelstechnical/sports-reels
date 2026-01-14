@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { api } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
@@ -53,27 +54,30 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [isAdmin, setIsAdmin] = useState(false);
   const { toast } = useToast();
 
+  // Helper to map user data to profile
+  const handleUserResponse = (data: { user: User; team?: Team }) => {
+    setUser(data.user);
+    setTeam(data.team || null);
+
+    if (data.user) {
+      const mappedProfile: Profile = {
+        id: data.user.id, // Using user ID as profile ID for now
+        user_id: data.user.id,
+        full_name: `${data.user.firstName || ''} ${data.user.lastName || ''}`.trim() || data.user.username,
+        email: data.user.email,
+        user_type: data.user.role === 'agent' || data.user.role === 'scout' ? 'agent' : 'team', // Simple mapping
+        role: data.user.role,
+        profile_completed: !!(data.user.firstName || data.user.lastName)
+      };
+      setProfile(mappedProfile);
+      setIsAdmin(data.user.role === 'admin');
+    }
+  };
+
   const fetchUser = async () => {
     try {
       const data = await api.get('/api/auth/me');
-      setUser(data.user);
-      setTeam(data.team || null);
-
-      // Map server user to "Profile" shape for compatibility
-      if (data.user) {
-        const mappedProfile: Profile = {
-          id: data.user.id, // Using user ID as profile ID for now
-          user_id: data.user.id,
-          full_name: `${data.user.firstName || ''} ${data.user.lastName || ''}`.trim() || data.user.username,
-          email: data.user.email,
-          user_type: data.user.role === 'agent' || data.user.role === 'scout' ? 'agent' : 'team', // Simple mapping
-          role: data.user.role,
-          profile_completed: !!(data.user.firstName || data.user.lastName)
-        };
-        setProfile(mappedProfile);
-        setIsAdmin(data.user.role === 'admin');
-      }
-
+      handleUserResponse(data);
     } catch (error) {
       // Not authenticated
       setUser(null);
@@ -105,11 +109,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       else if (userData.user_type === 'team') payload.role = 'sporting_director'; // Default team role
 
       const data = await api.post('/api/auth/signup', payload);
-
-      setUser(data.user);
-      setTeam(data.team || null);
-      // Profile mapping would happen here or via fetchUser
-      await fetchUser(); // Refresh state
+      handleUserResponse(data);
 
       return { error: null };
     } catch (error) {
@@ -126,9 +126,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const signIn = async (email: string, password: string) => {
     try {
       const data = await api.post('/api/auth/login', { username: email, password });
-      setUser(data.user);
-      setTeam(data.team || null);
-      await fetchUser();
+      handleUserResponse(data);
 
       console.log('Sign in successful, redirecting to dashboard');
 

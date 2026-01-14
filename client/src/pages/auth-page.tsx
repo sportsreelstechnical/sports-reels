@@ -40,7 +40,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 
 const loginSchema = z.object({
-    username: z.string().min(1, "Username is required"),
+    username: z.string().min(1, "Username is requirede"),
     password: z.string().min(1, "Password is required"),
 });
 
@@ -69,7 +69,7 @@ export default function AuthPage() {
     const isPlatformAdmin = selectedRole === "admin";
 
     // Check if user is already logged in
-    const { user, loading } = useAuth();
+    const { user, loading, signIn, signUp } = useAuth();
 
     useEffect(() => {
         if (!loading && user) {
@@ -112,16 +112,17 @@ export default function AuthPage() {
 
     const loginMutation = useMutation({
         mutationFn: async (data: z.infer<typeof loginSchema>) => {
-            const res = await apiRequest("POST", "/api/auth/login", data);
-            return await res.json();
+            const result = await signIn(data.username, data.password);
+            if (result.error) {
+                throw result.error;
+            }
+            return result;
         },
-        onSuccess: (data) => {
+        onSuccess: () => {
             toast({
                 title: "Welcome back!",
                 description: "You have successfully logged in.",
             });
-            // Invalidate queries or set user state
-            queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
             navigate("/dashboard");
         },
         onError: (error: Error) => {
@@ -135,15 +136,18 @@ export default function AuthPage() {
 
     const signupMutation = useMutation({
         mutationFn: async (data: z.infer<typeof signupSchema>) => {
-            const res = await apiRequest("POST", "/api/auth/signup", data);
-            return await res.json();
+            const { email, password, ...rest } = data;
+            const result = await signUp(email, password, { ...rest });
+            if (result.error) {
+                throw result.error;
+            }
+            return result;
         },
         onSuccess: () => {
             toast({
                 title: "Account created!",
                 description: "You have successfully signed up.",
             });
-            queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
             navigate("/dashboard");
         },
         onError: (error: Error) => {
