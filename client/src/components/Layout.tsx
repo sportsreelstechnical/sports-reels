@@ -11,8 +11,8 @@ import { useEnhancedNotifications } from '@/hooks/useEnhancedNotifications';
 import { useNavigate } from 'react-router-dom';
 import GoogleLanguageSelector from '@/components/GoogleLanguageSelector';
 import TranslatedText from '@/components/TranslatedText';
-import ThemeToggle from '@/dashboard/components/ThemeToggle';
-import TokenBalanceIndicator from '@/dashboard/components/TokenBalanceIndicator';
+import ThemeToggle from '@/components/ThemeToggle';
+import TokenBalanceIndicator from '@/components/TokenBalanceIndicator';
 
 interface LayoutProps {
   children: React.ReactNode;
