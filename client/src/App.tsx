@@ -11,38 +11,36 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 
 // Public Pages
 import LandingPage from "./pages/LandingPage";
-// import AuthPage from "@/dashboard/pages/auth-page"; 
-// The AuthPage was in dashboard, but we can import it.
-import AuthPage from "@/dashboard/pages/auth-page";
+import AuthPage from "./pages/auth-page";
 
 // Dashboard Pages
-import Dashboard from "@/dashboard/pages/dashboard";
-import ScoutDashboard from "@/dashboard/pages/scout-dashboard";
-import EmbassyDashboard from "@/dashboard/pages/embassy-dashboard";
-import AdminDashboard from "@/dashboard/pages/admin-dashboard";
-import FederationAdminPage from "@/dashboard/pages/federation-admin";
+import Dashboard from "./pages/dashboard";
+import ScoutDashboard from "./pages/scout-dashboard";
+import EmbassyDashboard from "./pages/embassy-dashboard";
+import AdminDashboard from "./pages/admin-dashboard";
+import FederationAdminPage from "./pages/federation-admin";
 
-import Players from "@/dashboard/pages/players";
-import PlayerProfile from "@/dashboard/pages/player-profile";
-import Videos from "@/dashboard/pages/videos";
-import VideoReels from "@/dashboard/pages/video-reels";
-import Reports from "@/dashboard/pages/reports";
-import Scouting from "@/dashboard/pages/scouting";
-import Embassy from "@/dashboard/pages/embassy";
-import Access from "@/dashboard/pages/access";
-import MessagesPage from "@/dashboard/pages/messages";
-import SettingsPage from "@/dashboard/pages/settings";
-import InvitationLettersPage from "@/dashboard/pages/invitation-letters";
-import TeamSheets from "@/dashboard/pages/team-sheets";
-import FederationLettersPage from "@/dashboard/pages/federation-letters";
-import TokenBank from "@/dashboard/pages/token-bank";
-import AdminUsers from "@/dashboard/pages/admin-users";
-import AdminMessages from "@/dashboard/pages/admin-messages";
-import AdminPayments from "@/dashboard/pages/admin-payments";
-import AdminAuditLogs from "@/dashboard/pages/admin-audit-logs";
-import AdminGdpr from "@/dashboard/pages/admin-gdpr";
-import EmbassyDocumentView from "@/dashboard/pages/embassy-document-view";
-import NotFound from "@/dashboard/pages/not-found";
+import Players from "./pages/players";
+import PlayerProfile from "./pages/player-profile";
+import Videos from "./pages/videos";
+import VideoReels from "./pages/video-reels";
+import Reports from "./pages/reports";
+import Scouting from "./pages/scouting";
+import Embassy from "./pages/embassy";
+import Access from "./pages/access";
+import MessagesPage from "./pages/messages";
+import SettingsPage from "./pages/settings";
+import InvitationLettersPage from "./pages/invitation-letters";
+import TeamSheets from "./pages/team-sheets";
+import FederationLettersPage from "./pages/federation-letters";
+import TokenBank from "./pages/token-bank";
+import AdminUsers from "./pages/admin-users";
+import AdminMessages from "./pages/admin-messages";
+import AdminPayments from "./pages/admin-payments";
+import AdminAuditLogs from "./pages/admin-audit-logs";
+import AdminGdpr from "./pages/admin-gdpr";
+import EmbassyDocumentView from "./pages/embassy-document-view";
+import NotFound from "./pages/not-found";
 
 // Dev/Legacy Pages (Optional to keep)
 import TranslationDemo from "./components/TranslationDemo";
