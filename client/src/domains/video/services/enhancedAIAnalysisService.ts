@@ -1,6 +1,9 @@
 import { supabase } from "@/integrations/supabase/client";
-import { analyzeVideoWithGemini } from "./geminiService";
-import { r2VideoRetrievalService } from "./r2VideoRetrievalService";
+import {
+  analyzeVideoWithGemini,
+  VideoAnalysisResult,
+  VideoAnalysisParams,
+} from "./geminiService";
 
 export interface EnhancedAnalysisResult {
   overview: string;
@@ -59,17 +62,25 @@ export interface EnhancedAnalysisResult {
   }>;
 }
 
+export interface VideoMetadata {
+  title: string;
+  description?: string;
+  videoType: "match" | "training" | "interview" | "highlight";
+  duration: number;
+  playerTags: string[];
+  matchDetails?: VideoAnalysisParams["matchDetails"];
+}
+
+interface TeamData {
+  id: string;
+  team_name: string;
+  profile_id: string;
+}
+
 export class EnhancedAIAnalysisService {
   async analyzeVideo(
     videoId: string,
-    videoMetadata: {
-      title: string;
-      description?: string;
-      videoType: "match" | "training" | "interview" | "highlight";
-      duration: number;
-      playerTags: string[];
-      matchDetails?: any;
-    },
+    videoMetadata: VideoMetadata,
     userId: string,
     onProgress?: (progress: number, status: string) => void
   ): Promise<EnhancedAnalysisResult> {
@@ -117,10 +128,14 @@ export class EnhancedAIAnalysisService {
       }
 
       // Check if user has permission through team ownership
+      // Supabase returns an array or single object depending on relationship, but here it's likely an array or object.
+      // Assuming teams is an array based on previous code usage
+      const teams = videoData.teams as unknown as TeamData[];
+
       const hasPermission =
-        videoData.teams &&
-        videoData.teams.length > 0 &&
-        videoData.teams.some((team: any) => team.profile_id === userProfile.id);
+        teams &&
+        Array.isArray(teams) &&
+        teams.some((team) => team.profile_id === userProfile.id);
 
       if (!hasPermission) {
         throw new Error("You do not have permission to analyze this video");
@@ -162,8 +177,8 @@ export class EnhancedAIAnalysisService {
   }
 
   private async generateEnhancedAnalysis(
-    metadata: any,
-    aiResult: any,
+    metadata: VideoMetadata,
+    aiResult: VideoAnalysisResult,
     onProgress?: (progress: number, status: string) => void
   ): Promise<EnhancedAnalysisResult> {
     onProgress?.(50, "Generating enhanced insights...");
@@ -186,7 +201,10 @@ export class EnhancedAIAnalysisService {
     return result;
   }
 
-  private generateOverview(metadata: any, aiResult: any): string {
+  private generateOverview(
+    metadata: VideoMetadata,
+    aiResult: VideoAnalysisResult
+  ): string {
     const { videoType, title } = metadata;
 
     switch (videoType) {
@@ -208,8 +226,8 @@ export class EnhancedAIAnalysisService {
   }
 
   private generateKeyEvents(
-    metadata: any,
-    aiResult: any
+    metadata: VideoMetadata,
+    aiResult: VideoAnalysisResult
   ): EnhancedAnalysisResult["keyEvents"] {
     const events: EnhancedAnalysisResult["keyEvents"] = [];
     const duration = metadata.duration;
@@ -325,7 +343,10 @@ export class EnhancedAIAnalysisService {
     );
   }
 
-  private generateContextReasoning(metadata: any, aiResult: any): string {
+  private generateContextReasoning(
+    metadata: VideoMetadata,
+    aiResult: VideoAnalysisResult
+  ): string {
     const { videoType } = metadata;
 
     switch (videoType) {
@@ -346,7 +367,10 @@ export class EnhancedAIAnalysisService {
     }
   }
 
-  private generateExplanations(metadata: any, aiResult: any): string {
+  private generateExplanations(
+    metadata: VideoMetadata,
+    aiResult: VideoAnalysisResult
+  ): string {
     const { videoType } = metadata;
 
     switch (videoType) {
@@ -367,7 +391,10 @@ export class EnhancedAIAnalysisService {
     }
   }
 
-  private generateRecommendations(metadata: any, aiResult: any): string[] {
+  private generateRecommendations(
+    metadata: VideoMetadata,
+    aiResult: VideoAnalysisResult
+  ): string[] {
     const { videoType } = metadata;
 
     const recommendations = {
@@ -411,8 +438,8 @@ export class EnhancedAIAnalysisService {
   }
 
   private generateVisualSummary(
-    metadata: any,
-    aiResult: any
+    metadata: VideoMetadata,
+    aiResult: VideoAnalysisResult
   ): EnhancedAnalysisResult["visualSummary"] {
     return {
       gameFlow: this.generateGameFlow(metadata),
@@ -421,7 +448,7 @@ export class EnhancedAIAnalysisService {
     };
   }
 
-  private generateGameFlow(metadata: any): string {
+  private generateGameFlow(metadata: VideoMetadata): string {
     const { videoType, duration } = metadata;
     const phases = Math.floor(duration / 1800); // Every 30 minutes
 
@@ -445,7 +472,7 @@ export class EnhancedAIAnalysisService {
     }
   }
 
-  private generatePressureMap(metadata: any): string {
+  private generatePressureMap(metadata: VideoMetadata): string {
     const { videoType } = metadata;
 
     switch (videoType) {
@@ -467,7 +494,7 @@ export class EnhancedAIAnalysisService {
   }
 
   private generateMomentumShifts(
-    metadata: any
+    metadata: VideoMetadata
   ): EnhancedAnalysisResult["visualSummary"]["momentumShifts"] {
     const shifts = [];
     const duration = metadata.duration;
@@ -489,8 +516,8 @@ export class EnhancedAIAnalysisService {
   }
 
   private generatePlayerRadar(
-    metadata: any,
-    aiResult: any
+    metadata: VideoMetadata,
+    aiResult: VideoAnalysisResult
   ): EnhancedAnalysisResult["playerPerformanceRadar"] {
     const radar: EnhancedAnalysisResult["playerPerformanceRadar"] = {};
 
@@ -508,8 +535,8 @@ export class EnhancedAIAnalysisService {
   }
 
   private generateEventTimeline(
-    metadata: any,
-    aiResult: any
+    metadata: VideoMetadata,
+    aiResult: VideoAnalysisResult
   ): EnhancedAnalysisResult["eventTimeline"] {
     const timeline = [];
     const duration = metadata.duration;
@@ -569,8 +596,8 @@ export class EnhancedAIAnalysisService {
   }
 
   private analyzeTaggedPlayers(
-    metadata: any,
-    aiResult: any
+    metadata: VideoMetadata,
+    aiResult: VideoAnalysisResult
   ): EnhancedAnalysisResult["taggedPlayerAnalysis"] {
     const analysis: EnhancedAnalysisResult["taggedPlayerAnalysis"] = {};
 
@@ -615,8 +642,8 @@ export class EnhancedAIAnalysisService {
   }
 
   private detectMissingPlayers(
-    metadata: any,
-    aiResult: any
+    metadata: VideoMetadata,
+    aiResult: VideoAnalysisResult
   ): EnhancedAnalysisResult["missingPlayers"] {
     const missing = [];
 
