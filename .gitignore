@@ -3,4 +3,6 @@ dist
 .DS_Store
 server/public
 vite.config.ts.*
-*.tar.gzstorage_data/
+*.tar.gz
+storage_data/
+.env
