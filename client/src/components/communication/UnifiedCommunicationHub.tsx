@@ -940,7 +940,7 @@ const UnifiedCommunicationHub: React.FC<UnifiedCommunicationHubProps> = ({
         fetchAgentInterest();
       }
 
-    } catch (error: any) {
+    } catch (error: Error) {
       console.error('Error updating interest status:', error);
       toast({
         title: "Error",
@@ -965,7 +965,7 @@ const UnifiedCommunicationHub: React.FC<UnifiedCommunicationHubProps> = ({
         title: "Interest withdrawn",
         description: "Your interest has been withdrawn successfully",
       });
-    } catch (error: any) {
+    } catch (error: Error) {
       console.error('Error withdrawing interest:', error);
       toast({
         title: "Error",
@@ -1015,7 +1015,7 @@ const UnifiedCommunicationHub: React.FC<UnifiedCommunicationHubProps> = ({
         title: "Interest Rejected",
         description: "Interest has been rejected and agent has been notified",
       });
-    } catch (error: any) {
+    } catch (error: Error) {
       console.error('Error rejecting interest:', error);
       toast({
         title: "Error",
@@ -1290,7 +1290,7 @@ const UnifiedCommunicationHub: React.FC<UnifiedCommunicationHubProps> = ({
         variant: "destructive"
       });
 
-    } catch (error: any) {
+    } catch (error: Error) {
       console.error('Error entering negotiation room:', error);
       toast({
         title: "Error",
@@ -2278,7 +2278,7 @@ const UnifiedCommunicationHub: React.FC<UnifiedCommunicationHubProps> = ({
                         description: "Contract file has been uploaded successfully.",
                       });
                     }
-                  } catch (error: any) {
+                  } catch (error: Error) {
                     console.error('Error creating contract:', error);
                     toast({
                       title: "Error",

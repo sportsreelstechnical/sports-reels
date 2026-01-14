@@ -186,7 +186,7 @@ export const EnhancedPlayerForm: React.FC<EnhancedPlayerFormProps> = ({
       });
 
       onPlayerSaved?.();
-    } catch (error: any) {
+    } catch (error: Error) {
       console.error('Error saving player:', error);
       toast({
         title: "Error",

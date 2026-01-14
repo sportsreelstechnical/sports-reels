@@ -30,7 +30,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { queryClient, apiRequest } from "@dashboard/lib/queryClient";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 import { 
   UserPlus, 
   Key, 
@@ -93,7 +93,7 @@ export default function AdminUsers() {
       });
       toast({ title: "User created successfully" });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({ title: "Failed to create user", description: error.message, variant: "destructive" });
     },
   });
@@ -110,7 +110,7 @@ export default function AdminUsers() {
         description: `Token: ${data.token?.substring(0, 20)}... (24hr expiry)` 
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({ title: "Failed to reset password", description: error.message, variant: "destructive" });
     },
   });
@@ -126,7 +126,7 @@ export default function AdminUsers() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] });
       toast({ title: "User deleted successfully" });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({ title: "Failed to delete user", description: error.message, variant: "destructive" });
     },
   });

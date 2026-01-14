@@ -1,5 +1,5 @@
 import PlayerCard from "../PlayerCard";
-import { mockPlayers } from "@dashboard/lib/mock-data";
+import { mockPlayers } from "@/lib/mock-data";
 
 export default function PlayerCardExample() {
   return (

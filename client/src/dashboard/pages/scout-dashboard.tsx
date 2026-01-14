@@ -12,7 +12,7 @@ import { Link } from "react-router-dom";
 import { Search, User, Globe, Award, ChevronRight, Plus, Trash2, Star, AlertCircle, CheckCircle, Coins, SlidersHorizontal, ChevronDown, ChevronUp, X } from "lucide-react";
 import type { Player, EligibilityScore, ScoutShortlist } from "@shared/schema";
 import { LoadingSpinner } from "@/components/LoadingScreen";
-import { apiRequest, queryClient } from "@dashboard/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useCheckTokens, useSpendTokens } from "@/hooks/use-tokens";
 import {

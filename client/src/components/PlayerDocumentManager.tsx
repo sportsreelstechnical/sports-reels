@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { queryClient, apiRequest } from "@dashboard/lib/queryClient";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -115,7 +115,7 @@ function DocumentDetailsDialog({ document, playerId, isOpen, onOpenChange, getDo
       setNewVersionFile(null);
       setChangeReason("");
       setIsNewVersionOpen(false);
-    } catch (error: any) {
+    } catch (error: Error) {
       toast({
         title: "Upload failed",
         description: error.message,
@@ -481,7 +481,7 @@ export default function PlayerDocumentManager({ playerId, playerName }: PlayerDo
       toast({ title: "Document uploaded successfully" });
       resetForm();
       setIsUploadOpen(false);
-    } catch (error: any) {
+    } catch (error: Error) {
       toast({
         title: "Upload failed",
         description: error.message,

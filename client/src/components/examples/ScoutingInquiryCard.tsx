@@ -1,5 +1,5 @@
 import ScoutingInquiryCard from "../ScoutingInquiryCard";
-import { mockScoutingInquiries, mockPlayers } from "@dashboard/lib/mock-data";
+import { mockScoutingInquiries, mockPlayers } from "@/lib/mock-data";
 
 export default function ScoutingInquiryCardExample() {
   const inquiry = mockScoutingInquiries[0];

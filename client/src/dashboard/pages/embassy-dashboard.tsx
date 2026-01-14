@@ -7,7 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { Link } from "react-router-dom";
 import { FileText, User, Shield, Download, Clock, AlertTriangle, CheckCircle2, FileCheck, FileWarning, Eye, Building2 } from "lucide-react";
 import { LoadingSpinner } from "@/components/LoadingScreen";
-import { apiRequest, queryClient } from "@dashboard/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { jsPDF } from "jspdf";
 import logoImage from "@assets/logo.jpeg";

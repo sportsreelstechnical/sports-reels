@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Trophy, Clock, Globe, Activity, Heart, MapPin } from "lucide-react";
-import type { Player } from "@dashboard/lib/types";
+import type { Player } from "@/lib/types";
 
 interface PerformanceMetricsProps {
   player: Player;

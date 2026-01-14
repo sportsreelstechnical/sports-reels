@@ -184,7 +184,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
         title: "Added to Shortlist",
         description: `${player.full_name} has been added to your shortlist.`,
       });
-    } catch (error: any) {
+    } catch (error: Error) {
       console.error('Error adding to shortlist:', error);
       toast({
         title: "Error",
@@ -210,7 +210,7 @@ export const PlayerProfileModal: React.FC<PlayerProfileModalProps> = ({
         title: "Removed from Shortlist",
         description: `${player.full_name} has been removed from your shortlist.`,
       });
-    } catch (error: any) {
+    } catch (error: Error) {
       console.error('Error removing from shortlist:', error);
       toast({
         title: "Error",

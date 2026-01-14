@@ -171,7 +171,7 @@ const StreamlinedPitchCreation: React.FC<StreamlinedPitchCreationProps> = ({
       });
 
       onPitchCreated();
-    } catch (error: any) {
+    } catch (error: Error) {
       console.error('Error creating pitch:', error);
       toast({
         title: "Error",

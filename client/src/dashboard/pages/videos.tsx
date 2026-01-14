@@ -12,11 +12,11 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { queryClient, apiRequest } from "@dashboard/lib/queryClient";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { LoadingSpinner } from "@/components/LoadingScreen";
-import { 
-  Search, Video, Play, Calendar, FileText, Link2, Sparkles, BarChart2, 
+import {
+  Search, Video, Play, Calendar, FileText, Link2, Sparkles, BarChart2,
   Activity, TrendingUp, UserPlus, Users, Clock, Trash2, Target, Award,
   Edit2, Eye, UsersRound, X
 } from "lucide-react";
@@ -82,6 +82,7 @@ export default function Videos() {
       }
       return data;
     },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onSuccess: (data: any) => {
       toast({
         title: "Analysis Complete",
@@ -91,7 +92,7 @@ export default function Videos() {
       queryClient.invalidateQueries({ queryKey: ["/api/tokens/balance"] });
       setSelectedVideo(prev => prev ? { ...prev, insights: data.insights } : null);
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Analysis Failed",
         description: error.message || "Failed to analyze video",
@@ -122,7 +123,7 @@ export default function Videos() {
       });
       queryClient.invalidateQueries({ queryKey: ["/api/videos"] });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Upload Failed",
         description: error.message || "Failed to save video",
@@ -132,9 +133,9 @@ export default function Videos() {
   });
 
   const tagPlayerMutation = useMutation({
-    mutationFn: async ({ videoId, playerId, minutesPlayed, position }: { 
-      videoId: string; 
-      playerId: string; 
+    mutationFn: async ({ videoId, playerId, minutesPlayed, position }: {
+      videoId: string;
+      playerId: string;
       minutesPlayed: number;
       position: string;
     }) => {
@@ -155,7 +156,7 @@ export default function Videos() {
       setTagMinutes("90");
       setTagPosition("");
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Tagging Failed",
         description: error.message || "Failed to tag player",
@@ -176,7 +177,7 @@ export default function Videos() {
       });
       refetchTags();
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Analysis Failed",
         description: error.message || "Failed to analyze player",
@@ -199,9 +200,9 @@ export default function Videos() {
   });
 
   const batchTagPlayersMutation = useMutation({
-    mutationFn: async ({ videoId, playerIds, defaultMinutes }: { 
-      videoId: string; 
-      playerIds: string[]; 
+    mutationFn: async ({ videoId, playerIds, defaultMinutes }: {
+      videoId: string;
+      playerIds: string[];
       defaultMinutes: number;
     }) => {
       const results = [];
@@ -216,7 +217,8 @@ export default function Videos() {
       }
       return results;
     },
-    onSuccess: (data) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    onSuccess: (data: any) => {
       toast({
         title: "Team Sheet Applied",
         description: `${data.length} players have been tagged to this video.`,
@@ -225,7 +227,7 @@ export default function Videos() {
       setIsTeamSheetOpen(false);
       setTeamSheetPlayers([]);
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Batch Tagging Failed",
         description: error.message || "Failed to apply team sheet",
@@ -284,11 +286,11 @@ export default function Videos() {
   const handleToggleTeamSheetPlayer = (playerId: string) => {
     const alreadyTagged = playerTags.some(tag => tag.playerId === playerId);
     if (alreadyTagged) return;
-    
-    setTeamSheetPlayers(prev => 
-      prev.includes(playerId) 
+
+    setTeamSheetPlayers(prev =>
+      prev.includes(playerId)
         ? prev.filter(id => id !== playerId)
-        : prev.length < 15 - playerTags.length 
+        : prev.length < 15 - playerTags.length
           ? [...prev, playerId]
           : prev
     );
@@ -343,7 +345,7 @@ export default function Videos() {
             }}
             isUploading={uploadVideoMutation.isPending}
           />
-          
+
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
@@ -443,7 +445,7 @@ export default function Videos() {
                       className="flex items-start gap-4 p-4 bg-muted/50 rounded-md hover-elevate"
                       data-testid={`video-card-${video.id}`}
                     >
-                      <div 
+                      <div
                         className="relative bg-muted rounded-md w-32 h-20 flex items-center justify-center shrink-0 cursor-pointer"
                         onClick={() => handleOpenVideoPlayer(video)}
                       >
@@ -492,8 +494,8 @@ export default function Videos() {
                           )}
                         </div>
                         <div className="flex flex-wrap gap-2 pt-1">
-                          <Button 
-                            size="sm" 
+                          <Button
+                            size="sm"
                             variant="outline"
                             onClick={() => handleOpenVideoPlayer(video)}
                             data-testid={`button-watch-${video.id}`}
@@ -501,8 +503,8 @@ export default function Videos() {
                             <Eye className="h-3 w-3 mr-1" />
                             Watch
                           </Button>
-                          <Button 
-                            size="sm" 
+                          <Button
+                            size="sm"
                             variant="outline"
                             onClick={() => handleOpenTagDialog(video)}
                             data-testid={`button-tag-players-${video.id}`}
@@ -510,8 +512,8 @@ export default function Videos() {
                             <Users className="h-3 w-3 mr-1" />
                             Tag Players
                           </Button>
-                          <Button 
-                            size="sm" 
+                          <Button
+                            size="sm"
                             variant="outline"
                             onClick={() => handleOpenTeamSheet(video)}
                             data-testid={`button-team-sheet-${video.id}`}
@@ -519,8 +521,8 @@ export default function Videos() {
                             <UsersRound className="h-3 w-3 mr-1" />
                             Team Sheet
                           </Button>
-                          <Button 
-                            size="sm" 
+                          <Button
+                            size="sm"
                             variant="outline"
                             onClick={() => handleAnalyzeVideo(video)}
                             data-testid={`button-analyze-${video.id}`}
@@ -568,72 +570,72 @@ export default function Videos() {
                   <p className="text-sm mt-1">You can tag up to 15 players per video</p>
                 </div>
               ) : (
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Select Player</Label>
-                  <Select value={selectedPlayerId} onValueChange={setSelectedPlayerId}>
-                    <SelectTrigger data-testid="select-player">
-                      <SelectValue placeholder="Choose a player to tag" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {players
-                        .filter(player => !playerTags.some(tag => tag.playerId === player.id))
-                        .map((player) => (
-                        <SelectItem key={player.id} value={player.id}>
-                          {player.firstName} {player.lastName} - {player.position}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label>Minutes Played</Label>
-                    <Input
-                      type="number"
-                      min="0"
-                      max="120"
-                      value={tagMinutes}
-                      onChange={(e) => setTagMinutes(e.target.value)}
-                      placeholder="90"
-                      data-testid="input-minutes-played"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Position in Match</Label>
-                    <Select value={tagPosition} onValueChange={setTagPosition}>
-                      <SelectTrigger data-testid="select-position">
-                        <SelectValue placeholder="Select position" />
+                    <Label>Select Player</Label>
+                    <Select value={selectedPlayerId} onValueChange={setSelectedPlayerId}>
+                      <SelectTrigger data-testid="select-player">
+                        <SelectValue placeholder="Choose a player to tag" />
                       </SelectTrigger>
                       <SelectContent>
-                        {POSITIONS.map((pos) => (
-                          <SelectItem key={pos} value={pos}>{pos}</SelectItem>
-                        ))}
+                        {players
+                          .filter(player => !playerTags.some(tag => tag.playerId === player.id))
+                          .map((player) => (
+                            <SelectItem key={player.id} value={player.id}>
+                              {player.firstName} {player.lastName} - {player.position}
+                            </SelectItem>
+                          ))}
                       </SelectContent>
                     </Select>
                   </div>
-                </div>
 
-                <Button 
-                  onClick={handleTagPlayer} 
-                  disabled={!selectedPlayerId || tagPlayerMutation.isPending}
-                  className="w-full"
-                  data-testid="button-confirm-tag"
-                >
-                  {tagPlayerMutation.isPending ? (
-                    <>
-                      <LoadingSpinner size="sm" />
-                      <span className="ml-2">Tagging...</span>
-                    </>
-                  ) : (
-                    <>
-                      <UserPlus className="h-4 w-4 mr-2" />
-                      Tag Player to Video
-                    </>
-                  )}
-                </Button>
-              </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Minutes Played</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        max="120"
+                        value={tagMinutes}
+                        onChange={(e) => setTagMinutes(e.target.value)}
+                        placeholder="90"
+                        data-testid="input-minutes-played"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Position in Match</Label>
+                      <Select value={tagPosition} onValueChange={setTagPosition}>
+                        <SelectTrigger data-testid="select-position">
+                          <SelectValue placeholder="Select position" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {POSITIONS.map((pos) => (
+                            <SelectItem key={pos} value={pos}>{pos}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <Button
+                    onClick={handleTagPlayer}
+                    disabled={!selectedPlayerId || tagPlayerMutation.isPending}
+                    className="w-full"
+                    data-testid="button-confirm-tag"
+                  >
+                    {tagPlayerMutation.isPending ? (
+                      <>
+                        <LoadingSpinner size="sm" />
+                        <span className="ml-2">Tagging...</span>
+                      </>
+                    ) : (
+                      <>
+                        <UserPlus className="h-4 w-4 mr-2" />
+                        Tag Player to Video
+                      </>
+                    )}
+                  </Button>
+                </div>
               )}
             </TabsContent>
 
@@ -685,16 +687,16 @@ export default function Videos() {
                               </p>
                             )}
                             {(() => {
-                              const moments = tag.keyMoments as Array<{minute: number; type: string; description: string}> | null;
+                              const moments = tag.keyMoments as Array<{ minute: number; type: string; description: string }> | null;
                               if (!moments || !Array.isArray(moments) || moments.length === 0) return null;
                               return (
                                 <div className="mt-3 space-y-2">
                                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Key Moments</p>
                                   <div className="flex flex-wrap gap-2">
                                     {moments.slice(0, 5).map((moment, idx) => (
-                                      <Badge 
-                                        key={idx} 
-                                        variant="outline" 
+                                      <Badge
+                                        key={idx}
+                                        variant="outline"
                                         className="text-xs"
                                       >
                                         <Clock className="h-3 w-3 mr-1" />
@@ -769,7 +771,7 @@ export default function Videos() {
               {selectedVideo?.title || "Video analysis results"}
             </DialogDescription>
           </DialogHeader>
-          
+
           {analyzeVideoMutation.isPending ? (
             <div className="py-12 text-center">
               <LoadingSpinner size="lg" />
@@ -857,22 +859,22 @@ export default function Videos() {
                 {selectedVideo?.title}
               </DialogDescription>
             </div>
-            <Button 
-              size="icon" 
-              variant="ghost" 
+            <Button
+              size="icon"
+              variant="ghost"
               onClick={() => setIsVideoPlayerOpen(false)}
               data-testid="button-exit-video-player"
             >
               <X className="h-5 w-5" />
             </Button>
           </DialogHeader>
-          
+
           <ScrollArea className="max-h-[calc(90vh-140px)]">
             <div className="space-y-4 pr-4">
               <div className="aspect-video bg-muted rounded-md flex items-center justify-center">
                 {selectedVideo?.fileUrl ? (
-                  <video 
-                    controls 
+                  <video
+                    controls
                     autoPlay
                     className="w-full h-full rounded-md"
                     src={selectedVideo.fileUrl}
@@ -907,8 +909,8 @@ export default function Videos() {
 
               {selectedVideo && (
                 <div className="flex flex-wrap gap-2">
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     onClick={() => {
                       setIsVideoPlayerOpen(false);
                       handleOpenTagDialog(selectedVideo);
@@ -917,8 +919,8 @@ export default function Videos() {
                     <Users className="h-4 w-4 mr-2" />
                     Tag Players
                   </Button>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     onClick={() => {
                       setIsVideoPlayerOpen(false);
                       handleAnalyzeVideo(selectedVideo);
@@ -957,7 +959,7 @@ export default function Videos() {
               </div>
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Default Minutes Played</Label>
@@ -985,17 +987,16 @@ export default function Videos() {
                   {players.map((player) => {
                     const isAlreadyTagged = playerTags.some(tag => tag.playerId === player.id);
                     const isSelected = teamSheetPlayers.includes(player.id);
-                    
+
                     return (
-                      <div 
+                      <div
                         key={player.id}
-                        className={`flex items-center gap-3 p-2 rounded-md ${
-                          isAlreadyTagged 
-                            ? "bg-muted/50 opacity-50" 
-                            : isSelected 
-                              ? "bg-primary/10 border border-primary/30" 
+                        className={`flex items-center gap-3 p-2 rounded-md ${isAlreadyTagged
+                            ? "bg-muted/50 opacity-50"
+                            : isSelected
+                              ? "bg-primary/10 border border-primary/30"
                               : "hover-elevate"
-                        }`}
+                          }`}
                         data-testid={`team-sheet-player-${player.id}`}
                       >
                         <Checkbox
@@ -1025,7 +1026,7 @@ export default function Videos() {
             <Button variant="outline" onClick={() => setIsTeamSheetOpen(false)}>
               Cancel
             </Button>
-            <Button 
+            <Button
               onClick={handleApplyTeamSheet}
               disabled={teamSheetPlayers.length === 0 || batchTagPlayersMutation.isPending}
               data-testid="button-apply-team-sheet"

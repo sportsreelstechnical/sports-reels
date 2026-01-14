@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Search, Filter, Bell, CheckCircle, Clock, XCircle } from "lucide-react";
-import { mockEmbassyVerifications } from "@dashboard/lib/mock-data";
+import { mockEmbassyVerifications } from "@/lib/mock-data";
 import StatsCard from "@/components/StatsCard";
 
 export default function Embassy() {

@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { ArrowLeft, User, Globe, Clock, Activity, Ruler, Weight, Flag, CheckCircle, FileText, Video, Play, Calendar, Share2, Eye, Coins, Link2, Copy, ExternalLink, Download, Award } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import { apiRequest, queryClient } from "@dashboard/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useCheckTokens } from "@/hooks/use-tokens";
 import type { Player, Video as VideoType, PlayerShareLink, FederationLetterRequest } from "@shared/schema";

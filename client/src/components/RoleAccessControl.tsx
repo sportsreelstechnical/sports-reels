@@ -3,7 +3,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Users, Shield, Eye, BarChart3 } from "lucide-react";
-import type { UserRole } from "@dashboard/lib/types";
+import type { UserRole } from "@/lib/types";
 
 interface RolePermission {
   role: UserRole;

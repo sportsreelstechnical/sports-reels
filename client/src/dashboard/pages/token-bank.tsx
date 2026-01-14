@@ -8,7 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Coins, TrendingUp, TrendingDown, Clock, User, Video, Eye, Star, MessageSquare, Zap, Package, CreditCard, History, FileText, Send } from "lucide-react";
 import { format } from "date-fns";
-import { apiRequest, queryClient } from "@dashboard/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 interface TokenBalance {
@@ -108,7 +108,7 @@ export default function TokenBank() {
         });
       }
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Purchase Failed",
         description: error.message,

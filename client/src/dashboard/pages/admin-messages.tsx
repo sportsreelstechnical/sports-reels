@@ -28,7 +28,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { queryClient, apiRequest } from "@dashboard/lib/queryClient";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 import { 
   Mail, 
   Clock, 
@@ -83,7 +83,7 @@ export default function AdminMessages() {
       setReviewNotes("");
       toast({ title: "Message updated successfully" });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({ title: "Failed to update message", description: error.message, variant: "destructive" });
     },
   });

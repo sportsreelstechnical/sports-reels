@@ -14,7 +14,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Textarea } from "@/components/ui/textarea";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { queryClient, apiRequest } from "@dashboard/lib/queryClient";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { LoadingSpinner } from "@/components/LoadingScreen";
 import { FileText, Upload, Plus, Calendar, Globe, Building2, User, CheckCircle, Clock, AlertCircle, MapPin, FileCheck, QrCode, Eye, Trash2, Sparkles, X, File, Award, Send, Coins } from "lucide-react";
@@ -123,7 +123,7 @@ export default function InvitationLettersPage() {
       setIsDialogOpen(false);
       queryClient.invalidateQueries({ queryKey: ["/api/invitation-letters"] });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Upload Failed",
         description: error.message || "Failed to upload invitation letter",
@@ -144,7 +144,7 @@ export default function InvitationLettersPage() {
       });
       queryClient.invalidateQueries({ queryKey: ["/api/invitation-letters"] });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Failed to Generate Report",
         description: error.message || "Could not generate consular report",
@@ -165,7 +165,7 @@ export default function InvitationLettersPage() {
       });
       queryClient.invalidateQueries({ queryKey: ["/api/invitation-letters"] });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Delete Failed",
         description: error.message || "Failed to delete invitation letter",
@@ -191,7 +191,7 @@ export default function InvitationLettersPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/invitation-letters"] });
       queryClient.invalidateQueries({ queryKey: ["/api/tokens/balance"] });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Notification Failed",
         description: error.message || "Failed to notify embassy",

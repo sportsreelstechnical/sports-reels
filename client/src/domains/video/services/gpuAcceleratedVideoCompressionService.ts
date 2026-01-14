@@ -189,7 +189,7 @@ export class GPUAcceleratedVideoCompressionService {
                                         options.onProgress(progress);
                                     }
                                 },
-                                error: (error: any) => {
+                                error: (error: Error) => {
                                     console.error('VideoEncoder error:', error);
                                     reject(error);
                                 }

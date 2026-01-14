@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Search, Plus, MessageSquare, Send, Users } from "lucide-react";
-import { mockScoutingInquiries, mockPlayers } from "@dashboard/lib/mock-data";
+import { mockScoutingInquiries, mockPlayers } from "@/lib/mock-data";
 
 export default function Scouting() {
   const navigate = useNavigate();

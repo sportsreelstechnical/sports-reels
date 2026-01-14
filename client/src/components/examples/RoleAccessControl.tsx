@@ -1,6 +1,6 @@
 import { useState } from "react";
 import RoleAccessControl from "../RoleAccessControl";
-import type { UserRole } from "@dashboard/lib/types";
+import type { UserRole } from "@/lib/types";
 
 export default function RoleAccessControlExample() {
   const [permissions, setPermissions] = useState([

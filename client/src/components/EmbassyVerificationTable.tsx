@@ -2,7 +2,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Eye, CheckCircle, XCircle, Clock } from "lucide-react";
-import type { EmbassyVerification } from "@dashboard/lib/types";
+import type { EmbassyVerification } from "@/lib/types";
 
 interface EmbassyVerificationTableProps {
   verifications: EmbassyVerification[];

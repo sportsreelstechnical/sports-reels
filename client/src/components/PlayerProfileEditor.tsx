@@ -9,7 +9,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Activity, Clock, User, Ruler, Weight, Heart, Save } from "lucide-react";
-import { apiRequest, queryClient } from "@dashboard/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Player } from "@shared/schema";
 
@@ -109,7 +109,7 @@ export default function PlayerProfileEditor({ player, onSaved }: PlayerProfileEd
       });
       onSaved?.();
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
         description: error.message || "Failed to update profile",

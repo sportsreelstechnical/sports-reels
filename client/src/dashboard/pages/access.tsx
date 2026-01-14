@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Shield, Users, Clock, Plus } from "lucide-react";
-import type { UserRole } from "@dashboard/lib/types";
+import type { UserRole } from "@/lib/types";
 
 export default function Access() {
   // todo: remove mock functionality

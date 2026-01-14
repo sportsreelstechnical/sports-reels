@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import StatusBadge from "./StatusBadge";
 import { MessageSquare, ArrowRight, ClipboardCheck } from "lucide-react";
-import type { ScoutingInquiry } from "@dashboard/lib/types";
+import type { ScoutingInquiry } from "@/lib/types";
 
 interface ScoutingInquiryCardProps {
   inquiry: ScoutingInquiry;

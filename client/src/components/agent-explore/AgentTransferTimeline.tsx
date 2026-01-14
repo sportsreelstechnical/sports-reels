@@ -797,7 +797,7 @@ const AgentTransferTimeline = () => {
       setInterestMessage('');
       fetchTimelinePitches();
       fetchExpressedInterests();
-    } catch (error: any) {
+    } catch (error: Error) {
       console.error('Error expressing interest:', error);
 
       let errorMessage = "Failed to express interest";

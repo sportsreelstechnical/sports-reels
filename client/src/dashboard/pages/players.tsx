@@ -17,11 +17,11 @@ import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Search, Plus, Filter, Grid, List, User, ChevronDown, ChevronUp, X, SlidersHorizontal } from "lucide-react";
-import { mockPlayers } from "@dashboard/lib/mock-data";
+import { mockPlayers } from "@/lib/mock-data";
 import { getVisaStatus } from "@/components/StatusBadge";
-import { apiRequest, queryClient } from "@dashboard/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import type { Player } from "@dashboard/lib/types";
+import type { Player } from "@/lib/types";
 
 const playerFormSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
@@ -115,7 +115,7 @@ export default function Players() {
         description: "The player has been added to your database.",
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
         description: error.message || "Failed to add player",

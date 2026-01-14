@@ -170,7 +170,7 @@ const MessagePlayerModal: React.FC<MessagePlayerModalProps> = ({
       });
 
       onClose();
-    } catch (error: any) {
+    } catch (error: Error) {
       console.error('Error sending message:', error);
       toast({
         title: "Error",

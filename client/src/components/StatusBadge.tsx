@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui/badge";
-import type { VisaStatus } from "@dashboard/lib/types";
+import type { VisaStatus } from "@/lib/types";
 
 interface StatusBadgeProps {
   score: number;

@@ -377,7 +377,7 @@ const TransferTimeline = () => {
       setSelectedPitchForInterest(null);
       setInterestMessage('');
       fetchPitches(); // Refresh to show new interest
-    } catch (error: any) {
+    } catch (error: Error) {
       console.error('Error expressing interest:', error);
       toast({
         title: "Error",
@@ -444,7 +444,7 @@ const TransferTimeline = () => {
       }
 
       fetchPitches();
-    } catch (error: any) {
+    } catch (error: Error) {
       console.error('Error deleting pitch:', error);
       toast({
         title: "Error",

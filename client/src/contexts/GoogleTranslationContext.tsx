@@ -132,7 +132,7 @@ export const GoogleTranslationProvider: React.FC<{ children: ReactNode }> = ({ c
       );
 
       return response.data.data.translations[0].translatedText;
-    } catch (error: any) {
+    } catch (error: Error) {
       console.error('Frontend translation error:', error);
       if (error.response) {
         console.error('Error response:', error.response.data);

@@ -1,5 +1,5 @@
 import PlayerProfileHeader from "../PlayerProfileHeader";
-import { mockPlayers } from "@dashboard/lib/mock-data";
+import { mockPlayers } from "@/lib/mock-data";
 
 export default function PlayerProfileHeaderExample() {
   return (

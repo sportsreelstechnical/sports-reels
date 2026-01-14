@@ -429,7 +429,7 @@ const SimplifiedContractWorkflow: React.FC<SimplifiedContractWorkflowProps> = ({
       } else {
         fetchAllContracts();
       }
-    } catch (error: any) {
+    } catch (error: Error) {
       console.error('Error updating contract:', error);
       toast({
         title: "Error",

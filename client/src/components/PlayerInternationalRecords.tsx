@@ -12,7 +12,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Globe, Trophy, Calendar, Edit2, Trash2, Flag, Clock, FileText } from "lucide-react";
-import { apiRequest, queryClient } from "@dashboard/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { PlayerInternationalRecord } from "@shared/schema";
 
@@ -79,7 +79,7 @@ export default function PlayerInternationalRecords({ playerId, playerName }: Pla
         description: "International record has been added successfully.",
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
         description: error.message || "Failed to add record",
@@ -101,7 +101,7 @@ export default function PlayerInternationalRecords({ playerId, playerName }: Pla
         description: "International record has been updated successfully.",
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
         description: error.message || "Failed to update record",
@@ -121,7 +121,7 @@ export default function PlayerInternationalRecords({ playerId, playerName }: Pla
         description: "International record has been removed.",
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
         description: error.message || "Failed to delete record",

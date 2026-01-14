@@ -374,7 +374,7 @@ const UnifiedCommunicationHub: React.FC<UnifiedCommunicationHubProps> = ({
         title: "Message sent!",
         description: "Your message has been delivered.",
       });
-    } catch (error: any) {
+    } catch (error: Error) {
       console.error('Error sending message:', error);
       toast({
         title: "Error",
@@ -398,7 +398,7 @@ const UnifiedCommunicationHub: React.FC<UnifiedCommunicationHubProps> = ({
         title: "Status updated!",
         description: `Interest status changed to ${newStatus}`,
       });
-    } catch (error: any) {
+    } catch (error: Error) {
       console.error('Error updating interest status:', error);
       toast({
         title: "Error",
@@ -467,7 +467,7 @@ const UnifiedCommunicationHub: React.FC<UnifiedCommunicationHubProps> = ({
       });
 
       fetchMessages();
-    } catch (error: any) {
+    } catch (error: Error) {
       console.error('Error sending message:', error);
       toast({
         title: "Error",
@@ -1122,7 +1122,7 @@ const UnifiedCommunicationHub: React.FC<UnifiedCommunicationHubProps> = ({
                      }
                      
                      setShowContractModal(false);
-                   } catch (error: any) {
+                   } catch (error: Error) {
                      console.error('Error generating contract:', error);
                      toast({
                        title: "Error",

@@ -253,7 +253,7 @@ const PlayerForm: React.FC<PlayerFormProps> = ({ player, onSave, onCancel, teamI
         description: `${fieldName.replace('_url', '').replace('_', ' ')} compressed and ready`,
       });
 
-    } catch (error: any) {
+    } catch (error: Error) {
       console.error('Error processing image:', error);
       toast({
         title: "Processing Failed",
@@ -349,7 +349,7 @@ const PlayerForm: React.FC<PlayerFormProps> = ({ player, onSave, onCancel, teamI
       });
 
       onSave();
-    } catch (error: any) {
+    } catch (error: Error) {
       console.error('Error saving player:', error);
       toast({
         title: "Error",

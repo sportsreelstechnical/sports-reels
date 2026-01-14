@@ -11,8 +11,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Users, FileCheck, AlertTriangle, TrendingUp, Search, Plus, Bell } from "lucide-react";
-import { mockPlayers, mockDashboardStats, mockEmbassyVerifications, mockScoutingInquiries } from "@dashboard/lib/mock-data";
-import type { DashboardStats } from "@dashboard/lib/types";
+import { mockPlayers, mockDashboardStats, mockEmbassyVerifications, mockScoutingInquiries } from "@/lib/mock-data";
+import type { DashboardStats } from "@/lib/types";
 
 interface MapData {
   playerOrigins: Array<{

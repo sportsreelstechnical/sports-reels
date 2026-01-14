@@ -4,12 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
 } from "@/components/ui/select";
 import {
   Dialog,
@@ -28,10 +28,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { queryClient, apiRequest } from "@dashboard/lib/queryClient";
-import { 
-  Shield, 
-  Clock, 
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import {
+  Shield,
+  Clock,
   User,
   Download,
   Check,
@@ -79,7 +79,7 @@ export default function AdminGdpr() {
       setSelectedRequest(null);
       toast({ title: "Request updated successfully" });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({ title: "Failed to update request", description: error.message, variant: "destructive" });
     },
   });
@@ -100,7 +100,7 @@ export default function AdminGdpr() {
       a.click();
       toast({ title: "Data exported successfully" });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({ title: "Failed to export data", description: error.message, variant: "destructive" });
     },
   });
@@ -243,8 +243,8 @@ export default function AdminGdpr() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <Button 
-                          variant="ghost" 
+                        <Button
+                          variant="ghost"
                           size="icon"
                           onClick={() => {
                             setSelectedRequest(request);
@@ -255,8 +255,8 @@ export default function AdminGdpr() {
                           <Eye className="h-4 w-4" />
                         </Button>
                         {request.requestType === "data_export" && request.status === "pending" && (
-                          <Button 
-                            variant="ghost" 
+                          <Button
+                            variant="ghost"
                             size="icon"
                             onClick={() => exportDataMutation.mutate(request.id)}
                             disabled={exportDataMutation.isPending}
@@ -267,8 +267,8 @@ export default function AdminGdpr() {
                         )}
                         {request.status === "pending" && (
                           <>
-                            <Button 
-                              variant="ghost" 
+                            <Button
+                              variant="ghost"
                               size="icon"
                               onClick={() => updateRequestMutation.mutate({ id: request.id, status: "completed" })}
                               disabled={updateRequestMutation.isPending}
@@ -276,8 +276,8 @@ export default function AdminGdpr() {
                             >
                               <Check className="h-4 w-4 text-green-600" />
                             </Button>
-                            <Button 
-                              variant="ghost" 
+                            <Button
+                              variant="ghost"
                               size="icon"
                               onClick={() => {
                                 setSelectedRequest(request);
@@ -343,7 +343,7 @@ export default function AdminGdpr() {
               {selectedRequest.status === "pending" && (
                 <div>
                   <p className="text-sm text-muted-foreground mb-2">Rejection Reason (if rejecting)</p>
-                  <Textarea 
+                  <Textarea
                     value={rejectionReason}
                     onChange={(e) => setRejectionReason(e.target.value)}
                     placeholder="Enter reason for rejection..."
@@ -357,19 +357,19 @@ export default function AdminGdpr() {
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Close</Button>
             {selectedRequest?.status === "pending" && (
               <>
-                <Button 
+                <Button
                   variant="destructive"
-                  onClick={() => updateRequestMutation.mutate({ 
-                    id: selectedRequest.id, 
+                  onClick={() => updateRequestMutation.mutate({
+                    id: selectedRequest.id,
                     status: "rejected",
-                    rejectionReason 
+                    rejectionReason
                   })}
                   disabled={updateRequestMutation.isPending}
                   data-testid="button-confirm-reject"
                 >
                   Reject
                 </Button>
-                <Button 
+                <Button
                   onClick={() => updateRequestMutation.mutate({ id: selectedRequest.id, status: "completed" })}
                   disabled={updateRequestMutation.isPending}
                   data-testid="button-confirm-approve"

@@ -4,7 +4,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import StatusBadge from "./StatusBadge";
 import { FileText, Share2, Clock, MapPin, Calendar, Activity } from "lucide-react";
-import type { Player } from "@dashboard/lib/types";
+import type { Player } from "@/lib/types";
 
 interface PlayerProfileHeaderProps {
   player: Player;

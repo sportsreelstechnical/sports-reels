@@ -384,7 +384,7 @@ const CreateTransferPitch: React.FC<CreateTransferPitchProps> = ({
 
       onPitchCreated();
       onClose();
-    } catch (error: any) {
+    } catch (error: Error) {
       console.error('Error creating pitch:', error);
       toast({
         title: "Error",

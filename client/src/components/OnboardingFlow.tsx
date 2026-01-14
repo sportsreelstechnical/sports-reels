@@ -239,7 +239,7 @@ const OnboardingFlow = () => {
         title: "Profile Setup Complete!",
         description: "Your profile has been successfully created",
       });
-    } catch (error: any) {
+    } catch (error: Error) {
       console.error('Error completing onboarding:', error);
       toast({
         title: "Error",

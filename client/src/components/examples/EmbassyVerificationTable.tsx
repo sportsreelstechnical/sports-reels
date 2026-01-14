@@ -1,5 +1,5 @@
 import EmbassyVerificationTable from "../EmbassyVerificationTable";
-import { mockEmbassyVerifications } from "@dashboard/lib/mock-data";
+import { mockEmbassyVerifications } from "@/lib/mock-data";
 
 export default function EmbassyVerificationTableExample() {
   return (

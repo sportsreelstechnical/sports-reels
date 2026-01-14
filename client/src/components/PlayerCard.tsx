@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import StatusBadge from "./StatusBadge";
 import { FileText, Eye, Clock, Trophy, MapPin } from "lucide-react";
-import type { Player } from "@dashboard/lib/types";
+import type { Player } from "@/lib/types";
 
 interface PlayerCardProps {
   player: Player;
