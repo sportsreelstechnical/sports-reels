@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useLocation } from "wouter";
+
 import { queryClient, apiRequest } from "@dashboard/lib/queryClient";
 import { Button } from "@dashboard/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@dashboard/components/ui/card";
@@ -12,16 +12,16 @@ import { ScrollArea } from "@dashboard/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@dashboard/components/ui/dialog";
 import { Separator } from "@dashboard/components/ui/separator";
 import { useToast } from "@dashboard/hooks/use-toast";
-import { 
-  Plus, 
-  X, 
-  Users, 
-  Calendar, 
-  Clock, 
-  MapPin, 
-  Trophy, 
-  Video, 
-  UserPlus, 
+import {
+  Plus,
+  X,
+  Users,
+  Calendar,
+  Clock,
+  MapPin,
+  Trophy,
+  Video,
+  UserPlus,
   ArrowLeft,
   FileText,
   Play,
@@ -30,28 +30,27 @@ import {
 import type { Player, TeamSheet, TeamSheetPlayer } from "@shared/schema";
 
 const COUNTRIES = [
-  "England", "Spain", "Germany", "Italy", "France", 
+  "England", "Spain", "Germany", "Italy", "France",
   "Netherlands", "Portugal", "Norway", "Nigeria", "USA"
 ];
 
 const POSITIONS = [
-  "GK", "LB", "CB", "RB", "LWB", "RWB", "CDM", "CM", "CAM", 
+  "GK", "LB", "CB", "RB", "LWB", "RWB", "CDM", "CM", "CAM",
   "LM", "RM", "LW", "RW", "CF", "ST"
 ];
 
 export default function TeamSheets() {
-  const [, navigate] = useLocation();
   const { toast } = useToast();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [selectedSheet, setSelectedSheet] = useState<string | null>(null);
   const [showPlayerSelect, setShowPlayerSelect] = useState(false);
   const [addingRole, setAddingRole] = useState<"starting" | "substitute">("starting");
   const [selectedCountry, setSelectedCountry] = useState("England");
-  
+
   const [formCompetition, setFormCompetition] = useState("");
   const [formHomeAway, setFormHomeAway] = useState("home");
   const [formFormation, setFormFormation] = useState("4-3-3");
-  
+
   const handleCountryChange = (country: string) => {
     setSelectedCountry(country);
     setFormCompetition("");
@@ -89,7 +88,7 @@ export default function TeamSheets() {
   });
 
   const addPlayerMutation = useMutation({
-    mutationFn: async ({ sheetId, data }: { sheetId: string; data: any }) => 
+    mutationFn: async ({ sheetId, data }: { sheetId: string; data: any }) =>
       apiRequest("POST", `/api/team-sheets/${sheetId}/players`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/team-sheets", selectedSheet] });
@@ -100,7 +99,7 @@ export default function TeamSheets() {
   });
 
   const removePlayerMutation = useMutation({
-    mutationFn: async (playerId: string) => 
+    mutationFn: async (playerId: string) =>
       apiRequest("DELETE", `/api/team-sheet-players/${playerId}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/team-sheets", selectedSheet] });
@@ -122,14 +121,14 @@ export default function TeamSheets() {
     const formData = new FormData(e.currentTarget);
     const title = formData.get("title") as string;
     const matchDate = formData.get("matchDate") as string;
-    
+
     if (!title || !matchDate || !formCompetition) {
       toast({ title: "Error", description: "Please fill in all required fields", variant: "destructive" });
       return;
     }
 
     const competitionItem = competitions?.find(c => c.name === formCompetition);
-    
+
     createSheetMutation.mutate({
       title,
       matchDate,
@@ -143,7 +142,7 @@ export default function TeamSheets() {
       referee: (formData.get("referee") as string) || undefined,
     });
   };
-  
+
   const resetFormState = () => {
     setFormCompetition("");
     setFormHomeAway("home");
@@ -155,20 +154,20 @@ export default function TeamSheets() {
     if (!selectedSheet) return;
     const existingPlayers = selectedSheetData?.players || [];
     const starters = existingPlayers.filter(p => p.role === "starting");
-    
+
     if (addingRole === "starting" && starters.length >= 11) {
       toast({ title: "Limit reached", description: "Maximum 11 starting players allowed", variant: "destructive" });
       return;
     }
-    
+
     const alreadyAdded = existingPlayers.find(p => p.playerId === player.id);
     if (alreadyAdded) {
       toast({ title: "Already added", description: "This player is already in the team sheet", variant: "destructive" });
       return;
     }
-    
+
     const positionOrder = existingPlayers.filter(p => p.role === addingRole).length + 1;
-    
+
     addPlayerMutation.mutate({
       sheetId: selectedSheet,
       data: {
@@ -205,7 +204,7 @@ export default function TeamSheets() {
             <Plus className="h-4 w-4" />
           </Button>
         </div>
-        
+
         <ScrollArea className="flex-1">
           <div className="p-2 space-y-2">
             {teamSheets?.length === 0 && (
@@ -214,8 +213,8 @@ export default function TeamSheets() {
               </div>
             )}
             {teamSheets?.map(sheet => (
-              <Card 
-                key={sheet.id} 
+              <Card
+                key={sheet.id}
                 className={`cursor-pointer hover-elevate ${selectedSheet === sheet.id ? "ring-2 ring-primary" : ""}`}
                 onClick={() => setSelectedSheet(sheet.id)}
                 data-testid={`card-team-sheet-${sheet.id}`}
@@ -293,9 +292,9 @@ export default function TeamSheets() {
                     View Video
                   </Button>
                 )}
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
+                <Button
+                  variant="ghost"
+                  size="icon"
                   onClick={() => deleteSheetMutation.mutate(selectedSheet)}
                   data-testid="button-delete-sheet"
                 >
@@ -316,8 +315,8 @@ export default function TeamSheets() {
                         <Users className="h-4 w-4" />
                         Starting XI ({startingPlayers.length}/11)
                       </CardTitle>
-                      <Button 
-                        size="sm" 
+                      <Button
+                        size="sm"
                         variant="outline"
                         disabled={startingPlayers.length >= 11}
                         onClick={() => { setAddingRole("starting"); setShowPlayerSelect(true); }}
@@ -337,8 +336,8 @@ export default function TeamSheets() {
                           {startingPlayers.map((sp, idx) => {
                             const player = players?.find(p => p.id === sp.playerId);
                             return (
-                              <div 
-                                key={sp.id} 
+                              <div
+                                key={sp.id}
                                 className="flex items-center gap-3 p-2 rounded-md bg-muted/50"
                                 data-testid={`row-starter-${sp.id}`}
                               >
@@ -349,9 +348,9 @@ export default function TeamSheets() {
                                   <div className="font-medium text-sm">{player ? `${player.firstName} ${player.lastName}` : "Unknown"}</div>
                                   <div className="text-xs text-muted-foreground">{sp.position}</div>
                                 </div>
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon" 
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
                                   className="h-6 w-6"
                                   onClick={() => removePlayerMutation.mutate(sp.id)}
                                   data-testid={`button-remove-starter-${sp.id}`}
@@ -372,8 +371,8 @@ export default function TeamSheets() {
                         <Users className="h-4 w-4" />
                         Substitutes ({substitutes.length})
                       </CardTitle>
-                      <Button 
-                        size="sm" 
+                      <Button
+                        size="sm"
                         variant="outline"
                         onClick={() => { setAddingRole("substitute"); setShowPlayerSelect(true); }}
                         data-testid="button-add-substitute"
@@ -392,8 +391,8 @@ export default function TeamSheets() {
                           {substitutes.map((sp, idx) => {
                             const player = players?.find(p => p.id === sp.playerId);
                             return (
-                              <div 
-                                key={sp.id} 
+                              <div
+                                key={sp.id}
                                 className="flex items-center gap-3 p-2 rounded-md bg-muted/50"
                                 data-testid={`row-substitute-${sp.id}`}
                               >
@@ -404,9 +403,9 @@ export default function TeamSheets() {
                                   <div className="font-medium text-sm">{player ? `${player.firstName} ${player.lastName}` : "Unknown"}</div>
                                   <div className="text-xs text-muted-foreground">{sp.position}</div>
                                 </div>
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon" 
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
                                   className="h-6 w-6"
                                   onClick={() => removePlayerMutation.mutate(sp.id)}
                                   data-testid={`button-remove-substitute-${sp.id}`}
@@ -596,7 +595,7 @@ export default function TeamSheets() {
           <ScrollArea className="max-h-[400px]">
             <div className="space-y-2">
               {players?.filter(p => !addedPlayerIds.includes(p.id)).map(player => (
-                <div 
+                <div
                   key={player.id}
                   className="flex items-center gap-3 p-3 rounded-md hover-elevate cursor-pointer bg-muted/30"
                   onClick={() => handleAddPlayer(player)}

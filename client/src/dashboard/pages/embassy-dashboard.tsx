@@ -4,7 +4,7 @@ import { Badge } from "@dashboard/components/ui/badge";
 import { Button } from "@dashboard/components/ui/button";
 import { ScrollArea } from "@dashboard/components/ui/scroll-area";
 import { Separator } from "@dashboard/components/ui/separator";
-import { Link } from "wouter";
+import { Link } from "react-router-dom";
 import { FileText, User, Shield, Download, Clock, AlertTriangle, CheckCircle2, FileCheck, FileWarning, Eye, Building2 } from "lucide-react";
 import { LoadingSpinner } from "@dashboard/components/LoadingScreen";
 import { apiRequest, queryClient } from "@dashboard/lib/queryClient";
@@ -657,7 +657,7 @@ export default function EmbassyDashboard() {
                       <Shield className="h-4 w-4" />
                       <span>All access is logged and timestamped</span>
                     </div>
-                    <Link href={`/embassy/document/${doc.id}`}>
+                    <Link to={`/dashboard/embassy/document/${doc.id}`}>
                       <Button variant="outline" size="sm" data-testid={`button-view-legacy-${doc.id}`}>
                         <Eye className="mr-2 h-4 w-4" />
                         View Document

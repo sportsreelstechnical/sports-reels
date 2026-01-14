@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useLocation } from "wouter";
+import { useNavigate } from "react-router-dom";
 import ScoutingInquiryCard from "@dashboard/components/ScoutingInquiryCard";
 import PlayerCard from "@dashboard/components/PlayerCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@dashboard/components/ui/card";
@@ -13,7 +13,8 @@ import { Search, Plus, MessageSquare, Send, Users } from "lucide-react";
 import { mockScoutingInquiries, mockPlayers } from "@dashboard/lib/mock-data";
 
 export default function Scouting() {
-  const [, setLocation] = useLocation();
+  const navigate = useNavigate();
+  const setLocation = (path: string) => navigate(path.startsWith("/") ? `/dashboard${path}` : path);
   const [searchQuery, setSearchQuery] = useState("");
   const [messageDialogOpen, setMessageDialogOpen] = useState(false);
   const [selectedInquiry, setSelectedInquiry] = useState<string | null>(null);

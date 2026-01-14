@@ -1,15 +1,11 @@
-import { useState, useEffect } from "react";
-import { Switch, Route, useLocation, Router as WouterRouter } from "wouter";
-import { queryClient } from "./lib/queryClient";
-import { QueryClientProvider, useQuery } from "@tanstack/react-query";
-import { Toaster } from "@dashboard/components/ui/toaster";
-import { TooltipProvider } from "@dashboard/components/ui/tooltip";
+import { Routes, Route, useLocation, useNavigate, Navigate } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@dashboard/components/ui/sidebar";
 import AppSidebar from "@dashboard/components/AppSidebar";
 import ThemeToggle from "@dashboard/components/ThemeToggle";
-import { Bell } from "lucide-react";
+import { Bell, Loader2 } from "lucide-react";
 import { Button } from "@dashboard/components/ui/button";
 import { Badge } from "@dashboard/components/ui/badge";
+import { useAuth } from "@/contexts/AuthContext";
 
 import Dashboard from "@dashboard/pages/dashboard";
 import Players from "@dashboard/pages/players";
@@ -40,83 +36,81 @@ import AdminPayments from "@dashboard/pages/admin-payments";
 import AdminAuditLogs from "@dashboard/pages/admin-audit-logs";
 import AdminGdpr from "@dashboard/pages/admin-gdpr";
 import AuthPage from "@dashboard/pages/auth-page";
-import { apiRequest } from "@dashboard/lib/queryClient";
-import { Loader2 } from "lucide-react";
 
 function AdminRouter() {
   return (
-    <Switch>
-      <Route path="/" component={AdminDashboard} />
-      <Route path="/admin" component={AdminDashboard} />
-      <Route path="/admin/users" component={AdminUsers} />
-      <Route path="/admin/users/new" component={AdminUsers} />
-      <Route path="/admin/messages" component={AdminMessages} />
-      <Route path="/admin/payments" component={AdminPayments} />
-      <Route path="/admin/audit-logs" component={AdminAuditLogs} />
-      <Route path="/admin/gdpr" component={AdminGdpr} />
-      <Route path="/settings" component={SettingsPage} />
-      <Route component={NotFound} />
-    </Switch>
+    <Routes>
+      <Route path="/" element={<AdminDashboard />} />
+      <Route path="/admin" element={<AdminDashboard />} />
+      <Route path="/admin/users" element={<AdminUsers />} />
+      <Route path="/admin/users/new" element={<AdminUsers />} />
+      <Route path="/admin/messages" element={<AdminMessages />} />
+      <Route path="/admin/payments" element={<AdminPayments />} />
+      <Route path="/admin/audit-logs" element={<AdminAuditLogs />} />
+      <Route path="/admin/gdpr" element={<AdminGdpr />} />
+      <Route path="/settings" element={<SettingsPage />} />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
   );
 }
 
 function TeamRouter() {
   return (
-    <Switch>
-      <Route path="/" component={Dashboard} />
-      <Route path="/players" component={Players} />
-      <Route path="/players/:id" component={PlayerProfile} />
-      <Route path="/videos" component={Videos} />
-      <Route path="/video-reels" component={VideoReels} />
-      <Route path="/reports" component={Reports} />
-      <Route path="/scouting" component={Scouting} />
-      <Route path="/embassy" component={Embassy} />
-      <Route path="/access" component={Access} />
-      <Route path="/messages" component={MessagesPage} />
-      <Route path="/settings" component={SettingsPage} />
-      <Route path="/invitation-letters" component={InvitationLettersPage} />
-      <Route path="/team-sheets" component={TeamSheets} />
-      <Route path="/federation-letters" component={FederationLettersPage} />
-      <Route path="/federation-admin" component={FederationAdminPage} />
-      <Route path="/token-bank" component={TokenBank} />
-      <Route component={NotFound} />
-    </Switch>
+    <Routes>
+      <Route path="/" element={<Dashboard />} />
+      <Route path="/players" element={<Players />} />
+      <Route path="/players/:id" element={<PlayerProfile />} />
+      <Route path="/videos" element={<Videos />} />
+      <Route path="/video-reels" element={<VideoReels />} />
+      <Route path="/reports" element={<Reports />} />
+      <Route path="/scouting" element={<Scouting />} />
+      <Route path="/embassy" element={<Embassy />} />
+      <Route path="/access" element={<Access />} />
+      <Route path="/messages" element={<MessagesPage />} />
+      <Route path="/settings" element={<SettingsPage />} />
+      <Route path="/invitation-letters" element={<InvitationLettersPage />} />
+      <Route path="/team-sheets" element={<TeamSheets />} />
+      <Route path="/federation-letters" element={<FederationLettersPage />} />
+      <Route path="/federation-admin" element={<FederationAdminPage />} />
+      <Route path="/token-bank" element={<TokenBank />} />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
   );
 }
 
 function ScoutRouter() {
   return (
-    <Switch>
-      <Route path="/" component={ScoutDashboard} />
-      <Route path="/scout-dashboard" component={ScoutDashboard} />
-      <Route path="/scout/player/:id" component={PlayerProfile} />
-      <Route path="/video-reels" component={VideoReels} />
-      <Route path="/messages" component={MessagesPage} />
-      <Route path="/token-bank" component={TokenBank} />
-      <Route component={NotFound} />
-    </Switch>
+    <Routes>
+      <Route path="/" element={<ScoutDashboard />} />
+      <Route path="/scout-dashboard" element={<ScoutDashboard />} />
+      <Route path="/scout/player/:id" element={<PlayerProfile />} />
+      <Route path="/video-reels" element={<VideoReels />} />
+      <Route path="/messages" element={<MessagesPage />} />
+      <Route path="/token-bank" element={<TokenBank />} />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
   );
 }
 
 function EmbassyRouter() {
   return (
-    <Switch>
-      <Route path="/" component={EmbassyDashboard} />
-      <Route path="/embassy/document/:id" component={EmbassyDocumentView} />
-      <Route path="/player/:id" component={PlayerProfile} />
-      <Route component={NotFound} />
-    </Switch>
+    <Routes>
+      <Route path="/" element={<EmbassyDashboard />} />
+      <Route path="/embassy/document/:id" element={<EmbassyDocumentView />} />
+      <Route path="/player/:id" element={<PlayerProfile />} />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
   );
 }
 
 function FederationAdminRouter() {
   return (
-    <Switch>
-      <Route path="/" component={FederationAdminPage} />
-      <Route path="/federation-admin" component={FederationAdminPage} />
-      <Route path="/settings" component={SettingsPage} />
-      <Route component={NotFound} />
-    </Switch>
+    <Routes>
+      <Route path="/" element={<FederationAdminPage />} />
+      <Route path="/federation-admin" element={<FederationAdminPage />} />
+      <Route path="/settings" element={<SettingsPage />} />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
   );
 }
 
@@ -203,36 +197,12 @@ function MainLayout({ userRole, onChangeRole }: { userRole: string; onChangeRole
   );
 }
 
-function AppContent() {
-  const [location, setLocation] = useLocation();
-  const userData = useQuery({
-    queryKey: ["/api/auth/me"],
-    queryFn: async () => {
-      try {
-        const res = await apiRequest("GET", "/api/auth/me");
-        if (!res.ok) return null;
-        return await res.json();
-      } catch (e) {
-        return null;
-      }
-    },
-    retry: false,
-  });
+function DashboardRoutes() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { user, loading, signOut } = useAuth();
 
-  const isLoading = userData.isLoading;
-  const user = userData.data?.user;
-
-  const handleLogout = async () => {
-    try {
-      await apiRequest("POST", "/api/auth/logout");
-      await queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
-      setLocation("/");
-    } catch (e) {
-      console.error("Logout failed", e);
-    }
-  };
-
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -240,33 +210,42 @@ function AppContent() {
     );
   }
 
-  // Check if this is a shared profile route (public, no auth required)
-  if (location.startsWith("/shared/player/")) {
-    const token = location.replace("/shared/player/", "");
-    return <SharedPlayerProfile params={{ token }} />;
+  // Check if this is a shared player profile route (public, no auth required)
+  // Logic: starts with /shared/player/ relative to root? 
+  // Since we are mounted at /dashboard, use full location.pathname
+  // But wait, SharedPlayerProfile in original code was checking relative location to /dashboard base?
+  // Let's assume shared URLs are actually /dashboard/shared/player/:token if served here?
+  // Or maybe /shared/player/:token is a root route in Main App? 
+  // In WouterRouter base="/dashboard", location was relative.
+  // In Main App, DashboardRoot is at /dashboard/*.
+  // So a path /dashboard/shared/player/... would hit here.
+  // Let's handle it relative to /dashboard
+  const path = location.pathname;
+  // location.pathname includes /dashboard prefix because it's from the main router? 
+  // Yes, in react-router-dom, useLocation returns the full path.
+  // But we want to match relative to dashboard.
+
+  // Actually, simpler approach: Define a specific route for shared player profile in the Routes above?
+  // But the original component returned it EARLY, bypassing layout.
+  // Let's replicate this early exit.
+
+  if (path.includes("/shared/player/")) {
+    // Extract token. 
+    // Path might be /dashboard/shared/player/TOKEN
+    const token = path.split("/shared/player/")[1];
+    if (token) return <SharedPlayerProfile params={{ token }} />;
   }
 
   // If user is authenticated, show MainLayout
   if (user) {
-    return <MainLayout userRole={user.role} onChangeRole={handleLogout} />;
+    return <MainLayout userRole={user.role} onChangeRole={() => {
+      signOut();
+      navigate("/");
+    }} />;
   }
 
-  // Default to AuthPage
-  return <AuthPage />;
+  // Redirect to /auth if not logged in
+  return <Navigate to="/auth" replace />;
 }
 
-function App() {
-  return (
-    <QueryClientProvider client={queryClient}>
-
-      <TooltipProvider>
-        <WouterRouter base="/dashboard">
-          <AppContent />
-        </WouterRouter>
-        <Toaster />
-      </TooltipProvider>
-    </QueryClientProvider >
-  );
-}
-
-export default App;
+export default DashboardRoutes;

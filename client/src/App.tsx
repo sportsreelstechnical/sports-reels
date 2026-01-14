@@ -8,6 +8,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { GoogleTranslationProvider } from "@/contexts/GoogleTranslationContext";
 import AutoTranslateProvider from "@/components/AutoTranslateProvider";
 import Index from "./pages/Index";
+import AuthPage from "@/dashboard/pages/auth-page";
 import DashboardRoot from "@/dashboard/App";
 import Players from "./pages/Players";
 import Videos from "./pages/Videos";
@@ -47,7 +48,7 @@ function App() {
               <BrowserRouter>
                 <Routes>
                   <Route path="/" element={<LandingPage />} />
-                  <Route path="/auth" element={<Index />} />
+                  <Route path="/auth" element={<AuthPage />} />
                   <Route path="/dashboard/*" element={<DashboardRoot />} />
                   <Route path="/app" element={<Index />} />
                   <Route path="/players" element={<Players />} />

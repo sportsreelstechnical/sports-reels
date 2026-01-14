@@ -10,7 +10,7 @@ async function createAdmin() {
 
     await storage.createUser({
       username: "admin",
-      password: "admin123", // Using plain text to match current auth implementation (server/routes/auth.ts)
+      password: "admin123",
 
       email: "admin@sportsreels.com",
       firstName: "Platform",

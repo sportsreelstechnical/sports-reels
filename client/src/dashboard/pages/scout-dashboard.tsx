@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@dashboard/components/
 import { Slider } from "@dashboard/components/ui/slider";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@dashboard/components/ui/collapsible";
 import { useState, useMemo } from "react";
-import { Link } from "wouter";
+import { Link } from "react-router-dom";
 import { Search, User, Globe, Award, ChevronRight, Plus, Trash2, Star, AlertCircle, CheckCircle, Coins, SlidersHorizontal, ChevronDown, ChevronUp, X } from "lucide-react";
 import type { Player, EligibilityScore, ScoutShortlist } from "@shared/schema";
 import { LoadingSpinner } from "@dashboard/components/LoadingScreen";
@@ -103,8 +103,8 @@ export default function ScoutDashboard() {
       queryClient.invalidateQueries({ queryKey: ["/api/scout/shortlist"] });
       toast({ title: "Added to shortlist" });
     },
-    onError: (error: any) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+    onError: (error) => {
+      toast({ title: "Error", description: error instanceof Error ? error.message : "An error occurred", variant: "destructive" });
     },
   });
 
@@ -131,12 +131,12 @@ export default function ScoutDashboard() {
 
   const shortlistPlayerIds = new Set(shortlist.map(s => s.playerId));
 
-  const nationalities = useMemo(() => 
+  const nationalities = useMemo(() =>
     Array.from(new Set(players.map(p => p.nationality))).filter(Boolean).sort(),
     [players]
   );
 
-  const positions = useMemo(() => 
+  const positions = useMemo(() =>
     Array.from(new Set(players.map(p => p.position))).filter(Boolean).sort(),
     [players]
   );
@@ -172,29 +172,29 @@ export default function ScoutDashboard() {
         player.position.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (player.currentClubName || "").toLowerCase().includes(searchTerm.toLowerCase());
 
-      const matchesNationality = advancedFilters.nationality === "all" || 
+      const matchesNationality = advancedFilters.nationality === "all" ||
         player.nationality === advancedFilters.nationality;
 
-      const matchesPosition = advancedFilters.position === "all" || 
+      const matchesPosition = advancedFilters.position === "all" ||
         player.position === advancedFilters.position;
 
       const age = calculateAge(player.dateOfBirth);
-      const matchesAge = age === null || 
+      const matchesAge = age === null ||
         (age >= advancedFilters.ageMin && age <= advancedFilters.ageMax);
 
       const avgScore = getAverageScore(player.eligibilityScores);
-      const matchesEligibility = 
+      const matchesEligibility =
         avgScore >= advancedFilters.eligibilityMin &&
         avgScore <= advancedFilters.eligibilityMax;
 
       const matchesCaps = (player.nationalTeamCaps || 0) >= advancedFilters.capsMin;
 
       const status = getOverallStatus(player.eligibilityScores);
-      const matchesComplianceStatus = advancedFilters.complianceStatus === "all" || 
+      const matchesComplianceStatus = advancedFilters.complianceStatus === "all" ||
         status === advancedFilters.complianceStatus;
 
-      return matchesSearch && matchesNationality && matchesPosition && 
-             matchesAge && matchesEligibility && matchesCaps && matchesComplianceStatus;
+      return matchesSearch && matchesNationality && matchesPosition &&
+        matchesAge && matchesEligibility && matchesCaps && matchesComplianceStatus;
     });
   }, [players, searchTerm, advancedFilters]);
 
@@ -237,7 +237,7 @@ export default function ScoutDashboard() {
 
   const confirmShortlistWithTokens = async () => {
     if (!pendingShortlistPlayer) return;
-    
+
     try {
       await spendTokensMutation.mutateAsync({
         action: "shortlist",
@@ -245,6 +245,7 @@ export default function ScoutDashboard() {
       });
       await addToShortlistMutation.mutateAsync(pendingShortlistPlayer);
     } catch (error) {
+      console.error("Error shortlisting player:", error);
     }
     setTokenConfirmOpen(false);
     setPendingShortlistPlayer(null);
@@ -310,9 +311,9 @@ export default function ScoutDashboard() {
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between gap-4">
                     <CardTitle className="text-base">Advanced Filters</CardTitle>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={clearAllFilters}
                       data-testid="button-clear-filters"
                     >
@@ -325,8 +326,8 @@ export default function ScoutDashboard() {
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <div className="space-y-2">
                       <Label>Position</Label>
-                      <Select 
-                        value={advancedFilters.position} 
+                      <Select
+                        value={advancedFilters.position}
                         onValueChange={(v) => setAdvancedFilters(prev => ({ ...prev, position: v }))}
                       >
                         <SelectTrigger data-testid="filter-position">
@@ -343,8 +344,8 @@ export default function ScoutDashboard() {
 
                     <div className="space-y-2">
                       <Label>Nationality</Label>
-                      <Select 
-                        value={advancedFilters.nationality} 
+                      <Select
+                        value={advancedFilters.nationality}
                         onValueChange={(v) => setAdvancedFilters(prev => ({ ...prev, nationality: v }))}
                       >
                         <SelectTrigger data-testid="filter-nationality">
@@ -361,8 +362,8 @@ export default function ScoutDashboard() {
 
                     <div className="space-y-2">
                       <Label>Compliance Status</Label>
-                      <Select 
-                        value={advancedFilters.complianceStatus} 
+                      <Select
+                        value={advancedFilters.complianceStatus}
                         onValueChange={(v) => setAdvancedFilters(prev => ({ ...prev, complianceStatus: v }))}
                       >
                         <SelectTrigger data-testid="filter-compliance">
@@ -389,8 +390,8 @@ export default function ScoutDashboard() {
                         <Input
                           type="number"
                           value={advancedFilters.ageMin}
-                          onChange={(e) => setAdvancedFilters(prev => ({ 
-                            ...prev, 
+                          onChange={(e) => setAdvancedFilters(prev => ({
+                            ...prev,
                             ageMin: Math.max(15, Math.min(parseInt(e.target.value) || 15, prev.ageMax))
                           }))}
                           min={15}
@@ -402,8 +403,8 @@ export default function ScoutDashboard() {
                         <Input
                           type="number"
                           value={advancedFilters.ageMax}
-                          onChange={(e) => setAdvancedFilters(prev => ({ 
-                            ...prev, 
+                          onChange={(e) => setAdvancedFilters(prev => ({
+                            ...prev,
                             ageMax: Math.max(prev.ageMin, Math.min(parseInt(e.target.value) || 45, 45))
                           }))}
                           min={15}
@@ -423,8 +424,8 @@ export default function ScoutDashboard() {
                       </div>
                       <Slider
                         value={[advancedFilters.eligibilityMin, advancedFilters.eligibilityMax]}
-                        onValueChange={([min, max]) => setAdvancedFilters(prev => ({ 
-                          ...prev, 
+                        onValueChange={([min, max]) => setAdvancedFilters(prev => ({
+                          ...prev,
                           eligibilityMin: min,
                           eligibilityMax: max
                         }))}
@@ -575,7 +576,7 @@ export default function ScoutDashboard() {
                       </div>
                     )}
                     <div className="flex gap-2 pt-2 flex-wrap">
-                      <Link href={`/scout/player/${player.id}`}>
+                      <Link to={`/dashboard/scout/player/${player.id}`}>
                         <Button variant="outline" size="sm" data-testid={`button-view-player-${player.id}`}>
                           View Profile
                           <ChevronRight className="ml-1 h-4 w-4" />
@@ -641,9 +642,9 @@ export default function ScoutDashboard() {
             Object.entries(priorityConfig).map(([priority, config]) => {
               const priorityShortlist = groupedShortlist[priority as keyof typeof groupedShortlist];
               if (priorityShortlist.length === 0) return null;
-              
+
               const Icon = config.icon;
-              
+
               return (
                 <div key={priority} className="space-y-3">
                   <div className="flex items-center gap-2">
@@ -678,7 +679,7 @@ export default function ScoutDashboard() {
                             <span>{entry.player.nationality}</span>
                           </div>
                           <div className="flex flex-wrap gap-2 pt-2">
-                            <Link href={`/scout/player/${entry.playerId}`}>
+                            <Link to={`/dashboard/scout/player/${entry.playerId}`}>
                               <Button variant="outline" size="sm" data-testid={`button-view-shortlist-${entry.id}`}>
                                 View Profile
                                 <ChevronRight className="ml-1 h-4 w-4" />
@@ -725,7 +726,7 @@ export default function ScoutDashboard() {
               Confirm Token Spend
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Adding this player to your shortlist will cost 1 token. 
+              Adding this player to your shortlist will cost 1 token.
               Your current balance is {balance} tokens.
             </AlertDialogDescription>
           </AlertDialogHeader>

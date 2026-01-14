@@ -1,4 +1,4 @@
-import { useLocation, Link } from "wouter";
+import { useLocation, Link } from "react-router-dom";
 import {
   Sidebar,
   SidebarContent,
@@ -48,7 +48,7 @@ export default function AppSidebar({
   userRoleRaw = "sporting_director",
   pendingVerifications = 3
 }: AppSidebarProps) {
-  const [location] = useLocation();
+  const location = useLocation();
 
   const teamNavItems = [
     { title: "Dashboard", url: "/", icon: LayoutDashboard },
@@ -104,8 +104,8 @@ export default function AppSidebar({
   const mainNavItems = isPlatformAdmin ? platformAdminNavItems : isFederationAdmin ? federationAdminNavItems : isEmbassy ? embassyNavItems : isScout ? scoutNavItems : teamNavItems;
 
   const isActive = (url: string) => {
-    if (url === "/") return location === "/";
-    return location.startsWith(url);
+    if (url === "/") return location.pathname === "/" || location.pathname === "/dashboard";
+    return location.pathname.startsWith(url);
   };
 
   return (
@@ -136,7 +136,7 @@ export default function AppSidebar({
                     isActive={isActive(item.url)}
                     data-testid={`nav-${item.title.toLowerCase()}`}
                   >
-                    <Link href={item.url}>
+                    <Link to={item.url}>
                       <item.icon className="h-4 w-4" />
                       <span>{item.title}</span>
                     </Link>
@@ -159,7 +159,7 @@ export default function AppSidebar({
                       isActive={isActive(item.url)}
                       data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}
                     >
-                      <Link href={item.url}>
+                      <Link to={item.url}>
                         <item.icon className="h-4 w-4" />
                         <span>{item.title}</span>
                         {item.badge && item.badge > 0 && (

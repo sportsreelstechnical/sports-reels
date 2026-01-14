@@ -4,12 +4,12 @@ import { Badge } from "@dashboard/components/ui/badge";
 import { Button } from "@dashboard/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@dashboard/components/ui/tabs";
 import { Separator } from "@dashboard/components/ui/separator";
-import { 
-  Users, 
-  Mail, 
-  DollarSign, 
-  Activity, 
-  Shield, 
+import {
+  Users,
+  Mail,
+  DollarSign,
+  Activity,
+  Shield,
   FileText,
   Building,
   Globe,
@@ -18,7 +18,7 @@ import {
   Clock,
   AlertCircle
 } from "lucide-react";
-import { Link } from "wouter";
+import { Link } from "react-router-dom";
 
 export default function AdminDashboard() {
   const { data: stats, isLoading: statsLoading } = useQuery<{
@@ -69,47 +69,47 @@ export default function AdminDashboard() {
   const pendingMessagesCount = messages?.filter(m => m.status === "pending").length || 0;
 
   const statCards = [
-    { 
-      title: "Total Users", 
-      value: stats?.totalUsers || 0, 
-      icon: Users, 
+    {
+      title: "Total Users",
+      value: stats?.totalUsers || 0,
+      icon: Users,
       color: "text-blue-500",
-      link: "/admin/users"
+      link: "/dashboard/admin/users"
     },
-    { 
-      title: "Total Teams", 
-      value: stats?.totalTeams || 0, 
-      icon: Building, 
+    {
+      title: "Total Teams",
+      value: stats?.totalTeams || 0,
+      icon: Building,
       color: "text-green-500",
-      link: "/admin/users"
+      link: "/dashboard/admin/users"
     },
-    { 
-      title: "Total Players", 
-      value: stats?.totalPlayers || 0, 
-      icon: Activity, 
+    {
+      title: "Total Players",
+      value: stats?.totalPlayers || 0,
+      icon: Activity,
       color: "text-purple-500",
-      link: "/admin/users"
+      link: "/dashboard/admin/users"
     },
-    { 
-      title: "Scouts", 
-      value: stats?.totalScouts || 0, 
-      icon: Eye, 
+    {
+      title: "Scouts",
+      value: stats?.totalScouts || 0,
+      icon: Eye,
       color: "text-orange-500",
-      link: "/admin/users?role=scout"
+      link: "/dashboard/admin/users?role=scout"
     },
-    { 
-      title: "Embassy Users", 
-      value: stats?.totalEmbassyUsers || 0, 
-      icon: Globe, 
+    {
+      title: "Embassy Users",
+      value: stats?.totalEmbassyUsers || 0,
+      icon: Globe,
       color: "text-teal-500",
-      link: "/admin/users?role=embassy"
+      link: "/dashboard/admin/users?role=embassy"
     },
-    { 
-      title: "Federation Users", 
-      value: stats?.totalFederationUsers || 0, 
-      icon: Shield, 
+    {
+      title: "Federation Users",
+      value: stats?.totalFederationUsers || 0,
+      icon: Shield,
       color: "text-pink-500",
-      link: "/admin/users?role=federation"
+      link: "/dashboard/admin/users?role=federation"
     },
   ];
 
@@ -138,7 +138,7 @@ export default function AdminDashboard() {
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {statCards.map((stat) => (
-          <Link key={stat.title} href={stat.link}>
+          <Link key={stat.title} to={stat.link}>
             <Card className="hover-elevate cursor-pointer" data-testid={`card-stat-${stat.title.toLowerCase().replace(/\s/g, '-')}`}>
               <CardContent className="p-4">
                 <div className="flex items-center gap-2">
@@ -159,37 +159,37 @@ export default function AdminDashboard() {
             <CardDescription>Common administrative tasks</CardDescription>
           </CardHeader>
           <CardContent className="grid grid-cols-2 gap-3">
-            <Link href="/admin/users">
+            <Link to="/dashboard/admin/users">
               <Button variant="outline" className="w-full justify-start gap-2" data-testid="button-manage-users">
                 <Users className="h-4 w-4" />
                 Manage Users
               </Button>
             </Link>
-            <Link href="/admin/users/new">
+            <Link to="/dashboard/admin/users/new">
               <Button variant="outline" className="w-full justify-start gap-2" data-testid="button-create-account">
                 <UserPlus className="h-4 w-4" />
                 Create Account
               </Button>
             </Link>
-            <Link href="/admin/messages">
+            <Link to="/dashboard/admin/messages">
               <Button variant="outline" className="w-full justify-start gap-2" data-testid="button-message-inbox">
                 <Mail className="h-4 w-4" />
                 Message Inbox
               </Button>
             </Link>
-            <Link href="/admin/payments">
+            <Link to="/dashboard/admin/payments">
               <Button variant="outline" className="w-full justify-start gap-2" data-testid="button-payments">
                 <DollarSign className="h-4 w-4" />
                 View Payments
               </Button>
             </Link>
-            <Link href="/admin/audit-logs">
+            <Link to="/dashboard/admin/audit-logs">
               <Button variant="outline" className="w-full justify-start gap-2" data-testid="button-audit-logs">
                 <FileText className="h-4 w-4" />
                 Audit Logs
               </Button>
             </Link>
-            <Link href="/admin/gdpr">
+            <Link to="/dashboard/admin/gdpr">
               <Button variant="outline" className="w-full justify-start gap-2" data-testid="button-gdpr">
                 <Shield className="h-4 w-4" />
                 GDPR Requests
@@ -224,7 +224,7 @@ export default function AdminDashboard() {
               <div className="text-sm text-muted-foreground">No activity recorded yet</div>
             )}
             {auditLogs && auditLogs.length > 5 && (
-              <Link href="/admin/audit-logs">
+              <Link to="/dashboard/admin/audit-logs">
                 <Button variant="ghost" size="sm" className="mt-3 w-full" data-testid="button-view-all-logs">
                   View all logs
                 </Button>
@@ -248,7 +248,7 @@ export default function AdminDashboard() {
               {gdprRequests.slice(0, 5).map((request) => (
                 <div key={request.id} className="flex items-center justify-between text-sm py-2 border-b last:border-0" data-testid={`row-gdpr-${request.id}`}>
                   <div className="flex items-center gap-2">
-                    <Badge 
+                    <Badge
                       variant={request.status === "pending" ? "destructive" : request.status === "completed" ? "default" : "secondary"}
                     >
                       {request.status}
@@ -264,7 +264,7 @@ export default function AdminDashboard() {
                 </div>
               ))}
             </div>
-            <Link href="/admin/gdpr">
+            <Link to="/dashboard/admin/gdpr">
               <Button variant="ghost" size="sm" className="mt-3 w-full" data-testid="button-view-all-gdpr">
                 Manage all GDPR requests
               </Button>

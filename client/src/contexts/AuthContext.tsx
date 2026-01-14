@@ -25,6 +25,7 @@ export interface Profile {
   user_type: 'agent' | 'team' | 'embassy' | 'admin';
   role?: string;
   country?: string; // Optional for now
+  profile_completed?: boolean;
 }
 
 interface AuthContextType {
@@ -33,11 +34,11 @@ interface AuthContextType {
   team: Team | null;
   loading: boolean;
   isAdmin: boolean;
-  signUp: (email: string, password: string, userData: any) => Promise<{ error: any }>;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
+  signUp: (email: string, password: string, userData: Record<string, unknown>) => Promise<{ error: Error | null }>;
+  signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
-  updateProfile: (updates: Partial<Profile>) => Promise<{ error: any }>;
+  updateProfile: (updates: Partial<Profile>) => Promise<{ error: Error | null }>;
   checkAdminRole: () => Promise<boolean>;
   refreshUser: () => Promise<void>;
 }
@@ -66,7 +67,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           full_name: `${data.user.firstName || ''} ${data.user.lastName || ''}`.trim() || data.user.username,
           email: data.user.email,
           user_type: data.user.role === 'agent' || data.user.role === 'scout' ? 'agent' : 'team', // Simple mapping
-          role: data.user.role
+          role: data.user.role,
+          profile_completed: !!(data.user.firstName || data.user.lastName)
         };
         setProfile(mappedProfile);
         setIsAdmin(data.user.role === 'admin');
@@ -87,7 +89,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     fetchUser();
   }, []);
 
-  const signUp = async (email: string, password: string, userData: any) => {
+  const signUp = async (email: string, password: string, userData: Record<string, unknown>) => {
     try {
       // Map client signup data to server expectation
       const payload = {
@@ -110,14 +112,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       await fetchUser(); // Refresh state
 
       return { error: null };
-    } catch (error: any) {
+    } catch (error) {
       console.error('Signup error:', error);
       toast({
         title: "Sign Up Error",
-        description: error.message,
+        description: error instanceof Error ? error.message : "An unknown error occurred",
         variant: "destructive"
       });
-      return { error };
+      return { error: error instanceof Error ? error : new Error(String(error)) };
     }
   };
 
@@ -131,14 +133,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       console.log('Sign in successful, redirecting to dashboard');
 
       return { error: null };
-    } catch (error: any) {
+    } catch (error) {
       console.error('SignIn error:', error);
       toast({
         title: "Sign In Error",
-        description: error.message,
+        description: error instanceof Error ? error.message : "An unknown error occurred",
         variant: "destructive"
       });
-      return { error };
+      return { error: error instanceof Error ? error : new Error(String(error)) };
     }
   };
 
@@ -159,7 +161,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setTeam(null);
       setIsAdmin(false);
       window.location.href = '/auth';
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error signing out:', error);
     }
   };

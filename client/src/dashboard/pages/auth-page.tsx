@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { useLocation } from "wouter";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -8,6 +8,7 @@ import { Loader2 } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@dashboard/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 import { Button } from "@dashboard/components/ui/button";
 import {
@@ -54,7 +55,8 @@ const signupSchema = z.object({
 });
 
 export default function AuthPage() {
-    const [location, setLocation] = useLocation();
+    const location = useLocation();
+    const navigate = useNavigate();
     const { toast } = useToast();
     const queryClient = useQueryClient();
     const [activeTab, setActiveTab] = useState<"login" | "signup">("login");
@@ -65,6 +67,15 @@ export default function AuthPage() {
     const [selectedRole, setSelectedRole] = useState<string>(initialRole);
 
     const isPlatformAdmin = selectedRole === "admin";
+
+    // Check if user is already logged in
+    const { user, loading } = useAuth();
+
+    useEffect(() => {
+        if (!loading && user) {
+            navigate("/dashboard");
+        }
+    }, [user, loading, navigate]);
 
     useEffect(() => {
         if (isPlatformAdmin) {
@@ -111,9 +122,7 @@ export default function AuthPage() {
             });
             // Invalidate queries or set user state
             queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
-
-            // Force reload to update app state if needed, or rely on App.tsx to catch the new user
-            window.location.href = "/dashboard";
+            navigate("/dashboard");
         },
         onError: (error: Error) => {
             toast({
@@ -135,7 +144,7 @@ export default function AuthPage() {
                 description: "You have successfully signed up.",
             });
             queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
-            window.location.href = "/dashboard";
+            navigate("/dashboard");
         },
         onError: (error: Error) => {
             toast({

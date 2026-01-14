@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useLocation } from "wouter";
+import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -75,7 +75,8 @@ function calculateAge(dateOfBirth: string | null | undefined): number | null {
 }
 
 export default function Players() {
-  const [, setLocation] = useLocation();
+  const navigate = useNavigate();
+  const setLocation = (path: string) => navigate(path.startsWith("/") ? `/dashboard${path}` : path);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
@@ -123,46 +124,46 @@ export default function Players() {
     },
   });
 
-  const players = (apiPlayers && apiPlayers.length > 0) 
+  const players = (apiPlayers && apiPlayers.length > 0)
     ? apiPlayers.map((p: any) => ({
-        id: p.id,
-        firstName: p.firstName,
-        lastName: p.lastName,
-        nationality: p.nationality,
-        dateOfBirth: p.dateOfBirth,
-        position: p.position,
-        currentClub: p.currentClubId || "Unknown Club",
-        currentLeague: "Unknown League",
-        leagueBand: 5 as const,
-        leaguePosition: 0,
-        nationalTeamCaps: p.nationalTeamCaps || 0,
-        internationalCaps: p.internationalCaps || 0,
-        continentalGames: p.continentalGames || 0,
-        currentSeasonMinutes: 0,
-        totalCareerMinutes: 0,
-        height: p.height,
-        weight: p.weight,
-        preferredFoot: p.preferredFoot,
-        medicalDataAvailable: false,
-        gpsDataAvailable: false,
-        schengenScore: 50,
-        ukGbeScore: 50,
-        usP1Score: 50,
-        usO1Score: 50,
-        middleEastScore: 50,
-        asiaScore: 50,
-        fifaTransferScore: 50,
-        overallEligibilityScore: 50,
-        lastUpdated: p.updatedAt || new Date().toISOString(),
-      }))
+      id: p.id,
+      firstName: p.firstName,
+      lastName: p.lastName,
+      nationality: p.nationality,
+      dateOfBirth: p.dateOfBirth,
+      position: p.position,
+      currentClub: p.currentClubId || "Unknown Club",
+      currentLeague: "Unknown League",
+      leagueBand: 5 as const,
+      leaguePosition: 0,
+      nationalTeamCaps: p.nationalTeamCaps || 0,
+      internationalCaps: p.internationalCaps || 0,
+      continentalGames: p.continentalGames || 0,
+      currentSeasonMinutes: 0,
+      totalCareerMinutes: 0,
+      height: p.height,
+      weight: p.weight,
+      preferredFoot: p.preferredFoot,
+      medicalDataAvailable: false,
+      gpsDataAvailable: false,
+      schengenScore: 50,
+      ukGbeScore: 50,
+      usP1Score: 50,
+      usO1Score: 50,
+      middleEastScore: 50,
+      asiaScore: 50,
+      fifaTransferScore: 50,
+      overallEligibilityScore: 50,
+      lastUpdated: p.updatedAt || new Date().toISOString(),
+    }))
     : mockPlayers;
 
-  const nationalities = useMemo(() => 
+  const nationalities = useMemo(() =>
     Array.from(new Set(players.map((p: Player) => p.nationality))).filter(Boolean).sort(),
     [players]
   );
 
-  const positions = useMemo(() => 
+  const positions = useMemo(() =>
     Array.from(new Set(players.map((p: Player) => p.position))).filter(Boolean).sort(),
     [players]
   );
@@ -189,28 +190,28 @@ export default function Players() {
       const status = getVisaStatus(player.overallEligibilityScore);
       const matchesStatus = statusFilter === "all" || status === statusFilter;
 
-      const matchesNationality = advancedFilters.nationality === "all" || 
+      const matchesNationality = advancedFilters.nationality === "all" ||
         player.nationality === advancedFilters.nationality;
 
-      const matchesPosition = advancedFilters.position === "all" || 
+      const matchesPosition = advancedFilters.position === "all" ||
         player.position === advancedFilters.position;
 
       const age = calculateAge(player.dateOfBirth);
-      const matchesAge = age === null || 
+      const matchesAge = age === null ||
         (age >= advancedFilters.ageMin && age <= advancedFilters.ageMax);
 
-      const matchesEligibility = 
+      const matchesEligibility =
         player.overallEligibilityScore >= advancedFilters.eligibilityMin &&
         player.overallEligibilityScore <= advancedFilters.eligibilityMax;
 
       const matchesCaps = player.nationalTeamCaps >= advancedFilters.capsMin;
 
-      const matchesFoot = advancedFilters.preferredFoot === "all" || 
+      const matchesFoot = advancedFilters.preferredFoot === "all" ||
         player.preferredFoot === advancedFilters.preferredFoot;
 
-      return matchesSearch && matchesStatus && matchesNationality && 
-             matchesPosition && matchesAge && matchesEligibility && 
-             matchesCaps && matchesFoot;
+      return matchesSearch && matchesStatus && matchesNationality &&
+        matchesPosition && matchesAge && matchesEligibility &&
+        matchesCaps && matchesFoot;
     });
   }, [players, searchQuery, statusFilter, advancedFilters]);
 
@@ -278,7 +279,7 @@ export default function Players() {
                     )}
                   />
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -502,9 +503,9 @@ export default function Players() {
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between gap-4">
                 <CardTitle className="text-base">Advanced Filters</CardTitle>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={clearAllFilters}
                   data-testid="button-clear-filters"
                 >
@@ -517,8 +518,8 @@ export default function Players() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <div className="space-y-2">
                   <Label>Nationality</Label>
-                  <Select 
-                    value={advancedFilters.nationality} 
+                  <Select
+                    value={advancedFilters.nationality}
                     onValueChange={(v) => setAdvancedFilters(prev => ({ ...prev, nationality: v }))}
                   >
                     <SelectTrigger data-testid="filter-nationality">
@@ -535,8 +536,8 @@ export default function Players() {
 
                 <div className="space-y-2">
                   <Label>Position</Label>
-                  <Select 
-                    value={advancedFilters.position} 
+                  <Select
+                    value={advancedFilters.position}
                     onValueChange={(v) => setAdvancedFilters(prev => ({ ...prev, position: v }))}
                   >
                     <SelectTrigger data-testid="filter-position">
@@ -553,8 +554,8 @@ export default function Players() {
 
                 <div className="space-y-2">
                   <Label>Preferred Foot</Label>
-                  <Select 
-                    value={advancedFilters.preferredFoot} 
+                  <Select
+                    value={advancedFilters.preferredFoot}
                     onValueChange={(v) => setAdvancedFilters(prev => ({ ...prev, preferredFoot: v }))}
                   >
                     <SelectTrigger data-testid="filter-foot">
@@ -580,8 +581,8 @@ export default function Players() {
                     <Input
                       type="number"
                       value={advancedFilters.ageMin}
-                      onChange={(e) => setAdvancedFilters(prev => ({ 
-                        ...prev, 
+                      onChange={(e) => setAdvancedFilters(prev => ({
+                        ...prev,
                         ageMin: Math.max(15, Math.min(parseInt(e.target.value) || 15, prev.ageMax))
                       }))}
                       min={15}
@@ -593,8 +594,8 @@ export default function Players() {
                     <Input
                       type="number"
                       value={advancedFilters.ageMax}
-                      onChange={(e) => setAdvancedFilters(prev => ({ 
-                        ...prev, 
+                      onChange={(e) => setAdvancedFilters(prev => ({
+                        ...prev,
                         ageMax: Math.max(prev.ageMin, Math.min(parseInt(e.target.value) || 45, 45))
                       }))}
                       min={15}
@@ -614,8 +615,8 @@ export default function Players() {
                   </div>
                   <Slider
                     value={[advancedFilters.eligibilityMin, advancedFilters.eligibilityMax]}
-                    onValueChange={([min, max]) => setAdvancedFilters(prev => ({ 
-                      ...prev, 
+                    onValueChange={([min, max]) => setAdvancedFilters(prev => ({
+                      ...prev,
                       eligibilityMin: min,
                       eligibilityMax: max
                     }))}
@@ -741,8 +742,8 @@ export default function Players() {
           </TabsList>
 
           <TabsContent value="all" className="mt-6">
-            <div className={viewMode === "grid" 
-              ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" 
+            <div className={viewMode === "grid"
+              ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
               : "space-y-4"
             }>
               {filteredPlayers.map((player: Player) => (
@@ -770,8 +771,8 @@ export default function Players() {
 
           {["green", "yellow", "red"].map((status) => (
             <TabsContent key={status} value={status} className="mt-6">
-              <div className={viewMode === "grid" 
-                ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" 
+              <div className={viewMode === "grid"
+                ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
                 : "space-y-4"
               }>
                 {filteredPlayers

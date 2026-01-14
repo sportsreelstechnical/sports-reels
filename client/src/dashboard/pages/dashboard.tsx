@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useLocation } from "wouter";
+import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import StatsCard from "@dashboard/components/StatsCard";
 import PlayerCard from "@dashboard/components/PlayerCard";
@@ -29,17 +29,20 @@ interface MapData {
 }
 
 export default function Dashboard() {
-  const [, setLocation] = useLocation();
+  const navigate = useNavigate();
+  const setLocation = (path: string) => navigate(path.startsWith("/") ? `/dashboard${path}` : path);
   const [searchQuery, setSearchQuery] = useState("");
 
   const { data: statsData, isLoading: statsLoading } = useQuery<DashboardStats>({
     queryKey: ["/api/dashboard/stats"],
   });
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: verificationsData } = useQuery<any[]>({
     queryKey: ["/api/embassy/verifications"],
   });
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: inquiriesData } = useQuery<any[]>({
     queryKey: ["/api/scouting/inquiries"],
   });
@@ -94,30 +97,30 @@ export default function Dashboard() {
           </>
         ) : (
           <>
-            <StatsCard 
-              title="Total Players" 
-              value={stats.totalPlayers} 
-              icon={Users} 
+            <StatsCard
+              title="Total Players"
+              value={stats.totalPlayers}
+              icon={Users}
               trend={12}
               description="In your database"
             />
-            <StatsCard 
-              title="Green Status" 
-              value={stats.greenStatus} 
-              icon={FileCheck} 
+            <StatsCard
+              title="Green Status"
+              value={stats.greenStatus}
+              icon={FileCheck}
               trend={5}
               description="Visa eligible"
             />
-            <StatsCard 
-              title="Pending Verifications" 
-              value={stats.pendingVerifications} 
+            <StatsCard
+              title="Pending Verifications"
+              value={stats.pendingVerifications}
               icon={AlertTriangle}
               description="Awaiting embassy"
             />
-            <StatsCard 
-              title="Active Inquiries" 
-              value={stats.activeInquiries} 
-              icon={TrendingUp} 
+            <StatsCard
+              title="Active Inquiries"
+              value={stats.activeInquiries}
+              icon={TrendingUp}
               trend={8}
               description="Transfer discussions"
             />
@@ -222,16 +225,16 @@ export default function Dashboard() {
               <div className="mt-4 h-4 rounded-full overflow-hidden bg-muted flex">
                 {stats.totalPlayers > 0 && (
                   <>
-                    <div 
-                      className="bg-green-500" 
+                    <div
+                      className="bg-green-500"
                       style={{ width: `${(stats.greenStatus / stats.totalPlayers) * 100}%` }}
                     />
-                    <div 
-                      className="bg-yellow-500" 
+                    <div
+                      className="bg-yellow-500"
                       style={{ width: `${(stats.yellowStatus / stats.totalPlayers) * 100}%` }}
                     />
-                    <div 
-                      className="bg-red-500" 
+                    <div
+                      className="bg-red-500"
                       style={{ width: `${(stats.redStatus / stats.totalPlayers) * 100}%` }}
                     />
                   </>

@@ -1,4 +1,4 @@
-import { useRoute } from "wouter";
+import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@dashboard/components/ui/card";
 import { Badge } from "@dashboard/components/ui/badge";
@@ -17,9 +17,9 @@ interface DocumentDetails {
 }
 
 export default function EmbassyDocumentView() {
-  const [, params] = useRoute("/embassy/document/:id");
+  const { id } = useParams<{ id: string }>();
   /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-  const documentId = (params as any)?.id;
+  const documentId = id;
 
   const { data, isLoading, error } = useQuery<DocumentDetails>({
     queryKey: [`/api/embassy/documents/${documentId}`],

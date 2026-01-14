@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useLocation } from "wouter";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import PlayerInternationalRecords from "@dashboard/components/PlayerInternationalRecords";
 import PlayerProfileEditor from "@dashboard/components/PlayerProfileEditor";
@@ -24,11 +24,13 @@ interface PlayerProfileProps {
 }
 
 export default function PlayerProfile({ params, isScoutView }: PlayerProfileProps) {
-  const [location, setLocation] = useLocation();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const setLocation = (path: string) => navigate(path.startsWith("/") ? `/dashboard${path}` : path);
   const playerId = params?.id || "";
-  
+
   // Detect if we're in scout view based on the current path
-  const isScout = isScoutView || location.startsWith("/scout/");
+  const isScout = isScoutView || location.pathname.startsWith("/dashboard/scout/");
   const [selectedVideo, setSelectedVideo] = useState<VideoType | null>(null);
   const [isVideoPlayerOpen, setIsVideoPlayerOpen] = useState(false);
   const { toast } = useToast();
@@ -87,9 +89,9 @@ export default function PlayerProfile({ params, isScoutView }: PlayerProfileProp
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/players", playerId] });
       queryClient.invalidateQueries({ queryKey: ["/api/tokens/balance"] });
-      toast({ 
+      toast({
         title: data.published ? "Player Published" : "Player Unpublished",
-        description: data.published 
+        description: data.published
           ? `Profile visible to scouts for 30 days. ${data.tokensSpent} tokens spent.`
           : "Profile removed from scout network."
       });
@@ -111,7 +113,7 @@ export default function PlayerProfile({ params, isScoutView }: PlayerProfileProp
       queryClient.invalidateQueries({ queryKey: ["/api/tokens/balance"] });
       const fullUrl = `${window.location.origin}${data.shareUrl}`;
       navigator.clipboard.writeText(fullUrl);
-      toast({ 
+      toast({
         title: "Share Link Created",
         description: `Link copied to clipboard. ${data.tokensSpent} tokens spent.`
       });
@@ -177,8 +179,8 @@ export default function PlayerProfile({ params, isScoutView }: PlayerProfileProp
       <div className="flex items-start gap-6">
         <div className="h-24 w-24 rounded-full bg-muted flex items-center justify-center">
           {player.profileImageUrl ? (
-            <img 
-              src={player.profileImageUrl} 
+            <img
+              src={player.profileImageUrl}
               alt={`${player.firstName} ${player.lastName}`}
               className="h-24 w-24 rounded-full object-cover"
             />
@@ -285,7 +287,7 @@ export default function PlayerProfile({ params, isScoutView }: PlayerProfileProp
               <div className="space-y-1">
                 <p className="font-medium">Publish to Scout Network</p>
                 <p className="text-sm text-muted-foreground">
-                  Make this player visible to scouts for 30 days. 
+                  Make this player visible to scouts for 30 days.
                   <span className="font-medium ml-1">Cost: 4 tokens/month</span>
                 </p>
                 {player.isPublishedToScouts && player.publishExpiresAt && (
@@ -397,9 +399,9 @@ export default function PlayerProfile({ params, isScoutView }: PlayerProfileProp
         </TabsContent>
 
         <TabsContent value="international" className="mt-6">
-          <PlayerInternationalRecords 
-            playerId={player.id} 
-            playerName={`${player.firstName} ${player.lastName}`} 
+          <PlayerInternationalRecords
+            playerId={player.id}
+            playerName={`${player.firstName} ${player.lastName}`}
           />
         </TabsContent>
 
@@ -429,7 +431,7 @@ export default function PlayerProfile({ params, isScoutView }: PlayerProfileProp
                         <Badge variant="secondary" className="text-xs">Analyzed</Badge>
                       )}
                     </div>
-                    
+
                     <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
                       {video.matchDate && (
                         <span className="flex items-center gap-1">
@@ -457,8 +459,8 @@ export default function PlayerProfile({ params, isScoutView }: PlayerProfileProp
                       </p>
                     )}
 
-                    <Button 
-                      size="sm" 
+                    <Button
+                      size="sm"
                       variant="default"
                       className="w-full"
                       onClick={() => {
@@ -479,11 +481,11 @@ export default function PlayerProfile({ params, isScoutView }: PlayerProfileProp
 
         <TabsContent value="documents" className="mt-6">
           <div className="space-y-6">
-            <PlayerDocumentManager 
-              playerId={player.id} 
-              playerName={`${player.firstName} ${player.lastName}`} 
+            <PlayerDocumentManager
+              playerId={player.id}
+              playerName={`${player.firstName} ${player.lastName}`}
             />
-            
+
             {!isScout && (
               <>
                 <Separator />
@@ -492,7 +494,7 @@ export default function PlayerProfile({ params, isScoutView }: PlayerProfileProp
                     <Award className="h-5 w-5" />
                     Issued Federation Letters
                   </h3>
-                  
+
                   {issuedFederationLetters.length === 0 ? (
                     <Card>
                       <CardContent className="py-8 text-center">
@@ -547,7 +549,7 @@ export default function PlayerProfile({ params, isScoutView }: PlayerProfileProp
                                 </p>
                               </div>
                             </div>
-                            
+
                             {letter.issuedDocumentObjectPath && (
                               <div className="flex items-center gap-2 pt-2">
                                 <Button
@@ -587,7 +589,7 @@ export default function PlayerProfile({ params, isScoutView }: PlayerProfileProp
         </TabsContent>
       </Tabs>
 
-      <VideoPlayer 
+      <VideoPlayer
         video={selectedVideo}
         isOpen={isVideoPlayerOpen}
         onClose={() => {

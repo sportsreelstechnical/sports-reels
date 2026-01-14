@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import AuthForm from '@/components/AuthForm';
+import { Navigate } from 'react-router-dom';
 import OnboardingFlow from '@/components/OnboardingFlow';
 import Layout from '@/components/Layout';
 import Dashboard from '@/components/Dashboard';
@@ -26,8 +26,8 @@ const Index = () => {
   }
 
   if (!user) {
-    console.log('No user found, showing auth form');
-    return <AuthForm />;
+    console.log('No user found, redirecting to auth');
+    return <Navigate to="/auth" replace />;
   }
 
   // If user exists but profile is null or profile is not completed, show onboarding

@@ -1,7 +1,7 @@
 import { useTokenBalance } from "@dashboard/hooks/use-tokens";
 import { Badge } from "@dashboard/components/ui/badge";
 import { Coins } from "lucide-react";
-import { Link } from "wouter";
+import { Link } from "react-router-dom";
 
 export default function TokenBalanceIndicator() {
   const { data: tokenBalance, isLoading } = useTokenBalance();
@@ -18,9 +18,9 @@ export default function TokenBalanceIndicator() {
   const balance = tokenBalance?.balance || 0;
 
   return (
-    <Link href="/token-bank">
-      <Badge 
-        variant={balance < 10 ? "destructive" : "secondary"} 
+    <Link to="/dashboard/token-bank">
+      <Badge
+        variant={balance < 10 ? "destructive" : "secondary"}
         className="gap-1 cursor-pointer"
         data-testid="badge-token-balance"
       >
