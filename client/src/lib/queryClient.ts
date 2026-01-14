@@ -1,5 +1,17 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
+const BASE_URL = import.meta.env.VITE_BACKEND_URL || "";
+
+// Helper to ensure URL handles both relative and absolute paths correctly
+const getFullUrl = (url: string) => {
+  if (url.startsWith("http")) return url;
+  // If it's an API call and we have a backend URL, prepend it
+  if (url.startsWith("/api") && BASE_URL) {
+    return `${BASE_URL}${url}`;
+  }
+  return url;
+};
+
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     const text = (await res.text()) || res.statusText;
@@ -10,9 +22,10 @@ async function throwIfResNotOk(res: Response) {
 export async function apiRequest(
   method: string,
   url: string,
-  data?: unknown | undefined,
+  data?: unknown | undefined
 ): Promise<Response> {
-  const res = await fetch(url, {
+  const fullUrl = getFullUrl(url);
+  const res = await fetch(fullUrl, {
     method,
     headers: data ? { "Content-Type": "application/json" } : {},
     body: data ? JSON.stringify(data) : undefined,
@@ -29,7 +42,10 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const res = await fetch(queryKey.join("/") as string, {
+    const url = queryKey.join("/") as string;
+    const fullUrl = getFullUrl(url);
+
+    const res = await fetch(fullUrl, {
       credentials: "include",
     });
 

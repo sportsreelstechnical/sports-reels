@@ -1,11 +1,24 @@
 import { queryOptions } from "@tanstack/react-query";
 
-export async function apiRequest(
+const BASE_URL = import.meta.env.VITE_BACKEND_URL || "";
+
+// Helper to ensure URL handles both relative and absolute paths correctly
+const getFullUrl = (path: string) => {
+  if (path.startsWith("http")) return path;
+  if (path.startsWith("/api") && BASE_URL) {
+    return `${BASE_URL}${path}`;
+  }
+  return path;
+};
+
+export async function apiRequest<T = unknown>(
   method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE",
   path: string,
   body?: unknown
-): Promise<any> {
-  const res = await fetch(path, {
+): Promise<T> {
+  const fullUrl = getFullUrl(path);
+
+  const res = await fetch(fullUrl, {
     method,
     headers: {
       "Content-Type": "application/json",
@@ -20,7 +33,7 @@ export async function apiRequest(
 
   // Handle empty responses (e.g. 204 No Content)
   if (res.status === 204) {
-    return null;
+    return null as T;
   }
 
   return await res.json();
@@ -29,7 +42,8 @@ export async function apiRequest(
 export const getQueryFn =
   <T>(url: string) =>
   async (): Promise<T> => {
-    const res = await fetch(url);
+    const fullUrl = getFullUrl(url);
+    const res = await fetch(fullUrl);
     if (!res.ok) {
       throw new Error(await res.text());
     }
@@ -37,9 +51,12 @@ export const getQueryFn =
   };
 
 export const api = {
-  get: (path: string) => apiRequest("GET", path),
-  post: (path: string, body?: unknown) => apiRequest("POST", path, body),
-  put: (path: string, body?: unknown) => apiRequest("PUT", path, body),
-  patch: (path: string, body?: unknown) => apiRequest("PATCH", path, body),
-  delete: (path: string) => apiRequest("DELETE", path),
+  get: <T = unknown>(path: string) => apiRequest<T>("GET", path),
+  post: <T = unknown>(path: string, body?: unknown) =>
+    apiRequest<T>("POST", path, body),
+  put: <T = unknown>(path: string, body?: unknown) =>
+    apiRequest<T>("PUT", path, body),
+  patch: <T = unknown>(path: string, body?: unknown) =>
+    apiRequest<T>("PATCH", path, body),
+  delete: <T = unknown>(path: string) => apiRequest<T>("DELETE", path),
 };
