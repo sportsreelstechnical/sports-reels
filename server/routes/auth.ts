@@ -3,7 +3,49 @@ import { z } from "zod";
 import { storage } from "../storage";
 import { grantSignupBonus } from "../utils/helpers";
 
+import passport from "passport";
+
 export function registerAuthRoutes(app: Express): void {
+  app.get("/api/auth/google", (req, res, next) => {
+    const role = req.query.role as string;
+    if (role) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (req.session as any).intendedRole = role;
+    }
+    passport.authenticate("google", { scope: ["profile", "email"] })(
+      req,
+      res,
+      next
+    );
+  });
+
+  app.get(
+    "/api/auth/google/callback",
+    passport.authenticate("google", { failureRedirect: "/dashboard" }), // TODO: Redirect to login page on failure
+    (req, res) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const user = req.user as any;
+      req.session.userId = user.id;
+      req.session.userRole = user.role;
+      req.session.teamId = user.teamId || undefined;
+
+      // Handle extra session data for specific roles if needed
+      if (user.role === "embassy") {
+        // We might need to fetch profile here if it's not on the user object
+        // For now, let's rely on the subsequent /me call or login logic to handle it fully
+        // Or we can duplicate the login logic here.
+        // Let's keep it simple for now and redirect.
+      }
+
+      req.session.save((err) => {
+        if (err) {
+          console.error("Session save error:", err);
+          return res.redirect("/dashboard?error=session_error");
+        }
+        res.redirect("/dashboard");
+      });
+    }
+  );
   app.post("/api/auth/signup", async (req: Request, res: Response) => {
     try {
       const signupSchema = z
@@ -19,7 +61,7 @@ export function registerAuthRoutes(app: Express): void {
               "legal",
               "scout",
               "coach",
-              "admin",
+              // "admin", // Admin role restricted from public signup
               "agent",
               "embassy",
             ])
@@ -169,6 +211,7 @@ export function registerAuthRoutes(app: Express): void {
           resolve(undefined);
         });
       });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       console.error("Signup error:", error);
       res.status(400).json({ error: error.message });
@@ -233,6 +276,7 @@ export function registerAuthRoutes(app: Express): void {
           resolve(undefined);
         });
       });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       console.error("Login error:", error);
       res.status(400).json({ error: error.message });

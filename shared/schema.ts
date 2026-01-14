@@ -23,6 +23,7 @@ export const users = pgTable("users", {
   lastName: text("last_name"),
   role: text("role").notNull().default("scout"),
   teamId: varchar("team_id"),
+  googleId: text("google_id").unique(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -764,6 +765,7 @@ export const insertUserSchema = createInsertSchema(users).pick({
   lastName: true,
   role: true,
   teamId: true,
+  googleId: true,
 });
 
 export const insertTeamSchema = createInsertSchema(teams).pick({

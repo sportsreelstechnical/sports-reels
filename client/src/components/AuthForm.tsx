@@ -10,12 +10,13 @@ import InfoTooltip from '@/components/InfoTooltip';
 import { Checkbox } from '@/components/ui/checkbox';
 import GoogleLanguageSelector from '@/components/GoogleLanguageSelector';
 import TranslatedText from '@/components/TranslatedText';
+import { roles } from '@dashboard/lib/roles';
 
 const AuthForm = () => {
   // Authentication and form state
   const { signInWithGoogle } = useAuth();
   const { toast } = useToast();
-  const [userType, setUserType] = useState<'team' | 'agent'>('team');
+  const [userType, setUserType] = useState<string>('scout'); // Default to scout
   const [loading, setLoading] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
 
@@ -135,7 +136,7 @@ const AuthForm = () => {
         video.loop = true;
         video.muted = true;
         video.playsInline = true;
-        
+
         // Add load event listener to ensure video is loaded before playing
         const handleLoadedData = async () => {
           if (video && video.readyState >= 2) { // HAVE_CURRENT_DATA
@@ -180,7 +181,7 @@ const AuthForm = () => {
         video.addEventListener('loadeddata', handleLoadedData);
         video.addEventListener('canplay', handleCanPlay);
         video.load(); // Force reload the video
-        
+
         return () => {
           if (video) {
             video.removeEventListener('loadeddata', handleLoadedData);
@@ -205,26 +206,18 @@ const AuthForm = () => {
 
     setLoading(true);
     try {
-      // Clear any existing pending user type
-      localStorage.removeItem('pending_user_type');
+      console.log('Redirecting to Google Auth with role:', userType);
 
-      // Store the selected user type
-      localStorage.setItem('pending_user_type', userType);
-      console.log('Setting user type in localStorage:', userType);
+      // Redirect to backend auth
+      window.location.href = `/api/auth/google?role=${userType}`;
 
-      await signInWithGoogle();
-      toast({
-        title: "Welcome",
-        description: "Signing in with Google.",
-      });
     } catch (error) {
       console.error('Google sign-in error:', error);
       toast({
         title: "Authentication Error",
-        description: "Failed to sign in with Google. Please try again.",
+        description: "Failed to initiate Google Sign In.",
         variant: "destructive",
       });
-    } finally {
       setLoading(false);
     }
   };
@@ -241,7 +234,7 @@ const AuthForm = () => {
   };
 
   return (
-    <div 
+    <div
       className="relative min-h-screen flex items-center justify-center bg-black px-4 py-6 sm:px-8 sm:py-10 lg:px-0 lg:py-0"
       onClick={handleUserInteraction}
       onKeyDown={handleUserInteraction}
@@ -281,9 +274,9 @@ const AuthForm = () => {
 
             {/* Google Translation Language Selector */}
             <div className="flex justify-center mb-6">
-              <GoogleLanguageSelector 
-                variant="select" 
-                showFlag={true} 
+              <GoogleLanguageSelector
+                variant="select"
+                showFlag={true}
                 showNativeName={true}
                 showModeToggle={false}
                 size="md"
@@ -303,7 +296,7 @@ const AuthForm = () => {
                 </div>
                 <Select
                   value={userType}
-                  onValueChange={(value: 'team' | 'agent') => {
+                  onValueChange={(value) => {
                     console.log('User type changed to:', value);
                     setUserType(value);
                   }}
@@ -313,24 +306,18 @@ const AuthForm = () => {
                     <SelectValue placeholder="Select role" />
                   </SelectTrigger>
                   <SelectContent className="bg-[#2a2a2a] border-[#3a3a3a] rounded-lg shadow-lg">
-                    <SelectItem
-                      value="team"
-                      className="text-white hover:bg-[#3a3a3a] py-3"
-                    >
-                      <span className="flex items-center gap-2">
-                        <TranslatedText>Team Manager/Administrator</TranslatedText>
-                        <span>⚽</span>
-                      </span>
-                    </SelectItem>
-                    <SelectItem
-                      value="agent"
-                      className="text-white hover:bg-[#3a3a3a] py-3"
-                    >
-                      <span className="flex items-center gap-2">
-                        <TranslatedText>Agent/Scout</TranslatedText>
-                        <span>🔍</span>
-                      </span>
-                    </SelectItem>
+                    {roles.map((role) => (
+                      <SelectItem
+                        key={role.id}
+                        value={role.id}
+                        className="text-white hover:bg-[#3a3a3a] py-3"
+                      >
+                        <span className="flex items-center gap-2">
+                          <role.icon className="h-4 w-4" />
+                          <TranslatedText>{role.title}</TranslatedText>
+                        </span>
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

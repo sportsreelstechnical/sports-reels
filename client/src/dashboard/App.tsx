@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Switch, Route, useLocation, Router as WouterRouter } from "wouter";
 import { queryClient } from "./lib/queryClient";
-import { QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { Toaster } from "@dashboard/components/ui/toaster";
 import { TooltipProvider } from "@dashboard/components/ui/tooltip";
 import { SidebarProvider, SidebarTrigger } from "@dashboard/components/ui/sidebar";
@@ -26,7 +26,6 @@ import MessagesPage from "@dashboard/pages/messages";
 import SettingsPage from "@dashboard/pages/settings";
 import InvitationLettersPage from "@dashboard/pages/invitation-letters";
 import EmbassyDocumentView from "@dashboard/pages/embassy-document-view";
-import RolePicker from "@dashboard/pages/role-picker";
 import TeamSheets from "@dashboard/pages/team-sheets";
 import FederationLettersPage from "@dashboard/pages/federation-letters";
 import FederationAdminPage from "@dashboard/pages/federation-admin";
@@ -40,6 +39,9 @@ import AdminMessages from "@dashboard/pages/admin-messages";
 import AdminPayments from "@dashboard/pages/admin-payments";
 import AdminAuditLogs from "@dashboard/pages/admin-audit-logs";
 import AdminGdpr from "@dashboard/pages/admin-gdpr";
+import AuthPage from "@dashboard/pages/auth-page";
+import { apiRequest } from "@dashboard/lib/queryClient";
+import { Loader2 } from "lucide-react";
 
 function AdminRouter() {
   return (
@@ -203,21 +205,40 @@ function MainLayout({ userRole, onChangeRole }: { userRole: string; onChangeRole
 
 function AppContent() {
   const [location, setLocation] = useLocation();
-  const [selectedRole, setSelectedRole] = useState<string | null>(() => {
-    return localStorage.getItem("sports-reels-role");
+  const userData = useQuery({
+    queryKey: ["/api/auth/me"],
+    queryFn: async () => {
+      try {
+        const res = await apiRequest("GET", "/api/auth/me");
+        if (!res.ok) return null;
+        return await res.json();
+      } catch (e) {
+        return null;
+      }
+    },
+    retry: false,
   });
 
-  const handleSelectRole = (role: string) => {
-    localStorage.setItem("sports-reels-role", role);
-    setSelectedRole(role);
-    setLocation("/");
+  const isLoading = userData.isLoading;
+  const user = userData.data?.user;
+
+  const handleLogout = async () => {
+    try {
+      await apiRequest("POST", "/api/auth/logout");
+      await queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      setLocation("/");
+    } catch (e) {
+      console.error("Logout failed", e);
+    }
   };
 
-  const handleChangeRole = () => {
-    localStorage.removeItem("sports-reels-role");
-    setSelectedRole(null);
-    setLocation("/");
-  };
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   // Check if this is a shared profile route (public, no auth required)
   if (location.startsWith("/shared/player/")) {
@@ -225,23 +246,26 @@ function AppContent() {
     return <SharedPlayerProfile params={{ token }} />;
   }
 
-  if (!selectedRole) {
-    return <RolePicker onSelectRole={handleSelectRole} />;
+  // If user is authenticated, show MainLayout
+  if (user) {
+    return <MainLayout userRole={user.role} onChangeRole={handleLogout} />;
   }
 
-  return <MainLayout userRole={selectedRole} onChangeRole={handleChangeRole} />;
+  // Default to AuthPage
+  return <AuthPage />;
 }
 
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
+
       <TooltipProvider>
         <WouterRouter base="/dashboard">
           <AppContent />
         </WouterRouter>
         <Toaster />
       </TooltipProvider>
-    </QueryClientProvider>
+    </QueryClientProvider >
   );
 }
 
