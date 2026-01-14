@@ -160,7 +160,8 @@ export default function AuthPage() {
     });
 
     const handleGoogleLogin = () => {
-        window.location.href = `/api/auth/google?role=${selectedRole}`;
+        const baseUrl = import.meta.env.VITE_BACKEND_URL || "";
+        window.location.href = `${baseUrl}/api/auth/google?role=${selectedRole}`;
     };
 
     return (
