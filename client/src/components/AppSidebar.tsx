@@ -1,4 +1,6 @@
+
 import { useLocation, Link } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Sidebar,
   SidebarContent,
@@ -47,6 +49,7 @@ export default function AppSidebar({
   pendingVerifications = 0
 }: AppSidebarProps) {
   const location = useLocation();
+  const { signOut } = useAuth();
 
   const teamNavItems = [
     { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
@@ -104,6 +107,11 @@ export default function AppSidebar({
   const isActive = (url: string) => {
     if (url === "/dashboard" || url === "/") return location.pathname === "/" || location.pathname === "/dashboard";
     return location.pathname.startsWith(url);
+  };
+
+  const handleSignOut = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    await signOut();
   };
 
   return (
@@ -191,12 +199,13 @@ export default function AppSidebar({
           </div>
           <SidebarMenuButton
             asChild
-            className="w-auto p-2"
+            className="w-auto p-2 cursor-pointer"
             data-testid="button-logout"
+            onClick={handleSignOut}
           >
-            <Link to="/auth" onClick={() => fetch('/api/auth/logout', { method: 'POST' })}>
+            <div role="button" tabIndex={0}>
               <LogOut className="h-4 w-4" />
-            </Link>
+            </div>
           </SidebarMenuButton>
         </div>
       </SidebarFooter>
