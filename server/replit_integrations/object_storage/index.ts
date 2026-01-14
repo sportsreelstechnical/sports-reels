@@ -9,7 +9,7 @@ export type {
   ObjectAccessGroup,
   ObjectAccessGroupType,
   ObjectAclRule,
-} from "./objectAcl";
+} from "../../types/object-storage";
 
 export {
   canAccessObject,
@@ -18,4 +18,3 @@ export {
 } from "./objectAcl";
 
 export { registerObjectStorageRoutes } from "./routes";
-

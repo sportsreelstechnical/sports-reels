@@ -1,18 +1,14 @@
 import type { Express, Request, Response } from "express";
-import { GoogleGenAI } from "@google/genai";
+
 import { storage } from "../storage";
 import { requireAuth } from "../middleware/auth";
 import { insertVideoSchema } from "@shared/schema";
+import { MAX_PLAYERS_PER_VIDEO } from "../constants";
 import {
   updatePlayerStatsFromVideos,
-  MAX_PLAYERS_PER_VIDEO,
-  getPositionalMetricsPrompt,
 } from "../utils/helpers";
 
-const gemini = new GoogleGenAI({
-  apiKey: process.env.AI_INTEGRATIONS_GEMINI_API_KEY,
-  httpOptions: { baseUrl: process.env.AI_INTEGRATIONS_GEMINI_BASE_URL },
-});
+
 
 export function registerVideoRoutes(app: Express): void {
   app.get("/api/videos", requireAuth, async (req: Request, res: Response) => {
@@ -20,8 +16,12 @@ export function registerVideoRoutes(app: Express): void {
       const { playerId } = req.query;
       const videos = await storage.getVideos(playerId as string | undefined);
       res.json(videos);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error) {
+      if (error instanceof Error) {
+        res.status(500).json({ error: error.message });
+      } else {
+        res.status(500).json({ error: "Unknown error" });
+      }
     }
   });
 
@@ -38,8 +38,12 @@ export function registerVideoRoutes(app: Express): void {
       }
 
       res.json(video);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error) {
+      if (error instanceof Error) {
+        res.status(400).json({ error: error.message });
+      } else {
+        res.status(400).json({ error: "Unknown error" });
+      }
     }
   });
 
@@ -59,8 +63,12 @@ export function registerVideoRoutes(app: Express): void {
         }
 
         res.json(updatedVideo);
-      } catch (error: any) {
-        res.status(400).json({ error: error.message });
+      } catch (error) {
+        if (error instanceof Error) {
+          res.status(400).json({ error: error.message });
+        } else {
+          res.status(400).json({ error: "Unknown error" });
+        }
       }
     }
   );
@@ -72,8 +80,12 @@ export function registerVideoRoutes(app: Express): void {
       try {
         const tags = await storage.getVideoPlayerTags(req.params.id);
         res.json(tags);
-      } catch (error: any) {
-        res.status(500).json({ error: error.message });
+      } catch (error) {
+        if (error instanceof Error) {
+          res.status(500).json({ error: error.message });
+        } else {
+          res.status(500).json({ error: "Unknown error" });
+        }
       }
     }
   );
@@ -111,8 +123,12 @@ export function registerVideoRoutes(app: Express): void {
         }
 
         res.json(tag);
-      } catch (error: any) {
-        res.status(400).json({ error: error.message });
+      } catch (error) {
+        if (error instanceof Error) {
+          res.status(400).json({ error: error.message });
+        } else {
+          res.status(400).json({ error: "Unknown error" });
+        }
       }
     }
   );
@@ -132,8 +148,12 @@ export function registerVideoRoutes(app: Express): void {
         }
 
         res.json(tag);
-      } catch (error: any) {
-        res.status(400).json({ error: error.message });
+      } catch (error) {
+        if (error instanceof Error) {
+          res.status(400).json({ error: error.message });
+        } else {
+          res.status(400).json({ error: "Unknown error" });
+        }
       }
     }
   );
@@ -150,13 +170,19 @@ export function registerVideoRoutes(app: Express): void {
 
         await storage.deleteVideoPlayerTag(req.params.id);
 
+        await storage.deleteVideoPlayerTag(req.params.id);
+
         if (tag.playerId) {
           await updatePlayerStatsFromVideos(tag.playerId);
         }
 
         res.json({ success: true });
-      } catch (error: any) {
-        res.status(500).json({ error: error.message });
+      } catch (error) {
+        if (error instanceof Error) {
+          res.status(500).json({ error: error.message });
+        } else {
+          res.status(500).json({ error: "Unknown error" });
+        }
       }
     }
   );

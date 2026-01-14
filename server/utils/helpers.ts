@@ -1,9 +1,15 @@
 import crypto from "crypto";
 import { storage } from "../storage";
+import {
+  SIGNUP_BONUS_TOKENS,
+  SIGNUP_TOKEN_EXPIRY_MONTHS,
+} from "../constants";
+import {
+  DEFAULT_METRICS_PROMPT,
+  POSITIONAL_METRICS_PROMPTS,
+} from "../data/positional-metrics";
 
-export const MAX_PLAYERS_PER_VIDEO = 15;
-export const SIGNUP_BONUS_TOKENS = 50;
-export const SIGNUP_TOKEN_EXPIRY_MONTHS = 6;
+
 
 export function hashPassword(password: string): string {
   return crypto.createHash("sha256").update(password).digest("hex");
@@ -50,96 +56,31 @@ export async function grantSignupBonus(
 export function getPositionalMetricsPrompt(position: string): string {
   const positionLower = position.toLowerCase();
 
-  if (positionLower.includes("goalkeeper") || positionLower === "gk") {
-    return `Focus on GOALKEEPER-specific metrics:
-- Saves made and save percentage
-- Goals conceded
-- Clean sheet performance
-- Distribution accuracy (short and long passes)
-- Crosses claimed vs punched
-- One-on-one situations faced
-- Positioning and command of area
-- Communication with defense`;
+  // Helper to check for keywords in position string
+  const hasKeyword = (keywords: string[]) => 
+    keywords.some(k => positionLower.includes(k) || positionLower === k);
+
+  if (hasKeyword(["goalkeeper", "gk"])) {
+    return POSITIONAL_METRICS_PROMPTS.gk;
   }
 
-  if (
-    positionLower.includes("defender") ||
-    positionLower.includes("back") ||
-    positionLower === "cb" ||
-    positionLower === "rb" ||
-    positionLower === "lb"
-  ) {
-    return `Focus on DEFENDER-specific metrics:
-- Tackles won and tackle success rate
-- Aerial duels won and percentage
-- Interceptions and blocks
-- Clearances
-- Progressive carries and passes
-- Ball recoveries
-- Fouls committed
-- Ground duels success rate
-- Defensive positioning`;
+  if (hasKeyword(["defender", "back", "cb", "rb", "lb"])) {
+    return POSITIONAL_METRICS_PROMPTS.defender;
   }
 
-  if (
-    positionLower.includes("midfielder") ||
-    positionLower === "cm" ||
-    positionLower === "dm" ||
-    positionLower === "am" ||
-    positionLower === "cdm"
-  ) {
-    return `Focus on MIDFIELDER-specific metrics:
-- Pass completion rate (short, medium, long)
-- Key passes and through balls
-- Progressive passes and carries
-- Ball recoveries and interceptions
-- Ground duels won
-- Shot creating actions
-- Defensive contributions
-- Distance covered and high-intensity runs
-- Possession retention`;
+  if (hasKeyword(["midfielder", "cm", "dm", "am", "cdm"])) {
+    return POSITIONAL_METRICS_PROMPTS.midfielder;
   }
 
-  if (
-    positionLower.includes("winger") ||
-    positionLower.includes("wing") ||
-    positionLower === "lw" ||
-    positionLower === "rw" ||
-    positionLower === "lm" ||
-    positionLower === "rm"
-  ) {
-    return `Focus on WINGER-specific metrics:
-- Successful dribbles and take-ons
-- Crosses attempted and completed
-- Key passes and assists
-- Shot creating actions and goal involvement
-- Final third entries
-- Progressive carries
-- 1v1 success rate
-- Defensive tracking back
-- Sprint speed and acceleration`;
+  if (hasKeyword(["winger", "wing", "lw", "rw", "lm", "rm"])) {
+    return POSITIONAL_METRICS_PROMPTS.winger;
   }
 
-  if (
-    positionLower.includes("striker") ||
-    positionLower.includes("forward") ||
-    positionLower === "st" ||
-    positionLower === "cf" ||
-    positionLower === "fw"
-  ) {
-    return `Focus on STRIKER/FORWARD-specific metrics:
-- Goals scored and xG (expected goals)
-- Shots on target and shot accuracy
-- Conversion rate
-- Aerial duels won
-- Hold-up play and link-up passes
-- Pressing actions and ball recoveries in final third
-- Movement and runs behind defense
-- xA (expected assists) if applicable
-- Penalty area touches`;
+  if (hasKeyword(["striker", "forward", "st", "cf", "fw"])) {
+    return POSITIONAL_METRICS_PROMPTS.striker;
   }
 
-  return `Analyze general football performance metrics for this position: ${position}`;
+  return DEFAULT_METRICS_PROMPT(position);
 }
 
 export async function updatePlayerStatsFromVideos(

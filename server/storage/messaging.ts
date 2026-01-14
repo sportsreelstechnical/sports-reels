@@ -1,5 +1,5 @@
 import { db } from "../db";
-import { eq, desc } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import {
   type Conversation,
   type InsertConversation,

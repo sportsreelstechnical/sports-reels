@@ -1,29 +1,13 @@
 import { File } from "@google-cloud/storage";
+import { ACL_POLICY_METADATA_KEY } from "../../constants";
+import {
+  ObjectAccessGroup,
+  ObjectAccessGroupType,
+  ObjectAclPolicy,
+  ObjectPermission,
+} from "../../types/object-storage";
 
-const ACL_POLICY_METADATA_KEY = "custom:aclPolicy";
 
-export enum ObjectAccessGroupType {}
-
-export interface ObjectAccessGroup {
-  type: ObjectAccessGroupType;
-  id: string;
-}
-
-export enum ObjectPermission {
-  READ = "read",
-  WRITE = "write",
-}
-
-export interface ObjectAclRule {
-  group: ObjectAccessGroup;
-  permission: ObjectPermission;
-}
-
-export interface ObjectAclPolicy {
-  owner: string;
-  visibility: "public" | "private";
-  aclRules?: Array<ObjectAclRule>;
-}
 
 function isPermissionAllowed(
   requested: ObjectPermission,
