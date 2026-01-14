@@ -13,7 +13,7 @@ import { useToast } from "@dashboard/hooks/use-toast";
 import StatusBadge from "@dashboard/components/StatusBadge";
 import jsPDF from "jspdf";
 import type { TransferReport, Player } from "@shared/schema";
-import sportsReelsLogo from "@assets/WhatsApp_Image_2025-12-17_at_12.49.33_1766595809165.jpeg";
+import sportsReelsLogo from "@assets/sports-reels-logo.jpeg";
 
 interface EnrichedReport extends TransferReport {
   playerName: string;
@@ -128,14 +128,20 @@ export default function Reports() {
 
   const downloadPDF = (report: EnrichedReport) => {
     const doc = new jsPDF();
-    const profile = report.playerProfile as Record<string, any> || {};
-    const eligibility = report.eligibilityScores as Record<string, any> || {};
+    const profile = report.playerProfile as Record<string, unknown> || {};
+    const eligibility = report.eligibilityScores as Record<string, unknown> || {};
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const videos = (report.videosIncluded as any[] || []);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const documents = (report.documentsIncluded as any[] || []);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const invitations = (report.invitationLetters as any[] || []);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const verifications = (report.embassyVerifications as any[] || []);
     const recommendations = (report.recommendations as string[] || []);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const performance = (report.performanceStats as any[] || []);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const international = (report.internationalCareer as any[] || []);
 
     let y = 20;
@@ -162,7 +168,7 @@ export default function Reports() {
 
     doc.setFillColor(30, 58, 138);
     doc.rect(0, 0, pageWidth, 40, "F");
-    
+
     if (logoBase64) {
       try {
         doc.addImage(logoBase64, "JPEG", pageWidth - 45, 5, 30, 30);
@@ -170,7 +176,7 @@ export default function Reports() {
         console.error("Failed to add logo to PDF:", e);
       }
     }
-    
+
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(18);
     doc.setFont("helvetica", "bold");
@@ -500,9 +506,9 @@ export default function Reports() {
                   <h3 className="font-semibold mb-2">Player Information</h3>
                   <div className="space-y-1 text-sm">
                     <p><span className="text-muted-foreground">Name:</span> {viewedReport.playerName}</p>
-                    <p><span className="text-muted-foreground">Position:</span> {(viewedReport.playerProfile as any)?.position || "N/A"}</p>
-                    <p><span className="text-muted-foreground">Nationality:</span> {(viewedReport.playerProfile as any)?.nationality || "N/A"}</p>
-                    <p><span className="text-muted-foreground">Club:</span> {(viewedReport.playerProfile as any)?.currentClub || "N/A"}</p>
+                    <p><span className="text-muted-foreground">Position:</span> {(viewedReport.playerProfile as Record<string, unknown>)?.position as string || "N/A"}</p>
+                    <p><span className="text-muted-foreground">Nationality:</span> {(viewedReport.playerProfile as Record<string, unknown>)?.nationality as string || "N/A"}</p>
+                    <p><span className="text-muted-foreground">Club:</span> {(viewedReport.playerProfile as Record<string, unknown>)?.currentClub as string || "N/A"}</p>
                   </div>
                 </div>
                 <div>

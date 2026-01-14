@@ -10,7 +10,7 @@ import { LoadingSpinner } from "@dashboard/components/LoadingScreen";
 import { apiRequest, queryClient } from "@dashboard/lib/queryClient";
 import { useToast } from "@dashboard/hooks/use-toast";
 import { jsPDF } from "jspdf";
-import logoImage from "@assets/WhatsApp_Image_2025-12-17_at_12.49.33_1766008177672.jpeg";
+import logoImage from "@assets/logo.jpeg";
 
 interface DocumentVerification {
   verificationStatus: string;
@@ -57,7 +57,7 @@ interface EmbassyDocument {
     letterUrl?: string;
     issuedAt?: string;
   };
-  transferReport?: any;
+  transferReport?: unknown;
   invitationVerification: DocumentVerification;
   federationLetterVerification?: DocumentVerification | null;
   notifiedAt?: string;
@@ -108,7 +108,7 @@ function VerificationBadge({ verification, label }: { verification: DocumentVeri
 export default function EmbassyDashboard() {
   const { toast } = useToast();
 
-  const { data: authData } = useQuery<{ user: any; embassyProfile: any }>({
+  const { data: authData } = useQuery<{ user: unknown; embassyProfile: { country?: string } }>({
     queryKey: ["/api/auth/me"],
   });
 
@@ -129,7 +129,7 @@ export default function EmbassyDashboard() {
         description: "Document has been analyzed and verification status updated.",
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         variant: "destructive",
         title: "Verification Failed",
@@ -142,20 +142,20 @@ export default function EmbassyDashboard() {
     try {
       const response = await fetch(`/api/embassy/transfer-report/${invitationId}/pdf`);
       if (!response.ok) throw new Error("Failed to fetch report data");
-      
+
       const data = await response.json();
-      
+
       const doc = new jsPDF();
-      
+
       doc.setFillColor(180, 120, 160);
       doc.rect(0, 0, 210, 40, "F");
-      
+
       try {
         doc.addImage(logoImage, "JPEG", 12, 5, 30, 30);
       } catch (e) {
         console.log("Logo could not be added to PDF");
       }
-      
+
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(22);
       doc.setFont("helvetica", "bold");
@@ -163,27 +163,27 @@ export default function EmbassyDashboard() {
       doc.setFontSize(11);
       doc.setFont("helvetica", "normal");
       doc.text("Official Transfer Compliance Report", 48, 28);
-      
+
       doc.setTextColor(0, 0, 0);
       doc.setFontSize(8);
       const timestamp = new Date(data.timestamp || data.generatedAt);
       doc.text(`Report ID: ${data.reportId}`, 15, 48);
       doc.text(`Generated: ${timestamp.toLocaleDateString()} at ${timestamp.toLocaleTimeString()}`, 15, 53);
       doc.text(`Verification Code: ${data.verificationCode}`, 120, 48);
-      
+
       let yPos = 63;
-      
+
       doc.setFontSize(14);
       doc.setFont("helvetica", "bold");
       doc.text("Player Profile Information", 15, yPos);
       yPos += 8;
-      
+
       doc.setFontSize(9);
       doc.setFont("helvetica", "normal");
-      
+
       const col1X = 15;
       const col2X = 110;
-      
+
       doc.text(`Full Name: ${data.player.fullName}`, col1X, yPos);
       doc.text(`Nationality: ${data.player.nationality || "N/A"}`, col2X, yPos);
       yPos += 5;
@@ -233,14 +233,14 @@ export default function EmbassyDashboard() {
         }
         yPos += 5;
       }
-      
+
       if (data.performance) {
         yPos += 6;
         doc.setFontSize(14);
         doc.setFont("helvetica", "bold");
         doc.text("Performance Statistics", 15, yPos);
         yPos += 8;
-        
+
         doc.setFontSize(9);
         doc.setFont("helvetica", "normal");
         doc.text(`Games Played: ${data.performance.gamesPlayed || 0}`, col1X, yPos);
@@ -263,13 +263,13 @@ export default function EmbassyDashboard() {
           yPos += 5;
         }
       }
-      
+
       yPos += 6;
       doc.setFontSize(14);
       doc.setFont("helvetica", "bold");
       doc.text("Transfer Details", 15, yPos);
       yPos += 8;
-      
+
       doc.setFontSize(9);
       doc.setFont("helvetica", "normal");
       doc.text(`Target Club: ${data.targetClub.name}`, col1X, yPos);
@@ -292,29 +292,29 @@ export default function EmbassyDashboard() {
         doc.text(`Source Team: ${data.sourceTeam.clubName || data.sourceTeam.name} (${data.sourceTeam.country})`, col1X, yPos);
         yPos += 5;
       }
-      
+
       if (data.eligibility && data.eligibility.length > 0) {
         yPos += 6;
         doc.setFontSize(14);
         doc.setFont("helvetica", "bold");
         doc.text("Visa Eligibility Assessment", 15, yPos);
         yPos += 8;
-        
+
         doc.setFontSize(9);
         doc.setFont("helvetica", "normal");
-        data.eligibility.forEach((score: any) => {
+        data.eligibility.forEach((score: { visaType: string; score: number; status: string }) => {
           const statusText = score.status === "eligible" ? "ELIGIBLE" : score.status === "conditional" ? "CONDITIONAL" : "INELIGIBLE";
           doc.text(`${score.visaType}: ${score.score}% - ${statusText}`, col1X, yPos);
           yPos += 5;
         });
       }
-      
+
       yPos += 6;
       doc.setFontSize(14);
       doc.setFont("helvetica", "bold");
       doc.text("Compliance Verification", 15, yPos);
       yPos += 8;
-      
+
       doc.setFontSize(9);
       doc.setFont("helvetica", "normal");
       doc.text(`Verification Status: ${data.compliance?.verificationStatus || "Pending"}`, col1X, yPos);
@@ -325,46 +325,47 @@ export default function EmbassyDashboard() {
       }
       doc.text(`Videos on File: ${data.videosCount}`, col1X, yPos);
       yPos += 5;
-      
+
       yPos += 8;
       doc.setFillColor(240, 240, 240);
       doc.rect(12, yPos - 3, 186, 25, "F");
       doc.setFontSize(8);
       doc.setTextColor(80, 80, 80);
-      const auditNote = data.compliance?.auditNote || 
+      const auditNote = data.compliance?.auditNote ||
         "This document has been generated by Sports Reels compliance system for official visa processing purposes.";
       const splitAudit = doc.splitTextToSize(auditNote, 180);
       doc.text(splitAudit, 15, yPos + 2);
-      
+
       doc.setFontSize(7);
       doc.setTextColor(100, 100, 100);
       doc.text("SPORTS REELS - Official Transfer Compliance Report | Verify at sportsreels.com/verify", 105, 290, { align: "center" });
       doc.text(`Document generated: ${timestamp.toISOString()}`, 105, 294, { align: "center" });
-      
+
       doc.save(`Transfer_Report_${playerName.replace(/\s/g, "_")}.pdf`);
-      
+
       toast({
         title: "Report Downloaded",
         description: "Transfer report PDF has been generated and downloaded.",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Could not generate PDF report";
       toast({
         variant: "destructive",
         title: "Download Failed",
-        description: error.message || "Could not generate PDF report",
+        description: errorMessage,
       });
     }
   };
 
   const invitationDocs = documents.filter(d => d.type === "invitation_submission" || d.type === "transfer_report");
   const complianceDocs = documents.filter(d => d.type === "compliance_document");
-  
-  const verifiedDocs = invitationDocs.filter(d => 
-    d.invitationVerification?.isSystemVerified || 
+
+  const verifiedDocs = invitationDocs.filter(d =>
+    d.invitationVerification?.isSystemVerified ||
     d.federationLetterVerification?.isSystemVerified
   );
-  const pendingDocs = invitationDocs.filter(d => 
-    !d.invitationVerification?.isSystemVerified && 
+  const pendingDocs = invitationDocs.filter(d =>
+    !d.invitationVerification?.isSystemVerified &&
     (!d.federationLetterVerification || !d.federationLetterVerification.isSystemVerified)
   );
 
@@ -379,9 +380,9 @@ export default function EmbassyDashboard() {
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center gap-4">
-        <img 
-          src={logoImage} 
-          alt="Sports Reels" 
+        <img
+          src={logoImage}
+          alt="Sports Reels"
           className="h-12 w-12 object-contain rounded-md"
         />
         <div>
@@ -432,7 +433,7 @@ export default function EmbassyDashboard() {
           <FileCheck className="h-5 w-5" />
           Player Transfer Submissions
         </h2>
-        
+
         {invitationDocs.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">
@@ -456,7 +457,7 @@ export default function EmbassyDashboard() {
                           {doc.player?.firstName} {doc.player?.lastName}
                         </CardTitle>
                         <CardDescription>
-                          {doc.player?.nationality} - {doc.player?.position} 
+                          {doc.player?.nationality} - {doc.player?.position}
                           {doc.player?.currentClubName && ` | ${doc.player.currentClubName}`}
                         </CardDescription>
                       </div>
@@ -529,25 +530,25 @@ export default function EmbassyDashboard() {
                         <span className="font-medium text-sm">External Upload - Needs Issuing Club Verification</span>
                       </div>
                       <p className="text-sm text-blue-600 mt-1">
-                        This document was uploaded externally (not through federation workflow). 
+                        This document was uploaded externally (not through federation workflow).
                         Please contact <strong>{doc.team?.clubName || doc.team?.name || "the issuing club"}</strong>{doc.issuingClubCountry && ` in ${doc.issuingClubCountry}`} to verify authenticity before processing.
                       </p>
                     </div>
                   )}
 
-                  {(doc.invitationVerification?.verificationStatus === "potential_fake" || 
+                  {(doc.invitationVerification?.verificationStatus === "potential_fake" ||
                     doc.federationLetterVerification?.verificationStatus === "potential_fake") && (
-                    <div className="bg-amber-500/10 border border-amber-200 rounded-md p-3">
-                      <div className="flex items-center gap-2 text-amber-700">
-                        <AlertTriangle className="h-4 w-4" />
-                        <span className="font-medium text-sm">AI Flagged - Manual Verification Required</span>
+                      <div className="bg-amber-500/10 border border-amber-200 rounded-md p-3">
+                        <div className="flex items-center gap-2 text-amber-700">
+                          <AlertTriangle className="h-4 w-4" />
+                          <span className="font-medium text-sm">AI Flagged - Manual Verification Required</span>
+                        </div>
+                        <p className="text-sm text-amber-600 mt-1">
+                          Our AI system has flagged this document as potentially requiring additional verification.
+                          Please manually verify authenticity before processing.
+                        </p>
                       </div>
-                      <p className="text-sm text-amber-600 mt-1">
-                        Our AI system has flagged this document as potentially requiring additional verification. 
-                        Please manually verify authenticity before processing.
-                      </p>
-                    </div>
-                  )}
+                    )}
 
                   <Separator />
 
@@ -557,12 +558,12 @@ export default function EmbassyDashboard() {
                       <span>All access is logged and timestamped</span>
                     </div>
                     <div className="flex items-center gap-2 flex-wrap">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => verifyMutation.mutate({ 
-                          documentType: "invitation_letter", 
-                          documentId: doc.invitationLetter?.id || doc.id 
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => verifyMutation.mutate({
+                          documentType: "invitation_letter",
+                          documentId: doc.invitationLetter?.id || doc.id
                         })}
                         disabled={verifyMutation.isPending}
                         data-testid={`button-verify-${doc.id}`}
@@ -570,9 +571,9 @@ export default function EmbassyDashboard() {
                         <FileWarning className="mr-2 h-4 w-4" />
                         Run AI Verification
                       </Button>
-                      <Button 
-                        variant="default" 
-                        size="sm" 
+                      <Button
+                        variant="default"
+                        size="sm"
                         onClick={() => downloadTransferReport(doc.invitationLetter?.id || doc.id, `${doc.player?.firstName} ${doc.player?.lastName}`)}
                         data-testid={`button-download-${doc.id}`}
                       >
@@ -594,7 +595,7 @@ export default function EmbassyDashboard() {
             <FileText className="h-5 w-5" />
             Legacy Compliance Documents
           </h2>
-          
+
           <div className="grid gap-4">
             {complianceDocs.map((doc) => (
               <Card key={doc.id} data-testid={`card-legacy-${doc.id}`}>
@@ -611,10 +612,10 @@ export default function EmbassyDashboard() {
                         <CardDescription>{doc.player?.nationality} - {doc.player?.position}</CardDescription>
                       </div>
                     </div>
-                    <Badge 
+                    <Badge
                       variant={doc.verification?.status === "verified" ? "default" : "secondary"}
-                      className={doc.verification?.status === "verified" 
-                        ? "bg-green-500/10 text-green-600 border-green-200" 
+                      className={doc.verification?.status === "verified"
+                        ? "bg-green-500/10 text-green-600 border-green-200"
                         : "bg-yellow-500/10 text-yellow-600 border-yellow-200"
                       }
                     >
@@ -637,7 +638,7 @@ export default function EmbassyDashboard() {
                     <div>
                       <p className="text-muted-foreground">Data Range</p>
                       <p className="font-medium">
-                        {doc.dataRangeStart && doc.dataRangeEnd 
+                        {doc.dataRangeStart && doc.dataRangeEnd
                           ? `${new Date(doc.dataRangeStart).toLocaleDateString()} - ${new Date(doc.dataRangeEnd).toLocaleDateString()}`
                           : "N/A"
                         }

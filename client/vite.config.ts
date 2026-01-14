@@ -1,4 +1,4 @@
-import { defineConfig } from "vite";
+import { defineConfig, type PluginOption } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
@@ -13,14 +13,14 @@ export default defineConfig({
     react(),
     runtimeErrorOverlay(),
     process.env.NODE_ENV === "development" && componentTagger(),
-  ].filter(Boolean),
+  ].filter(Boolean) as unknown as PluginOption[],
   resolve: {
     dedupe: ["react", "react-dom"],
     alias: {
       "@": path.resolve(__dirname, "src"),
       "@dashboard": path.resolve(__dirname, "src", "dashboard"),
       "@shared": path.resolve(__dirname, "..", "shared"),
-      "@assets": path.resolve(__dirname, "..", "attached_assets"),
+      "@assets": path.resolve(__dirname, "src", "assets"),
     },
   },
   root: path.resolve(__dirname),

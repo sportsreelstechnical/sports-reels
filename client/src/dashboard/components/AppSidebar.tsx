@@ -33,7 +33,7 @@ import {
   DollarSign,
   Activity,
 } from "lucide-react";
-import logoImage from "@assets/WhatsApp_Image_2025-12-17_at_12.49.33_1766008177672.jpeg";
+import logoImage from "@assets/logo.jpeg";
 
 interface AppSidebarProps {
   userName?: string;
@@ -42,11 +42,11 @@ interface AppSidebarProps {
   pendingVerifications?: number;
 }
 
-export default function AppSidebar({ 
-  userName = "John Smith", 
+export default function AppSidebar({
+  userName = "John Smith",
   userRole = "Sporting Director",
   userRoleRaw = "sporting_director",
-  pendingVerifications = 3 
+  pendingVerifications = 3
 }: AppSidebarProps) {
   const [location] = useLocation();
 
@@ -112,9 +112,9 @@ export default function AppSidebar({
     <Sidebar data-testid="sidebar-main">
       <SidebarHeader className="p-4 border-b border-sidebar-border">
         <div className="flex items-center gap-3">
-          <img 
-            src={logoImage} 
-            alt="Sports Reels" 
+          <img
+            src={logoImage}
+            alt="Sports Reels"
             className="h-10 w-10 object-contain rounded-md"
           />
           <div>
@@ -123,7 +123,7 @@ export default function AppSidebar({
           </div>
         </div>
       </SidebarHeader>
-      
+
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel>Navigation</SidebarGroupLabel>
@@ -131,8 +131,8 @@ export default function AppSidebar({
             <SidebarMenu>
               {mainNavItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton 
-                    asChild 
+                  <SidebarMenuButton
+                    asChild
                     isActive={isActive(item.url)}
                     data-testid={`nav-${item.title.toLowerCase()}`}
                   >
@@ -154,8 +154,8 @@ export default function AppSidebar({
               <SidebarMenu>
                 {adminNavItems.map((item) => (
                   <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton 
-                      asChild 
+                    <SidebarMenuButton
+                      asChild
                       isActive={isActive(item.url)}
                       data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}
                     >
@@ -163,8 +163,8 @@ export default function AppSidebar({
                         <item.icon className="h-4 w-4" />
                         <span>{item.title}</span>
                         {item.badge && item.badge > 0 && (
-                          <Badge 
-                            variant="secondary" 
+                          <Badge
+                            variant="secondary"
                             className="ml-auto bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
                           >
                             {item.badge}
@@ -191,8 +191,8 @@ export default function AppSidebar({
             <p className="text-sm font-medium truncate">{userName}</p>
             <p className="text-xs text-muted-foreground truncate">{userRole}</p>
           </div>
-          <SidebarMenuButton 
-            asChild 
+          <SidebarMenuButton
+            asChild
             className="w-auto p-2"
             data-testid="button-logout"
           >

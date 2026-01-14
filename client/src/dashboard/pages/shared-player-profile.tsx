@@ -3,12 +3,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@dashboard/components/
 import { Badge } from "@dashboard/components/ui/badge";
 import { Button } from "@dashboard/components/ui/button";
 import { Progress } from "@dashboard/components/ui/progress";
-import { 
-  User, Globe, Clock, Activity, Ruler, Weight, Flag, 
-  CheckCircle, AlertCircle, XCircle, Trophy, Video, 
+import {
+  User, Globe, Clock, Activity, Ruler, Weight, Flag,
+  CheckCircle, AlertCircle, XCircle, Trophy, Video,
   Lock, Play, UserPlus
 } from "lucide-react";
-import sportsReelsLogo from "@assets/WhatsApp_Image_2025-12-17_at_12.49.33_1766595809165.jpeg";
+import sportsReelsLogo from "@assets/sports-reels-logo.jpeg";
 
 interface SharedPlayerProfileProps {
   params?: { token?: string };
@@ -126,9 +126,9 @@ export default function SharedPlayerProfile({ params }: SharedPlayerProfileProps
       <header className="border-b bg-card">
         <div className="container max-w-5xl mx-auto px-4 py-4 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <img 
-              src={sportsReelsLogo} 
-              alt="Sports Reels" 
+            <img
+              src={sportsReelsLogo}
+              alt="Sports Reels"
               className="h-10 w-10 rounded-md object-cover"
             />
             <div>
@@ -148,8 +148,8 @@ export default function SharedPlayerProfile({ params }: SharedPlayerProfileProps
         <div className="flex items-start gap-6">
           <div className="h-24 w-24 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
             {player.profileImageUrl ? (
-              <img 
-                src={player.profileImageUrl} 
+              <img
+                src={player.profileImageUrl}
                 alt={`${player.firstName} ${player.lastName}`}
                 className="h-24 w-24 rounded-full object-cover"
               />
@@ -292,8 +292,8 @@ export default function SharedPlayerProfile({ params }: SharedPlayerProfileProps
                   <div key={video.id} className="relative group">
                     <div className="aspect-video bg-muted rounded-md flex items-center justify-center relative overflow-hidden">
                       {video.thumbnailUrl ? (
-                        <img 
-                          src={video.thumbnailUrl} 
+                        <img
+                          src={video.thumbnailUrl}
                           alt={video.title}
                           className="w-full h-full object-cover"
                         />
@@ -327,9 +327,9 @@ export default function SharedPlayerProfile({ params }: SharedPlayerProfileProps
           <CardContent className="p-6">
             <div className="flex flex-col md:flex-row items-center justify-between gap-4">
               <div className="flex items-center gap-4">
-                <img 
-                  src={sportsReelsLogo} 
-                  alt="Sports Reels" 
+                <img
+                  src={sportsReelsLogo}
+                  alt="Sports Reels"
                   className="h-16 w-16 rounded-md object-cover"
                 />
                 <div>
@@ -339,8 +339,8 @@ export default function SharedPlayerProfile({ params }: SharedPlayerProfileProps
                   </p>
                 </div>
               </div>
-              <Button 
-                variant="secondary" 
+              <Button
+                variant="secondary"
                 size="lg"
                 onClick={() => window.location.href = "/auth/login"}
                 data-testid="button-cta-signup"

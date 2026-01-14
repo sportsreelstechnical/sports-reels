@@ -1,4 +1,4 @@
-import logoImage from "@assets/WhatsApp_Image_2025-12-17_at_12.49.33_1766008177672.jpeg";
+import logoImage from "@assets/logo.jpeg";
 
 interface LoadingScreenProps {
   message?: string;
@@ -6,15 +6,15 @@ interface LoadingScreenProps {
 
 export default function LoadingScreen({ message = "Loading..." }: LoadingScreenProps) {
   return (
-    <div 
+    <div
       className="min-h-screen flex flex-col items-center justify-center bg-background"
       data-testid="loading-screen"
     >
       <div className="flex flex-col items-center gap-6">
         <div className="relative">
-          <img 
-            src={logoImage} 
-            alt="Sports Reels" 
+          <img
+            src={logoImage}
+            alt="Sports Reels"
             className="w-24 h-24 object-contain animate-pulse"
           />
         </div>
@@ -30,10 +30,10 @@ export default function LoadingScreen({ message = "Loading..." }: LoadingScreenP
 export function LoadingSpinner({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
   const sizeClasses = {
     sm: "w-4 h-4",
-    md: "w-8 h-8", 
+    md: "w-8 h-8",
     lg: "w-12 h-12"
   };
-  
+
   return (
     <div className={`${sizeClasses[size]} border-2 border-primary border-t-transparent rounded-full animate-spin`} />
   );
@@ -42,9 +42,9 @@ export function LoadingSpinner({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
 export function LogoWithSpinner() {
   return (
     <div className="flex flex-col items-center gap-4">
-      <img 
-        src={logoImage} 
-        alt="Sports Reels" 
+      <img
+        src={logoImage}
+        alt="Sports Reels"
         className="w-16 h-16 object-contain"
       />
       <LoadingSpinner size="sm" />
