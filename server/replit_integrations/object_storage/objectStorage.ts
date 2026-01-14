@@ -16,11 +16,6 @@ export class ObjectNotFoundError extends Error {
     Object.setPrototypeOf(this, ObjectNotFoundError.prototype);
   }
 }
-
-/**
- * Local File System Storage Implementation
- * Replaces Google Cloud Storage for local development.
- */
 export class ObjectStorageService {
   constructor() {}
 
@@ -60,7 +55,7 @@ export class ObjectStorageService {
       const stats = fs.statSync(file.path);
 
       res.set({
-        "Content-Type": "application/octet-stream", // Could infer mime type here
+        "Content-Type": "application/octet-stream",
         "Content-Length": stats.size.toString(),
         "Cache-Control": `public, max-age=${cacheTtlSec}`,
       });
@@ -75,11 +70,7 @@ export class ObjectStorageService {
     }
   }
 
-  // For local storage, we won't generate a signed URL.
-  // Instead, we'll return a special local URL that the frontend can upload to directly.
   async getObjectEntityUploadURL(): Promise<string> {
-    // This is a placeholder. Real local upload should use multipart/form-data endpoint.
-    // However, to keep compatibility with the frontend that expects a PUT URL:
     const objectId = randomUUID();
     return `/api/uploads/${objectId}`;
   }
@@ -87,8 +78,6 @@ export class ObjectStorageService {
   async getObjectEntityFile(
     objectPath: string
   ): Promise<{ name: string; path: string }> {
-    // This method was heavily tied to GCS structure.
-    // For local, we'll assume flat structure or adjust as needed.
     const filename = objectPath.split("/").pop();
     if (!filename) throw new ObjectNotFoundError();
 
