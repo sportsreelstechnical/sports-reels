@@ -10,7 +10,7 @@ import { apiRequest } from "@dashboard/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 
-import { Button } from "@dashboard/components/ui/button";
+import { Button } from "@/components/ui/button";
 import {
     Card,
     CardContent,
@@ -18,14 +18,14 @@ import {
     CardHeader,
     CardTitle,
     CardFooter,
-} from "@dashboard/components/ui/card";
+} from "@/components/ui/card";
 import {
     Select,
     SelectContent,
     SelectItem,
     SelectTrigger,
     SelectValue,
-} from "@dashboard/components/ui/select";
+} from "@/components/ui/select";
 import { roles } from "@dashboard/lib/roles";
 import {
     Form,
@@ -34,10 +34,10 @@ import {
     FormItem,
     FormLabel,
     FormMessage,
-} from "@dashboard/components/ui/form";
-import { Input } from "@dashboard/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@dashboard/components/ui/tabs";
-import { Separator } from "@dashboard/components/ui/separator";
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
 
 const loginSchema = z.object({
     username: z.string().min(1, "Username is required"),

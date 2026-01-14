@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
-import ContinuousVideoPlayer from "@dashboard/components/ContinuousVideoPlayer";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@dashboard/components/ui/card";
-import { Badge } from "@dashboard/components/ui/badge";
-import { LoadingSpinner } from "@dashboard/components/LoadingScreen";
+import ContinuousVideoPlayer from "@/components/ContinuousVideoPlayer";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { LoadingSpinner } from "@/components/LoadingScreen";
 import { Video, Film, Clock, Users } from "lucide-react";
 import type { Video as VideoType } from "@shared/schema";
 

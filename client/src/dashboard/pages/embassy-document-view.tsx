@@ -1,11 +1,11 @@
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@dashboard/components/ui/card";
-import { Badge } from "@dashboard/components/ui/badge";
-import { Button } from "@dashboard/components/ui/button";
-import { ScrollArea } from "@dashboard/components/ui/scroll-area";
-import { Separator } from "@dashboard/components/ui/separator";
-import { LoadingSpinner } from "@dashboard/components/LoadingScreen";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import { LoadingSpinner } from "@/components/LoadingScreen";
 import { FileText, User, Calendar, Shield, Clock, Eye, Download, Globe, Award, Activity } from "lucide-react";
 import logoImage from "@assets/logo.jpeg";
 import type { ComplianceDocument, Player, EmbassyDocumentAccess } from "@shared/schema";

@@ -1,23 +1,23 @@
 import { useState, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useDropzone } from "react-dropzone";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@dashboard/components/ui/card";
-import { Button } from "@dashboard/components/ui/button";
-import { Input } from "@dashboard/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@dashboard/components/ui/select";
-import { Badge } from "@dashboard/components/ui/badge";
-import { Separator } from "@dashboard/components/ui/separator";
-import { ScrollArea } from "@dashboard/components/ui/scroll-area";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@dashboard/components/ui/dialog";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@dashboard/components/ui/form";
-import { Textarea } from "@dashboard/components/ui/textarea";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@dashboard/components/ui/tabs";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { queryClient, apiRequest } from "@dashboard/lib/queryClient";
-import { useToast } from "@dashboard/hooks/use-toast";
-import { useTokenBalance, useCheckTokens } from "@dashboard/hooks/use-tokens";
-import { LoadingSpinner } from "@dashboard/components/LoadingScreen";
+import { useToast } from "@/hooks/use-toast";
+import { useTokenBalance, useCheckTokens } from "@/hooks/use-tokens";
+import { LoadingSpinner } from "@/components/LoadingScreen";
 import { 
   FileText, Upload, Plus, Calendar, Globe, Building2, User, CheckCircle, Clock, 
   AlertCircle, Download, Eye, Trash2, CreditCard, Send, FileCheck, X,

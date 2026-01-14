@@ -1,15 +1,15 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@dashboard/components/ui/card";
-import { Button } from "@dashboard/components/ui/button";
-import { Badge } from "@dashboard/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { 
   Select, 
   SelectContent, 
   SelectItem, 
   SelectTrigger, 
   SelectValue 
-} from "@dashboard/components/ui/select";
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -17,7 +17,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@dashboard/components/ui/table";
+} from "@/components/ui/table";
 import { 
   DollarSign, 
   Clock, 

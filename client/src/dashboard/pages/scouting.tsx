@@ -1,14 +1,14 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import ScoutingInquiryCard from "@dashboard/components/ScoutingInquiryCard";
-import PlayerCard from "@dashboard/components/PlayerCard";
-import { Card, CardContent, CardHeader, CardTitle } from "@dashboard/components/ui/card";
-import { Button } from "@dashboard/components/ui/button";
-import { Input } from "@dashboard/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@dashboard/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@dashboard/components/ui/dialog";
-import { Textarea } from "@dashboard/components/ui/textarea";
-import { Label } from "@dashboard/components/ui/label";
+import ScoutingInquiryCard from "@/components/ScoutingInquiryCard";
+import PlayerCard from "@/components/PlayerCard";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { Search, Plus, MessageSquare, Send, Users } from "lucide-react";
 import { mockScoutingInquiries, mockPlayers } from "@dashboard/lib/mock-data";
 

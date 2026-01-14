@@ -1,25 +1,25 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@dashboard/lib/queryClient";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@dashboard/components/ui/card";
-import { Button } from "@dashboard/components/ui/button";
-import { Input } from "@dashboard/components/ui/input";
-import { Label } from "@dashboard/components/ui/label";
-import { Textarea } from "@dashboard/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@dashboard/components/ui/select";
-import { Badge } from "@dashboard/components/ui/badge";
-import { ScrollArea } from "@dashboard/components/ui/scroll-area";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@dashboard/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@dashboard/components/ui/tabs";
-import { LoadingSpinner } from "@dashboard/components/LoadingScreen";
-import { useToast } from "@dashboard/hooks/use-toast";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { LoadingSpinner } from "@/components/LoadingScreen";
+import { useToast } from "@/hooks/use-toast";
 import { 
   FileText, CheckCircle, Clock, AlertCircle, Search, Filter, 
   RefreshCw, Eye, FileCheck, Download, X, DollarSign,
   Globe, Building2, Calendar, Send, TrendingUp, Users, BarChart3,
   Settings, Plus, Trash2, MessageCircle, History, ArrowRight, Upload
 } from "lucide-react";
-import { Separator } from "@dashboard/components/ui/separator";
+import { Separator } from "@/components/ui/separator";
 import type { FederationLetterRequest, FederationFeeSchedule, FederationRequestActivity, FederationRequestMessage } from "@shared/schema";
 
 const PLATFORM_SERVICE_CHARGE = 25;

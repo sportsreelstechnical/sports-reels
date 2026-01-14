@@ -1,21 +1,21 @@
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import PlayerInternationalRecords from "@dashboard/components/PlayerInternationalRecords";
-import PlayerProfileEditor from "@dashboard/components/PlayerProfileEditor";
-import TransferEligibilityDashboard from "@dashboard/components/TransferEligibilityDashboard";
-import PlayerDocumentManager from "@dashboard/components/PlayerDocumentManager";
-import VideoPlayer from "@dashboard/components/VideoPlayer";
-import { Card, CardContent, CardHeader, CardTitle } from "@dashboard/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@dashboard/components/ui/tabs";
-import { Badge } from "@dashboard/components/ui/badge";
-import { Button } from "@dashboard/components/ui/button";
-import { Switch } from "@dashboard/components/ui/switch";
+import PlayerInternationalRecords from "@/components/PlayerInternationalRecords";
+import PlayerProfileEditor from "@/components/PlayerProfileEditor";
+import TransferEligibilityDashboard from "@/components/TransferEligibilityDashboard";
+import PlayerDocumentManager from "@/components/PlayerDocumentManager";
+import VideoPlayer from "@/components/VideoPlayer";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { ArrowLeft, User, Globe, Clock, Activity, Ruler, Weight, Flag, CheckCircle, FileText, Video, Play, Calendar, Share2, Eye, Coins, Link2, Copy, ExternalLink, Download, Award } from "lucide-react";
-import { Separator } from "@dashboard/components/ui/separator";
+import { Separator } from "@/components/ui/separator";
 import { apiRequest, queryClient } from "@dashboard/lib/queryClient";
-import { useToast } from "@dashboard/hooks/use-toast";
-import { useCheckTokens } from "@dashboard/hooks/use-tokens";
+import { useToast } from "@/hooks/use-toast";
+import { useCheckTokens } from "@/hooks/use-tokens";
 import type { Player, Video as VideoType, PlayerShareLink, FederationLetterRequest } from "@shared/schema";
 
 interface PlayerProfileProps {

@@ -1,16 +1,16 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@dashboard/components/ui/card";
-import { Button } from "@dashboard/components/ui/button";
-import { Badge } from "@dashboard/components/ui/badge";
-import { Textarea } from "@dashboard/components/ui/textarea";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import { 
   Select, 
   SelectContent, 
   SelectItem, 
   SelectTrigger, 
   SelectValue 
-} from "@dashboard/components/ui/select";
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -18,7 +18,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@dashboard/components/ui/dialog";
+} from "@/components/ui/dialog";
 import {
   Table,
   TableBody,
@@ -26,8 +26,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@dashboard/components/ui/table";
-import { useToast } from "@dashboard/hooks/use-toast";
+} from "@/components/ui/table";
+import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@dashboard/lib/queryClient";
 import { 
   Shield, 

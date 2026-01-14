@@ -1,10 +1,10 @@
 import { useState } from "react";
-import RoleAccessControl from "@dashboard/components/RoleAccessControl";
-import { Card, CardContent, CardHeader, CardTitle } from "@dashboard/components/ui/card";
-import { Button } from "@dashboard/components/ui/button";
-import { Badge } from "@dashboard/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@dashboard/components/ui/table";
-import { Avatar, AvatarFallback } from "@dashboard/components/ui/avatar";
+import RoleAccessControl from "@/components/RoleAccessControl";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Shield, Users, Clock, Plus } from "lucide-react";
 import type { UserRole } from "@dashboard/lib/types";
 

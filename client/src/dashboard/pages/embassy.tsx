@@ -1,12 +1,12 @@
 import { useState } from "react";
-import EmbassyVerificationTable from "@dashboard/components/EmbassyVerificationTable";
-import { Card, CardContent, CardHeader, CardTitle } from "@dashboard/components/ui/card";
-import { Input } from "@dashboard/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@dashboard/components/ui/select";
-import { Badge } from "@dashboard/components/ui/badge";
+import EmbassyVerificationTable from "@/components/EmbassyVerificationTable";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { Search, Filter, Bell, CheckCircle, Clock, XCircle } from "lucide-react";
 import { mockEmbassyVerifications } from "@dashboard/lib/mock-data";
-import StatsCard from "@dashboard/components/StatsCard";
+import StatsCard from "@/components/StatsCard";
 
 export default function Embassy() {
   const [searchQuery, setSearchQuery] = useState("");

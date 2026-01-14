@@ -1,9 +1,9 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@dashboard/components/ui/card";
-import { Button } from "@dashboard/components/ui/button";
-import { Input } from "@dashboard/components/ui/input";
-import { Label } from "@dashboard/components/ui/label";
-import { Switch } from "@dashboard/components/ui/switch";
-import { Separator } from "@dashboard/components/ui/separator";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Separator } from "@/components/ui/separator";
 import { Settings, User, Bell, Shield, Globe } from "lucide-react";
 
 export default function SettingsPage() {

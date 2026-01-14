@@ -1,15 +1,15 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@dashboard/components/ui/card";
-import { Button } from "@dashboard/components/ui/button";
-import { Badge } from "@dashboard/components/ui/badge";
-import { Progress } from "@dashboard/components/ui/progress";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@dashboard/components/ui/tabs";
-import { Separator } from "@dashboard/components/ui/separator";
-import { ScrollArea } from "@dashboard/components/ui/scroll-area";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Coins, TrendingUp, TrendingDown, Clock, User, Video, Eye, Star, MessageSquare, Zap, Package, CreditCard, History, FileText, Send } from "lucide-react";
 import { format } from "date-fns";
 import { apiRequest, queryClient } from "@dashboard/lib/queryClient";
-import { useToast } from "@dashboard/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 interface TokenBalance {
   id: string;

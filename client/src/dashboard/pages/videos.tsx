@@ -1,20 +1,20 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import VideoUpload from "@dashboard/components/VideoUpload";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@dashboard/components/ui/card";
-import { Button } from "@dashboard/components/ui/button";
-import { Input } from "@dashboard/components/ui/input";
-import { Badge } from "@dashboard/components/ui/badge";
-import { Checkbox } from "@dashboard/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@dashboard/components/ui/select";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@dashboard/components/ui/dialog";
-import { Separator } from "@dashboard/components/ui/separator";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@dashboard/components/ui/tabs";
-import { Label } from "@dashboard/components/ui/label";
-import { ScrollArea } from "@dashboard/components/ui/scroll-area";
+import VideoUpload from "@/components/VideoUpload";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { queryClient, apiRequest } from "@dashboard/lib/queryClient";
-import { useToast } from "@dashboard/hooks/use-toast";
-import { LoadingSpinner } from "@dashboard/components/LoadingScreen";
+import { useToast } from "@/hooks/use-toast";
+import { LoadingSpinner } from "@/components/LoadingScreen";
 import { 
   Search, Video, Play, Calendar, FileText, Link2, Sparkles, BarChart2, 
   Activity, TrendingUp, UserPlus, Users, Clock, Trash2, Target, Award,

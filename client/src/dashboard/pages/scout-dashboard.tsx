@@ -1,20 +1,20 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@dashboard/components/ui/card";
-import { Badge } from "@dashboard/components/ui/badge";
-import { Button } from "@dashboard/components/ui/button";
-import { Input } from "@dashboard/components/ui/input";
-import { Label } from "@dashboard/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@dashboard/components/ui/tabs";
-import { Slider } from "@dashboard/components/ui/slider";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@dashboard/components/ui/collapsible";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Slider } from "@/components/ui/slider";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { Search, User, Globe, Award, ChevronRight, Plus, Trash2, Star, AlertCircle, CheckCircle, Coins, SlidersHorizontal, ChevronDown, ChevronUp, X } from "lucide-react";
 import type { Player, EligibilityScore, ScoutShortlist } from "@shared/schema";
-import { LoadingSpinner } from "@dashboard/components/LoadingScreen";
+import { LoadingSpinner } from "@/components/LoadingScreen";
 import { apiRequest, queryClient } from "@dashboard/lib/queryClient";
-import { useToast } from "@dashboard/hooks/use-toast";
-import { useCheckTokens, useSpendTokens } from "@dashboard/hooks/use-tokens";
+import { useToast } from "@/hooks/use-toast";
+import { useCheckTokens, useSpendTokens } from "@/hooks/use-tokens";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,14 +24,14 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@dashboard/components/ui/alert-dialog";
+} from "@/components/ui/alert-dialog";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@dashboard/components/ui/select";
+} from "@/components/ui/select";
 
 interface PlayerWithScores extends Player {
   eligibilityScores: EligibilityScore[];

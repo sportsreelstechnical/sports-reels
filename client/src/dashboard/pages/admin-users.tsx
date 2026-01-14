@@ -1,17 +1,17 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@dashboard/components/ui/card";
-import { Button } from "@dashboard/components/ui/button";
-import { Input } from "@dashboard/components/ui/input";
-import { Label } from "@dashboard/components/ui/label";
-import { Badge } from "@dashboard/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { 
   Select, 
   SelectContent, 
   SelectItem, 
   SelectTrigger, 
   SelectValue 
-} from "@dashboard/components/ui/select";
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -20,7 +20,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@dashboard/components/ui/dialog";
+} from "@/components/ui/dialog";
 import {
   Table,
   TableBody,
@@ -28,8 +28,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@dashboard/components/ui/table";
-import { useToast } from "@dashboard/hooks/use-toast";
+} from "@/components/ui/table";
+import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@dashboard/lib/queryClient";
 import { 
   UserPlus, 

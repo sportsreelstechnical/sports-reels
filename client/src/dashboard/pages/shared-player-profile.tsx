@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@dashboard/components/ui/card";
-import { Badge } from "@dashboard/components/ui/badge";
-import { Button } from "@dashboard/components/ui/button";
-import { Progress } from "@dashboard/components/ui/progress";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import {
   User, Globe, Clock, Activity, Ruler, Weight, Flag,
   CheckCircle, AlertCircle, XCircle, Trophy, Video,

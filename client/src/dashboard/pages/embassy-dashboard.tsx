@@ -1,14 +1,14 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@dashboard/components/ui/card";
-import { Badge } from "@dashboard/components/ui/badge";
-import { Button } from "@dashboard/components/ui/button";
-import { ScrollArea } from "@dashboard/components/ui/scroll-area";
-import { Separator } from "@dashboard/components/ui/separator";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 import { Link } from "react-router-dom";
 import { FileText, User, Shield, Download, Clock, AlertTriangle, CheckCircle2, FileCheck, FileWarning, Eye, Building2 } from "lucide-react";
-import { LoadingSpinner } from "@dashboard/components/LoadingScreen";
+import { LoadingSpinner } from "@/components/LoadingScreen";
 import { apiRequest, queryClient } from "@dashboard/lib/queryClient";
-import { useToast } from "@dashboard/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { jsPDF } from "jspdf";
 import logoImage from "@assets/logo.jpeg";
 
