@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "npm run dev:client",
     "dev:server": "NODE_ENV=development tsx --env-file=.env server/index.ts",
-    "dev:client": "vite",
+    "dev:client": "npm run dev --prefix client",
     "build": "tsx script/build.ts",
     "start": "NODE_ENV=production node dist/index.cjs",
     "check": "tsc",
