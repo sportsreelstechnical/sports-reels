@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { api } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 import type { Team } from '@shared/schema';
 
 // Define types that match the Server's response
@@ -53,6 +54,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   // Helper to map user data to profile
   const handleUserResponse = (data: { user: User; team?: Team }) => {
@@ -152,15 +154,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const signOut = async () => {
+    // Optimistic Logout: Clear state immediately for checking UI
+    setUser(null);
+    setProfile(null);
+    setTeam(null);
+    setIsAdmin(false);
+
+    // Redirect immediately
+    navigate('/auth');
+
+    // Perform API logout in background
     try {
       await api.post('/api/auth/logout');
-      setUser(null);
-      setProfile(null);
-      setTeam(null);
-      setIsAdmin(false);
-      window.location.href = '/auth';
     } catch (error) {
       console.error('Error signing out:', error);
+      // We don't need to revert state here because if logout fails server-side, 
+      // the local session is already broken effectively for the user.
     }
   };
 

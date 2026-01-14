@@ -71,13 +71,13 @@ function DashboardHome() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <GoogleTranslationProvider>
-          <AutoTranslateProvider>
-            <TooltipProvider>
-              <Toaster />
-              <Sonner />
-              <BrowserRouter>
+      <BrowserRouter>
+        <AuthProvider>
+          <GoogleTranslationProvider>
+            <AutoTranslateProvider>
+              <TooltipProvider>
+                <Toaster />
+                <Sonner />
                 <Routes>
                   {/* Public Routes */}
                   <Route path="/" element={<HomeRedirect />} />
@@ -135,11 +135,11 @@ function App() {
                   {/* Catch All */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>
-              </BrowserRouter>
-            </TooltipProvider>
-          </AutoTranslateProvider>
-        </GoogleTranslationProvider>
-      </AuthProvider>
+              </TooltipProvider>
+            </AutoTranslateProvider>
+          </GoogleTranslationProvider>
+        </AuthProvider>
+      </BrowserRouter>
     </QueryClientProvider>
   );
 }
