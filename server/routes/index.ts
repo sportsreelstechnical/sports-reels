@@ -17,7 +17,7 @@ import { registerScoutingRoutes } from "./scouting";
 
 export async function registerAllRoutes(
   httpServer: Server,
-  app: Express
+  app: Express,
 ): Promise<Server> {
   registerObjectStorageRoutes(app);
   const objectStorageService = new ObjectStorageService();
@@ -32,9 +32,11 @@ export async function registerAllRoutes(
       const key = `${bucketName}/${objectName}`;
       const objectPath = `/objects/uploads/${objectName.split("/").pop()}`;
       res.json({ signedUrl, key, objectPath });
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error getting upload URL:", error);
-      res.status(500).json({ error: error.message });
+      const message =
+        error instanceof Error ? error.message : "An unknown error occurred";
+      res.status(500).json({ error: message });
     }
   });
 

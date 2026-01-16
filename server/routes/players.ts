@@ -5,7 +5,6 @@ import {
   insertPlayerSchema,
   insertPlayerInternationalRecordSchema,
   insertPlayerPhotoSchema,
-  insertPlayerDocumentSchema,
 } from "@shared/schema";
 
 export function registerPlayerRoutes(app: Express): void {
@@ -13,8 +12,10 @@ export function registerPlayerRoutes(app: Express): void {
     try {
       const players = await storage.getPlayers();
       res.json(players);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "An unknown error occurred";
+      res.status(500).json({ error: message });
     }
   });
 
@@ -25,10 +26,12 @@ export function registerPlayerRoutes(app: Express): void {
       try {
         const players = await storage.getPlayers();
         res.json(players);
-      } catch (error: any) {
-        res.status(500).json({ error: error.message });
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "An unknown error occurred";
+        res.status(500).json({ error: message });
       }
-    }
+    },
   );
 
   app.get(
@@ -55,10 +58,12 @@ export function registerPlayerRoutes(app: Express): void {
           biometricData,
           videos,
         });
-      } catch (error: any) {
-        res.status(500).json({ error: error.message });
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "An unknown error occurred";
+        res.status(500).json({ error: message });
       }
-    }
+    },
   );
 
   app.post("/api/players", requireAuth, async (req: Request, res: Response) => {
@@ -69,8 +74,10 @@ export function registerPlayerRoutes(app: Express): void {
       });
       const player = await storage.createPlayer(playerData);
       res.json(player);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "An unknown error occurred";
+      res.status(400).json({ error: message });
     }
   });
 
@@ -84,10 +91,12 @@ export function registerPlayerRoutes(app: Express): void {
           return res.status(404).json({ error: "Player not found" });
         }
         res.json(player);
-      } catch (error: any) {
-        res.status(400).json({ error: error.message });
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "An unknown error occurred";
+        res.status(400).json({ error: message });
       }
-    }
+    },
   );
 
   app.get(
@@ -97,10 +106,12 @@ export function registerPlayerRoutes(app: Express): void {
       try {
         const photos = await storage.getPlayerPhotos(req.params.id);
         res.json(photos);
-      } catch (error: any) {
-        res.status(500).json({ error: error.message });
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "An unknown error occurred";
+        res.status(500).json({ error: message });
       }
-    }
+    },
   );
 
   app.post(
@@ -114,10 +125,12 @@ export function registerPlayerRoutes(app: Express): void {
         });
         const photo = await storage.createPlayerPhoto(data);
         res.json(photo);
-      } catch (error: any) {
-        res.status(400).json({ error: error.message });
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "An unknown error occurred";
+        res.status(400).json({ error: message });
       }
-    }
+    },
   );
 
   app.delete(
@@ -127,10 +140,12 @@ export function registerPlayerRoutes(app: Express): void {
       try {
         await storage.deletePlayerPhoto(req.params.id);
         res.json({ success: true });
-      } catch (error: any) {
-        res.status(500).json({ error: error.message });
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "An unknown error occurred";
+        res.status(500).json({ error: message });
       }
-    }
+    },
   );
 
   app.post(
@@ -143,10 +158,12 @@ export function registerPlayerRoutes(app: Express): void {
           ...req.body,
         });
         res.json(metrics);
-      } catch (error: any) {
-        res.status(400).json({ error: error.message });
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "An unknown error occurred";
+        res.status(400).json({ error: message });
       }
-    }
+    },
   );
 
   app.get(
@@ -155,13 +172,15 @@ export function registerPlayerRoutes(app: Express): void {
     async (req: Request, res: Response) => {
       try {
         const records = await storage.getPlayerInternationalRecords(
-          req.params.playerId
+          req.params.playerId,
         );
         res.json(records);
-      } catch (error: any) {
-        res.status(500).json({ error: error.message });
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "An unknown error occurred";
+        res.status(500).json({ error: message });
       }
-    }
+    },
   );
 
   app.post(
@@ -176,10 +195,12 @@ export function registerPlayerRoutes(app: Express): void {
         const record =
           await storage.createPlayerInternationalRecord(recordData);
         res.json(record);
-      } catch (error: any) {
-        res.status(400).json({ error: error.message });
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "An unknown error occurred";
+        res.status(400).json({ error: message });
       }
-    }
+    },
   );
 
   app.put(
@@ -189,7 +210,7 @@ export function registerPlayerRoutes(app: Express): void {
       try {
         const record = await storage.updatePlayerInternationalRecord(
           req.params.recordId,
-          req.body
+          req.body,
         );
         if (!record) {
           return res
@@ -197,10 +218,12 @@ export function registerPlayerRoutes(app: Express): void {
             .json({ error: "International record not found" });
         }
         res.json(record);
-      } catch (error: any) {
-        res.status(400).json({ error: error.message });
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "An unknown error occurred";
+        res.status(400).json({ error: message });
       }
-    }
+    },
   );
 
   app.delete(
@@ -210,10 +233,12 @@ export function registerPlayerRoutes(app: Express): void {
       try {
         await storage.deletePlayerInternationalRecord(req.params.recordId);
         res.json({ success: true });
-      } catch (error: any) {
-        res.status(500).json({ error: error.message });
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "An unknown error occurred";
+        res.status(500).json({ error: message });
       }
-    }
+    },
   );
 
   app.post(
@@ -248,7 +273,7 @@ export function registerPlayerRoutes(app: Express): void {
             userId,
             newBalance,
             undefined,
-            balance.lifetimeSpent + cost
+            balance.lifetimeSpent + cost,
           );
 
           await storage.createTokenTransaction({
@@ -286,10 +311,12 @@ export function registerPlayerRoutes(app: Express): void {
 
           res.json({ success: true, published: false });
         }
-      } catch (error: any) {
-        res.status(500).json({ error: error.message });
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "An unknown error occurred";
+        res.status(500).json({ error: message });
       }
-    }
+    },
   );
 
   app.post(
@@ -323,7 +350,7 @@ export function registerPlayerRoutes(app: Express): void {
           userId,
           newBalance,
           undefined,
-          balance.lifetimeSpent + cost
+          balance.lifetimeSpent + cost,
         );
 
         const shareToken = `sr_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
@@ -359,10 +386,12 @@ export function registerPlayerRoutes(app: Express): void {
           tokensSpent: cost,
           newBalance,
         });
-      } catch (error: any) {
-        res.status(500).json({ error: error.message });
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "An unknown error occurred";
+        res.status(500).json({ error: message });
       }
-    }
+    },
   );
 
   app.get(
@@ -372,16 +401,18 @@ export function registerPlayerRoutes(app: Express): void {
       try {
         const links = await storage.getPlayerShareLinks(req.params.id);
         res.json(links);
-      } catch (error: any) {
-        res.status(500).json({ error: error.message });
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "An unknown error occurred";
+        res.status(500).json({ error: message });
       }
-    }
+    },
   );
 
   app.get("/api/shared/:shareToken", async (req: Request, res: Response) => {
     try {
       const shareLink = await storage.getPlayerShareLinkByToken(
-        req.params.shareToken
+        req.params.shareToken,
       );
 
       if (!shareLink) {
@@ -406,10 +437,10 @@ export function registerPlayerRoutes(app: Express): void {
       }
 
       const eligibilityScores = await storage.getEligibilityScores(
-        shareLink.playerId
+        shareLink.playerId,
       );
       const assessment = await storage.getTransferEligibilityAssessment(
-        shareLink.playerId
+        shareLink.playerId,
       );
       const metrics = await storage.getPlayerMetrics(shareLink.playerId);
       const videos = await storage.getVideos(shareLink.playerId);
@@ -458,8 +489,10 @@ export function registerPlayerRoutes(app: Express): void {
           viewCount: (shareLink.viewCount || 0) + 1,
         },
       });
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "An unknown error occurred";
+      res.status(500).json({ error: message });
     }
   });
 
@@ -470,9 +503,11 @@ export function registerPlayerRoutes(app: Express): void {
       try {
         const minutes = await storage.getPlayerVideoMinutes(req.params.id);
         res.json({ playerId: req.params.id, videoMinutes: minutes });
-      } catch (error: any) {
-        res.status(500).json({ error: error.message });
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "An unknown error occurred";
+        res.status(500).json({ error: message });
       }
-    }
+    },
   );
 }

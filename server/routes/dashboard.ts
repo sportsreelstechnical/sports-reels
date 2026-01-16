@@ -14,7 +14,7 @@ export function registerDashboardRoutes(app: Express): void {
         const publishedPlayers = players.filter((p) => p.isPublishedToScouts);
         const totalMinutesAnalyzed = videos.reduce(
           (sum, v) => sum + (v.minutesPlayed || 0),
-          0
+          0,
         );
 
         res.json({
@@ -24,10 +24,12 @@ export function registerDashboardRoutes(app: Express): void {
           totalMinutesAnalyzed,
           recentActivity: [],
         });
-      } catch (error: any) {
-        res.status(500).json({ error: error.message });
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "An unknown error occurred";
+        res.status(500).json({ error: message });
       }
-    }
+    },
   );
 
   app.get(
@@ -57,9 +59,11 @@ export function registerDashboardRoutes(app: Express): void {
             ...data,
           })),
         });
-      } catch (error: any) {
-        res.status(500).json({ error: error.message });
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "An unknown error occurred";
+        res.status(500).json({ error: message });
       }
-    }
+    },
   );
 }

@@ -32,7 +32,7 @@ export const embassyRepository = {
   },
 
   async getEmbassyProfileByCountry(
-    country: string
+    country: string,
   ): Promise<EmbassyProfile | undefined> {
     const [profile] = await db
       .select()
@@ -42,7 +42,7 @@ export const embassyRepository = {
   },
 
   async getEmbassyProfileByUserId(
-    userId: string
+    userId: string,
   ): Promise<EmbassyProfile | undefined> {
     const [profile] = await db
       .select()
@@ -52,7 +52,7 @@ export const embassyRepository = {
   },
 
   async createEmbassyProfile(
-    profile: InsertEmbassyProfile
+    profile: InsertEmbassyProfile,
   ): Promise<EmbassyProfile> {
     const [newProfile] = await db
       .insert(embassyProfiles)
@@ -67,14 +67,14 @@ export const embassyRepository = {
 
   // Embassy Verifications
   async getEmbassyVerifications(
-    teamId?: string
+    _teamId?: string,
   ): Promise<EmbassyVerification[]> {
     // Note: teamId parameter kept for interface compatibility but not used in query
     return db.select().from(embassyVerifications);
   },
 
   async createEmbassyVerification(
-    verification: InsertEmbassyVerification
+    verification: InsertEmbassyVerification,
   ): Promise<EmbassyVerification> {
     const [newVerification] = await db
       .insert(embassyVerifications)
@@ -85,7 +85,7 @@ export const embassyRepository = {
 
   async updateEmbassyVerification(
     id: string,
-    updates: Partial<InsertEmbassyVerification>
+    updates: Partial<InsertEmbassyVerification>,
   ): Promise<EmbassyVerification | undefined> {
     const [verification] = await db
       .update(embassyVerifications)
@@ -97,7 +97,7 @@ export const embassyRepository = {
 
   // Embassy Notifications
   async getEmbassyNotifications(
-    embassyCountry?: string
+    embassyCountry?: string,
   ): Promise<EmbassyNotification[]> {
     if (embassyCountry) {
       return db
@@ -113,7 +113,7 @@ export const embassyRepository = {
   },
 
   async getEmbassyNotification(
-    id: string
+    id: string,
   ): Promise<EmbassyNotification | undefined> {
     const [notification] = await db
       .select()
@@ -123,7 +123,7 @@ export const embassyRepository = {
   },
 
   async createEmbassyNotification(
-    notification: InsertEmbassyNotification
+    notification: InsertEmbassyNotification,
   ): Promise<EmbassyNotification> {
     const [newNotification] = await db
       .insert(embassyNotifications)
@@ -134,7 +134,7 @@ export const embassyRepository = {
 
   async updateEmbassyNotification(
     id: string,
-    updates: Partial<InsertEmbassyNotification>
+    updates: Partial<InsertEmbassyNotification>,
   ): Promise<EmbassyNotification | undefined> {
     const [notification] = await db
       .update(embassyNotifications)
@@ -146,7 +146,7 @@ export const embassyRepository = {
 
   // Embassy Document Access
   async logEmbassyDocumentAccess(
-    access: InsertEmbassyDocumentAccess
+    access: InsertEmbassyDocumentAccess,
   ): Promise<EmbassyDocumentAccess> {
     const [newAccess] = await db
       .insert(embassyDocumentAccess)
@@ -156,7 +156,7 @@ export const embassyRepository = {
   },
 
   async getEmbassyDocumentAccessLogs(
-    documentId: string
+    documentId: string,
   ): Promise<EmbassyDocumentAccess[]> {
     return db
       .select()
@@ -173,7 +173,7 @@ export const embassyRepository = {
       .where(eq(invitationLetters.playerId, playerId));
   },
 
-  async getAllInvitationLetters(teamId?: string): Promise<InvitationLetter[]> {
+  async getAllInvitationLetters(_teamId?: string): Promise<InvitationLetter[]> {
     // Note: teamId parameter kept for interface compatibility but not used
     return db.select().from(invitationLetters);
   },
@@ -187,7 +187,7 @@ export const embassyRepository = {
   },
 
   async createInvitationLetter(
-    letter: InsertInvitationLetter
+    letter: InsertInvitationLetter,
   ): Promise<InvitationLetter> {
     const [newLetter] = await db
       .insert(invitationLetters)
@@ -198,7 +198,7 @@ export const embassyRepository = {
 
   async updateInvitationLetter(
     id: string,
-    updates: Partial<InsertInvitationLetter>
+    updates: Partial<InsertInvitationLetter>,
   ): Promise<InvitationLetter | undefined> {
     const [letter] = await db
       .update(invitationLetters)
@@ -214,7 +214,7 @@ export const embassyRepository = {
   },
 
   async getEmbassyNotifiedLetters(
-    embassyCountry: string
+    embassyCountry: string,
   ): Promise<InvitationLetter[]> {
     const notifications = await db
       .select()
@@ -227,8 +227,8 @@ export const embassyRepository = {
     if (letterIds.length === 0) return [];
     const letters = await Promise.all(
       letterIds.map((id) =>
-        db.select().from(invitationLetters).where(eq(invitationLetters.id, id))
-      )
+        db.select().from(invitationLetters).where(eq(invitationLetters.id, id)),
+      ),
     );
     return letters.flat();
   },
@@ -241,8 +241,8 @@ export const embassyRepository = {
     if (letterIds.length === 0) return [];
     const letters = await Promise.all(
       letterIds.map((id) =>
-        db.select().from(invitationLetters).where(eq(invitationLetters.id, id))
-      )
+        db.select().from(invitationLetters).where(eq(invitationLetters.id, id)),
+      ),
     );
     return letters.flat();
   },
@@ -264,7 +264,7 @@ export const embassyRepository = {
   },
 
   async getConsularReportByVerificationCode(
-    code: string
+    code: string,
   ): Promise<ConsularReport | undefined> {
     const [report] = await db
       .select()
@@ -274,7 +274,7 @@ export const embassyRepository = {
   },
 
   async createConsularReport(
-    report: InsertConsularReport
+    report: InsertConsularReport,
   ): Promise<ConsularReport> {
     const [newReport] = await db
       .insert(consularReports)
@@ -285,7 +285,7 @@ export const embassyRepository = {
 
   async updateConsularReport(
     id: string,
-    updates: Partial<InsertConsularReport>
+    updates: Partial<InsertConsularReport>,
   ): Promise<ConsularReport | undefined> {
     const [report] = await db
       .update(consularReports)

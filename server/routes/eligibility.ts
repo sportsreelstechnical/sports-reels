@@ -16,10 +16,12 @@ export function registerEligibilityRoutes(app: Express): void {
       try {
         const scores = await storage.getEligibilityScores(req.params.playerId);
         res.json(scores);
-      } catch (error: any) {
-        res.status(500).json({ error: error.message });
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "An unknown error occurred";
+        res.status(500).json({ error: message });
       }
-    }
+    },
   );
 
   app.post(
@@ -95,10 +97,12 @@ Respond in JSON format:
         }
 
         res.json({ eligibilityScores: savedScores });
-      } catch (error: any) {
+      } catch (error) {
         console.error("Eligibility calculation error:", error);
-        res.status(500).json({ error: error.message });
+        const message =
+          error instanceof Error ? error.message : "An unknown error occurred";
+        res.status(500).json({ error: message });
       }
-    }
+    },
   );
 }

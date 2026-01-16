@@ -11,10 +11,12 @@ export function registerComplianceRoutes(app: Express): void {
       try {
         const orders = await storage.getComplianceOrders(req.session.teamId!);
         res.json(orders);
-      } catch (error: any) {
-        res.status(500).json({ error: error.message });
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "An unknown error occurred";
+        res.status(500).json({ error: message });
       }
-    }
+    },
   );
 
   app.post(
@@ -31,10 +33,12 @@ export function registerComplianceRoutes(app: Express): void {
         });
         const order = await storage.createComplianceOrder(orderData);
         res.json(order);
-      } catch (error: any) {
-        res.status(400).json({ error: error.message });
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "An unknown error occurred";
+        res.status(400).json({ error: message });
       }
-    }
+    },
   );
 
   app.post(
@@ -57,12 +61,15 @@ export function registerComplianceRoutes(app: Express): void {
         await storage.updateComplianceOrder(order.id, {
           status: "paid",
           paidAt: new Date(),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any);
 
         res.json({ success: true, payment });
-      } catch (error: any) {
-        res.status(500).json({ error: error.message });
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "An unknown error occurred";
+        res.status(500).json({ error: message });
       }
-    }
+    },
   );
 }

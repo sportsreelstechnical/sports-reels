@@ -24,7 +24,7 @@ import {
 export const federationRepository = {
   // Federation Profiles
   async getFederationProfile(
-    id: string
+    id: string,
   ): Promise<FederationProfile | undefined> {
     const [profile] = await db
       .select()
@@ -34,7 +34,7 @@ export const federationRepository = {
   },
 
   async getFederationProfileByCountry(
-    country: string
+    country: string,
   ): Promise<FederationProfile | undefined> {
     const [profile] = await db
       .select()
@@ -44,14 +44,14 @@ export const federationRepository = {
   },
 
   async getFederationProfileByUserId(
-    userId: string
+    _userId: string,
   ): Promise<FederationProfile | undefined> {
     // Note: userId not directly on profile table, kept for interface compatibility
     return undefined;
   },
 
   async createFederationProfile(
-    profile: InsertFederationProfile
+    profile: InsertFederationProfile,
   ): Promise<FederationProfile> {
     const [newProfile] = await db
       .insert(federationProfiles)
@@ -66,7 +66,7 @@ export const federationRepository = {
 
   // Federation Letter Requests
   async getFederationLetterRequests(
-    teamId?: string
+    teamId?: string,
   ): Promise<FederationLetterRequest[]> {
     if (teamId) {
       return db
@@ -82,7 +82,7 @@ export const federationRepository = {
   },
 
   async getFederationLetterRequest(
-    id: string
+    id: string,
   ): Promise<FederationLetterRequest | undefined> {
     const [request] = await db
       .select()
@@ -92,7 +92,7 @@ export const federationRepository = {
   },
 
   async createFederationLetterRequest(
-    request: InsertFederationLetterRequest
+    request: InsertFederationLetterRequest,
   ): Promise<FederationLetterRequest> {
     const [newRequest] = await db
       .insert(federationLetterRequests)
@@ -103,7 +103,7 @@ export const federationRepository = {
 
   async updateFederationLetterRequest(
     id: string,
-    updates: Partial<InsertFederationLetterRequest>
+    updates: Partial<InsertFederationLetterRequest>,
   ): Promise<FederationLetterRequest | undefined> {
     const [request] = await db
       .update(federationLetterRequests)
@@ -115,7 +115,7 @@ export const federationRepository = {
 
   // Fee Schedules
   async getFederationFeeSchedules(
-    federationId: string
+    federationId: string,
   ): Promise<FederationFeeSchedule[]> {
     return db
       .select()
@@ -124,7 +124,7 @@ export const federationRepository = {
   },
 
   async createFederationFeeSchedule(
-    schedule: InsertFederationFeeSchedule
+    schedule: InsertFederationFeeSchedule,
   ): Promise<FederationFeeSchedule> {
     const [newSchedule] = await db
       .insert(federationFeeSchedules)
@@ -135,7 +135,7 @@ export const federationRepository = {
 
   async updateFederationFeeSchedule(
     id: string,
-    updates: Partial<InsertFederationFeeSchedule>
+    updates: Partial<InsertFederationFeeSchedule>,
   ): Promise<FederationFeeSchedule | undefined> {
     const [schedule] = await db
       .update(federationFeeSchedules)
@@ -151,7 +151,7 @@ export const federationRepository = {
 
   // Request Activities
   async getFederationRequestActivities(
-    requestId: string
+    requestId: string,
   ): Promise<FederationRequestActivity[]> {
     return db
       .select()
@@ -161,7 +161,7 @@ export const federationRepository = {
   },
 
   async createFederationRequestActivity(
-    activity: InsertFederationRequestActivity
+    activity: InsertFederationRequestActivity,
   ): Promise<FederationRequestActivity> {
     const [newActivity] = await db
       .insert(federationRequestActivities)
@@ -172,7 +172,7 @@ export const federationRepository = {
 
   // Request Messages
   async getFederationRequestMessages(
-    requestId: string
+    requestId: string,
   ): Promise<FederationRequestMessage[]> {
     return db
       .select()
@@ -182,7 +182,7 @@ export const federationRepository = {
   },
 
   async createFederationRequestMessage(
-    message: InsertFederationRequestMessage
+    message: InsertFederationRequestMessage,
   ): Promise<FederationRequestMessage> {
     const [newMessage] = await db
       .insert(federationRequestMessages)
@@ -193,7 +193,7 @@ export const federationRepository = {
 
   async updateFederationRequestMessage(
     id: string,
-    updates: Partial<InsertFederationRequestMessage>
+    updates: Partial<InsertFederationRequestMessage>,
   ): Promise<FederationRequestMessage | undefined> {
     const [message] = await db
       .update(federationRequestMessages)
@@ -205,7 +205,7 @@ export const federationRepository = {
 
   // Issued Documents
   async getFederationIssuedDocuments(
-    requestId: string
+    requestId: string,
   ): Promise<FederationIssuedDocument[]> {
     return db
       .select()
@@ -214,7 +214,7 @@ export const federationRepository = {
   },
 
   async getFederationIssuedDocument(
-    id: string
+    id: string,
   ): Promise<FederationIssuedDocument | undefined> {
     const [doc] = await db
       .select()
@@ -224,7 +224,7 @@ export const federationRepository = {
   },
 
   async createFederationIssuedDocument(
-    doc: InsertFederationIssuedDocument
+    doc: InsertFederationIssuedDocument,
   ): Promise<FederationIssuedDocument> {
     const [newDoc] = await db
       .insert(federationIssuedDocuments)
@@ -235,7 +235,7 @@ export const federationRepository = {
 
   async updateFederationIssuedDocument(
     id: string,
-    updates: Partial<InsertFederationIssuedDocument>
+    updates: Partial<InsertFederationIssuedDocument>,
   ): Promise<FederationIssuedDocument | undefined> {
     const [doc] = await db
       .update(federationIssuedDocuments)

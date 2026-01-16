@@ -11,10 +11,12 @@ export function registerMessagingRoutes(app: Express): void {
         const userId = req.session.userId || "demo-user";
         const conversations = await storage.getConversations(userId);
         res.json(conversations);
-      } catch (error: any) {
-        res.status(500).json({ error: error.message });
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "An unknown error occurred";
+        res.status(500).json({ error: message });
       }
-    }
+    },
   );
 
   app.post(
@@ -47,10 +49,12 @@ export function registerMessagingRoutes(app: Express): void {
         }
 
         res.json(conversation);
-      } catch (error: any) {
-        res.status(400).json({ error: error.message });
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "An unknown error occurred";
+        res.status(400).json({ error: message });
       }
-    }
+    },
   );
 
   app.get(
@@ -65,14 +69,16 @@ export function registerMessagingRoutes(app: Express): void {
 
         const messages = await storage.getMessages(req.params.id);
         const participants = await storage.getConversationParticipants(
-          req.params.id
+          req.params.id,
         );
 
         res.json({ conversation, messages, participants });
-      } catch (error: any) {
-        res.status(500).json({ error: error.message });
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "An unknown error occurred";
+        res.status(500).json({ error: message });
       }
-    }
+    },
   );
 
   app.post(
@@ -92,10 +98,12 @@ export function registerMessagingRoutes(app: Express): void {
         });
 
         res.json(message);
-      } catch (error: any) {
-        res.status(400).json({ error: error.message });
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "An unknown error occurred";
+        res.status(400).json({ error: message });
       }
-    }
+    },
   );
 
   app.post(
@@ -112,9 +120,11 @@ export function registerMessagingRoutes(app: Express): void {
         });
 
         res.json({ success: true });
-      } catch (error: any) {
-        res.status(400).json({ error: error.message });
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "An unknown error occurred";
+        res.status(400).json({ error: message });
       }
-    }
+    },
   );
 }

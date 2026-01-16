@@ -13,13 +13,13 @@ import {
 
 export const scoutingRepository = {
   // Scouting Inquiries
-  async getScoutingInquiries(teamId?: string): Promise<ScoutingInquiry[]> {
+  async getScoutingInquiries(_teamId?: string): Promise<ScoutingInquiry[]> {
     // Note: teamId parameter kept for interface compatibility but not used
     return db.select().from(scoutingInquiries);
   },
 
   async createScoutingInquiry(
-    inquiry: InsertScoutingInquiry
+    inquiry: InsertScoutingInquiry,
   ): Promise<ScoutingInquiry> {
     const [newInquiry] = await db
       .insert(scoutingInquiries)
@@ -38,7 +38,7 @@ export const scoutingRepository = {
   },
 
   async getScoutShortlistWithPlayers(
-    scoutId: string
+    scoutId: string,
   ): Promise<Array<ScoutShortlist & { player: Player }>> {
     const shortlist = await db
       .select()
@@ -52,13 +52,13 @@ export const scoutingRepository = {
           .from(players)
           .where(eq(players.id, item.playerId));
         return { ...item, player };
-      })
+      }),
     );
     return result;
   },
 
   async addToShortlist(
-    shortlist: InsertScoutShortlist
+    shortlist: InsertScoutShortlist,
   ): Promise<ScoutShortlist> {
     const [newShortlist] = await db
       .insert(scoutShortlists)
@@ -70,7 +70,7 @@ export const scoutingRepository = {
   async updateShortlistPriority(
     id: string,
     priority: string,
-    notes?: string
+    notes?: string,
   ): Promise<ScoutShortlist | undefined> {
     const updates: Partial<InsertScoutShortlist> = { priority };
     if (notes !== undefined) updates.notes = notes;
@@ -88,9 +88,9 @@ export const scoutingRepository = {
 
   async getShortlistEntry(
     scoutId: string,
-    playerId: string
+    playerId: string,
   ): Promise<ScoutShortlist | undefined> {
-    const [entry] = await db
+    const [_entry] = await db
       .select()
       .from(scoutShortlists)
       .where(eq(scoutShortlists.scoutId, scoutId));

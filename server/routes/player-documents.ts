@@ -11,10 +11,12 @@ export function registerPlayerDocumentsRoutes(app: Express): void {
       try {
         const documents = await storage.getPlayerDocuments(req.params.playerId);
         res.json(documents);
-      } catch (error: any) {
-        res.status(500).json({ error: error.message });
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "An unknown error occurred";
+        res.status(500).json({ error: message });
       }
-    }
+    },
   );
 
   // Upload player document
@@ -37,21 +39,17 @@ export function registerPlayerDocumentsRoutes(app: Express): void {
         } = req.body;
 
         if (!documentType || !originalName || !storageKey) {
-          return res
-            .status(400)
-            .json({
-              error:
-                "Missing required fields: documentType, originalName, storageKey",
-            });
+          return res.status(400).json({
+            error:
+              "Missing required fields: documentType, originalName, storageKey",
+          });
         }
 
         const validTypes = ["passport", "national_id", "birth_certificate"];
         if (!validTypes.includes(documentType)) {
-          return res
-            .status(400)
-            .json({
-              error: `Invalid document type. Must be one of: ${validTypes.join(", ")}`,
-            });
+          return res.status(400).json({
+            error: `Invalid document type. Must be one of: ${validTypes.join(", ")}`,
+          });
         }
 
         const document = await storage.createPlayerDocument({
@@ -108,10 +106,12 @@ export function registerPlayerDocumentsRoutes(app: Express): void {
         });
 
         res.json(document);
-      } catch (error: any) {
-        res.status(400).json({ error: error.message });
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "An unknown error occurred";
+        res.status(400).json({ error: message });
       }
-    }
+    },
   );
 
   // Update player document
@@ -122,16 +122,18 @@ export function registerPlayerDocumentsRoutes(app: Express): void {
       try {
         const document = await storage.updatePlayerDocument(
           req.params.docId,
-          req.body
+          req.body,
         );
         if (!document) {
           return res.status(404).json({ error: "Document not found" });
         }
         res.json(document);
-      } catch (error: any) {
-        res.status(400).json({ error: error.message });
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "An unknown error occurred";
+        res.status(400).json({ error: message });
       }
-    }
+    },
   );
 
   // Delete player document
@@ -177,10 +179,12 @@ export function registerPlayerDocumentsRoutes(app: Express): void {
         });
 
         res.json({ success: true });
-      } catch (error: any) {
-        res.status(500).json({ error: error.message });
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "An unknown error occurred";
+        res.status(500).json({ error: message });
       }
-    }
+    },
   );
 
   // Verify document
@@ -225,10 +229,12 @@ export function registerPlayerDocumentsRoutes(app: Express): void {
         });
 
         res.json(document);
-      } catch (error: any) {
-        res.status(400).json({ error: error.message });
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "An unknown error occurred";
+        res.status(400).json({ error: message });
       }
-    }
+    },
   );
 
   // Get document versions
@@ -239,10 +245,12 @@ export function registerPlayerDocumentsRoutes(app: Express): void {
       try {
         const versions = await storage.getDocumentVersions(req.params.docId);
         res.json(versions);
-      } catch (error: any) {
-        res.status(500).json({ error: error.message });
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "An unknown error occurred";
+        res.status(500).json({ error: message });
       }
-    }
+    },
   );
 
   // Create new document version
@@ -261,11 +269,9 @@ export function registerPlayerDocumentsRoutes(app: Express): void {
         } = req.body;
 
         if (!originalName || !storageKey) {
-          return res
-            .status(400)
-            .json({
-              error: "Missing required fields: originalName, storageKey",
-            });
+          return res.status(400).json({
+            error: "Missing required fields: originalName, storageKey",
+          });
         }
 
         const document = await storage.getPlayerDocument(req.params.docId);
@@ -274,7 +280,7 @@ export function registerPlayerDocumentsRoutes(app: Express): void {
         }
 
         const existingVersions = await storage.getDocumentVersions(
-          req.params.docId
+          req.params.docId,
         );
         const nextVersionNumber =
           existingVersions.length > 0
@@ -324,10 +330,12 @@ export function registerPlayerDocumentsRoutes(app: Express): void {
         });
 
         res.json(newVersion);
-      } catch (error: any) {
-        res.status(400).json({ error: error.message });
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "An unknown error occurred";
+        res.status(400).json({ error: message });
       }
-    }
+    },
   );
 
   // Restore document version
@@ -372,10 +380,12 @@ export function registerPlayerDocumentsRoutes(app: Express): void {
         });
 
         res.json({ success: true, restoredVersion: version.versionNumber });
-      } catch (error: any) {
-        res.status(400).json({ error: error.message });
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "An unknown error occurred";
+        res.status(400).json({ error: message });
       }
-    }
+    },
   );
 
   // Document audit logs
@@ -386,10 +396,12 @@ export function registerPlayerDocumentsRoutes(app: Express): void {
       try {
         const logs = await storage.getDocumentAuditLogs(req.params.docId);
         res.json(logs);
-      } catch (error: any) {
-        res.status(500).json({ error: error.message });
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "An unknown error occurred";
+        res.status(500).json({ error: message });
       }
-    }
+    },
   );
 
   app.get(
@@ -398,13 +410,15 @@ export function registerPlayerDocumentsRoutes(app: Express): void {
     async (req: Request, res: Response) => {
       try {
         const logs = await storage.getDocumentAuditLogsByPlayer(
-          req.params.playerId
+          req.params.playerId,
         );
         res.json(logs);
-      } catch (error: any) {
-        res.status(500).json({ error: error.message });
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "An unknown error occurred";
+        res.status(500).json({ error: message });
       }
-    }
+    },
   );
 
   app.get(
@@ -417,12 +431,14 @@ export function registerPlayerDocumentsRoutes(app: Express): void {
           : 100;
         const logs = await storage.getDocumentAuditLogsByTeam(
           req.session.teamId || "demo-team",
-          limit
+          limit,
         );
         res.json(logs);
-      } catch (error: any) {
-        res.status(500).json({ error: error.message });
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "An unknown error occurred";
+        res.status(500).json({ error: message });
       }
-    }
+    },
   );
 }

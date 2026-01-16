@@ -43,7 +43,7 @@ export const miscRepository = {
 
   async updateTeamSheet(
     id: string,
-    updates: Partial<InsertTeamSheet>
+    updates: Partial<InsertTeamSheet>,
   ): Promise<TeamSheet | undefined> {
     const [sheet] = await db
       .update(teamSheets)
@@ -70,7 +70,7 @@ export const miscRepository = {
   },
 
   async createTeamSheetPlayer(
-    player: InsertTeamSheetPlayer
+    player: InsertTeamSheetPlayer,
   ): Promise<TeamSheetPlayer> {
     const [newPlayer] = await db
       .insert(teamSheetPlayers)
@@ -81,7 +81,7 @@ export const miscRepository = {
 
   async updateTeamSheetPlayer(
     id: string,
-    updates: Partial<InsertTeamSheetPlayer>
+    updates: Partial<InsertTeamSheetPlayer>,
   ): Promise<TeamSheetPlayer | undefined> {
     const [player] = await db
       .update(teamSheetPlayers)
@@ -109,7 +109,7 @@ export const miscRepository = {
 
   async getActionLogs(
     entityType: string,
-    entityId: string
+    _entityId: string,
   ): Promise<ActionLog[]> {
     return db
       .select()
@@ -135,7 +135,7 @@ export const miscRepository = {
 
   // Player Share Links
   async createPlayerShareLink(
-    link: InsertPlayerShareLink
+    link: InsertPlayerShareLink,
   ): Promise<PlayerShareLink> {
     const [newLink] = await db
       .insert(playerShareLinks)
@@ -152,7 +152,7 @@ export const miscRepository = {
   },
 
   async getPlayerShareLinkByToken(
-    shareToken: string
+    shareToken: string,
   ): Promise<PlayerShareLink | undefined> {
     const [link] = await db
       .select()

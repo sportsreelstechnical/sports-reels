@@ -33,7 +33,7 @@ import {
 export const adminRepository = {
   // Password Reset
   async createPasswordResetToken(
-    token: InsertPasswordResetToken
+    token: InsertPasswordResetToken,
   ): Promise<PasswordResetToken> {
     const [newToken] = await db
       .insert(passwordResetTokens)
@@ -43,7 +43,7 @@ export const adminRepository = {
   },
 
   async getPasswordResetToken(
-    token: string
+    token: string,
   ): Promise<PasswordResetToken | undefined> {
     const [resetToken] = await db
       .select()
@@ -62,7 +62,7 @@ export const adminRepository = {
   // Admin Messages
   async getAdminMessages(
     status?: string,
-    limit = 50
+    limit = 50,
   ): Promise<AdminMessageInbox[]> {
     if (status) {
       return db
@@ -88,7 +88,7 @@ export const adminRepository = {
   },
 
   async createAdminMessage(
-    message: InsertAdminMessageInbox
+    message: InsertAdminMessageInbox,
   ): Promise<AdminMessageInbox> {
     const [newMessage] = await db
       .insert(adminMessageInbox)
@@ -99,7 +99,7 @@ export const adminRepository = {
 
   async updateAdminMessage(
     id: string,
-    updates: Partial<InsertAdminMessageInbox>
+    updates: Partial<InsertAdminMessageInbox>,
   ): Promise<AdminMessageInbox | undefined> {
     const [message] = await db
       .update(adminMessageInbox)
@@ -111,8 +111,8 @@ export const adminRepository = {
 
   // Platform Metrics
   async getPlatformMetrics(
-    startDate?: string,
-    endDate?: string
+    _startDate?: string,
+    _endDate?: string,
   ): Promise<PlatformMetrics[]> {
     return db
       .select()
@@ -131,7 +131,7 @@ export const adminRepository = {
   },
 
   async createPlatformMetrics(
-    metrics: InsertPlatformMetrics
+    metrics: InsertPlatformMetrics,
   ): Promise<PlatformMetrics> {
     const [newMetrics] = await db
       .insert(platformMetrics)
@@ -177,7 +177,7 @@ export const adminRepository = {
 
   async updateGdprRequest(
     id: string,
-    updates: Partial<InsertGdprRequest>
+    updates: Partial<InsertGdprRequest>,
   ): Promise<GdprRequest | undefined> {
     const [request] = await db
       .update(gdprRequests)
@@ -204,7 +204,7 @@ export const adminRepository = {
   },
 
   async updateUserConsentWithdrawn(
-    id: string
+    id: string,
   ): Promise<UserConsent | undefined> {
     const [consent] = await db
       .update(userConsents)
@@ -218,7 +218,7 @@ export const adminRepository = {
   async getPlatformAuditLogs(
     category?: string,
     limit = 100,
-    offset = 0
+    offset = 0,
   ): Promise<PlatformAuditLog[]> {
     if (category) {
       return db
@@ -238,7 +238,7 @@ export const adminRepository = {
   },
 
   async createPlatformAuditLog(
-    log: InsertPlatformAuditLog
+    log: InsertPlatformAuditLog,
   ): Promise<PlatformAuditLog> {
     const [newLog] = await db.insert(platformAuditLogs).values(log).returning();
     return newLog;
@@ -270,7 +270,7 @@ export const adminRepository = {
   },
 
   async updateUserSessionActivity(
-    id: string
+    id: string,
   ): Promise<UserSession | undefined> {
     const [session] = await db
       .update(userSessions)
@@ -289,7 +289,7 @@ export const adminRepository = {
 
   // Federation Payments
   async getFederationPaymentHistory(
-    federationId?: string
+    federationId?: string,
   ): Promise<FederationPaymentHistory[]> {
     if (federationId) {
       return db
@@ -305,7 +305,7 @@ export const adminRepository = {
   },
 
   async getAllFederationPayments(
-    limit = 100
+    limit = 100,
   ): Promise<FederationPaymentHistory[]> {
     return db
       .select()
@@ -315,7 +315,7 @@ export const adminRepository = {
   },
 
   async createFederationPayment(
-    payment: InsertFederationPaymentHistory
+    payment: InsertFederationPaymentHistory,
   ): Promise<FederationPaymentHistory> {
     const [newPayment] = await db
       .insert(federationPaymentHistory)
@@ -326,7 +326,7 @@ export const adminRepository = {
 
   async updateFederationPayment(
     id: string,
-    updates: Partial<InsertFederationPaymentHistory>
+    updates: Partial<InsertFederationPaymentHistory>,
   ): Promise<FederationPaymentHistory | undefined> {
     const [payment] = await db
       .update(federationPaymentHistory)

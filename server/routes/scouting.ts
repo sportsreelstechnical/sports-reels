@@ -9,13 +9,15 @@ export function registerScoutingRoutes(app: Express): void {
     async (req: Request, res: Response) => {
       try {
         const inquiries = await storage.getScoutingInquiries(
-          req.session.userId!
+          req.session.userId!,
         );
         res.json(inquiries);
-      } catch (error: any) {
-        res.status(500).json({ error: error.message });
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "An unknown error occurred";
+        res.status(500).json({ error: message });
       }
-    }
+    },
   );
 
   app.post(
@@ -34,9 +36,11 @@ export function registerScoutingRoutes(app: Express): void {
         });
 
         res.json(inquiry);
-      } catch (error: any) {
-        res.status(400).json({ error: error.message });
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "An unknown error occurred";
+        res.status(400).json({ error: message });
       }
-    }
+    },
   );
 }
