@@ -13,7 +13,7 @@ RUN npm install
 COPY . .
 
 # Build only the server
-RUN npx tsc -p tsconfig.server.json
+RUN npx tsc -p server/tsconfig.json
 # We use tsx to run the build script directly if needed, but we should add a script to package.json
 # For now, let's use npx tsx
 RUN npx tsx script/build-server.ts

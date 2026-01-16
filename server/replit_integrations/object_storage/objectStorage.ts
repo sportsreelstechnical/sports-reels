@@ -4,7 +4,7 @@ import { Response } from "express";
 import { randomUUID } from "crypto";
 
 // Ensure storage directory exists
-const STORAGE_DIR = path.join(process.cwd(), "storage_data");
+const STORAGE_DIR = path.join(process.cwd(), "server", "storage_data");
 if (!fs.existsSync(STORAGE_DIR)) {
   fs.mkdirSync(STORAGE_DIR, { recursive: true });
 }
@@ -28,7 +28,7 @@ export class ObjectStorageService {
   }
 
   async searchPublicObject(
-    filePath: string
+    filePath: string,
   ): Promise<{ name: string; path: string } | null> {
     const fullPath = path.join(STORAGE_DIR, filePath);
     if (fs.existsSync(fullPath)) {
@@ -44,7 +44,7 @@ export class ObjectStorageService {
   async downloadObject(
     file: { path: string; name: string },
     res: Response,
-    cacheTtlSec: number = 3600
+    cacheTtlSec: number = 3600,
   ) {
     try {
       if (!fs.existsSync(file.path)) {
@@ -76,7 +76,7 @@ export class ObjectStorageService {
   }
 
   async getObjectEntityFile(
-    objectPath: string
+    objectPath: string,
   ): Promise<{ name: string; path: string }> {
     const filename = objectPath.split("/").pop();
     if (!filename) throw new ObjectNotFoundError();
@@ -100,7 +100,7 @@ export class ObjectStorageService {
   // Simplified no-op for local
   async trySetObjectEntityAclPolicy(
     rawPath: string,
-    _aclPolicy: unknown
+    _aclPolicy: unknown,
   ): Promise<string> {
     return rawPath;
   }

@@ -18,7 +18,7 @@
     "paths": {
       "@/*": ["./client/src/*"],
       "@dashboard/*": ["./client/src/dashboard/*"],
-      "@shared/*": ["./shared/*"]
+      "@shared/*": ["./server/shared/*"]
     }
   }
 }
