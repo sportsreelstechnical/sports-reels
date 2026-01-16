@@ -7,12 +7,15 @@ COPY package*.json ./
 COPY client/package.json client/
 # Only install production dependencies for now to save space, but we need devDependencies for build
 # So we install all, build, then prune
-RUN npm install
+RUN npm run install:all
 
 # Copy source
 COPY . .
 
-# Build only the server
+# Build the frontend
+RUN npm run build:frontend
+
+# Build the server
 RUN npx tsc -p server/tsconfig.json
 # We use tsx to run the build script directly if needed, but we should add a script to package.json
 # For now, let's use npx tsx
