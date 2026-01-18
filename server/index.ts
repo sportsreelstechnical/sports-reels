@@ -40,7 +40,7 @@ app.use(
       }
     },
     credentials: true, // Allow cookies/sessions
-  })
+  }),
 );
 
 app.use(
@@ -48,7 +48,7 @@ app.use(
     verify: (req, _res, buf) => {
       req.rawBody = buf;
     },
-  })
+  }),
 );
 
 app.use(express.urlencoded({ extended: false }));
@@ -63,7 +63,7 @@ app.use(
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000,
     },
-  })
+  }),
 );
 
 app.use(passport.initialize());
@@ -115,19 +115,26 @@ app.use((req, res, next) => {
       err: Error & { status?: number; statusCode?: number },
       _req: Request,
       res: Response,
-      _next: NextFunction
+      _next: NextFunction,
     ) => {
       const status = err.status || err.statusCode || 500;
       const message = err.message || "Internal Server Error";
 
       res.status(status).json({ message });
       throw err;
-    }
+    },
   );
 
   // Serve static files in production only
+  // Serve static files in production only
   if (process.env.NODE_ENV === "production") {
-    serveStatic(app);
+    try {
+      serveStatic(app);
+    } catch (_e) {
+      console.log(
+        "Not serving static files (backend-only deployment detected)",
+      );
+    }
   }
 
   // ALWAYS serve the app on the port specified in the environment variable PORT
@@ -142,6 +149,6 @@ app.use((req, res, next) => {
     },
     () => {
       log(`serving on port ${port}`);
-    }
+    },
   );
 })();

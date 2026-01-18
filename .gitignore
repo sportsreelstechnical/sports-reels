@@ -6,3 +6,7 @@ vite.config.ts.*
 *.tar.gz
 storage_data/
 .env
+**/.env
+.env.local
+.env.*.local
+client/.env
