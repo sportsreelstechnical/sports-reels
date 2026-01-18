@@ -8,12 +8,12 @@ export function registerTeamRoutes(app: Express): void {
     requireAuth,
     async (req: Request, res: Response) => {
       try {
-        const user = req.user as any;
+        const user = req.user as { id: number } | undefined;
         if (!user?.id) {
           return res.status(401).json({ error: "Unauthorized" });
         }
 
-        const teams = await storage.getTeamsByUser(user.id);
+        const teams = await storage.getTeamsByUser(String(user.id));
         const currentTeam = teams[0] || null;
 
         // If we want to return null instead of 404 when no team found

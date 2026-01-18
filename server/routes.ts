@@ -52,9 +52,11 @@ export async function registerRoutes(
         key: `${pathParts[1]}/${objectName}`,
         objectPath: `/objects/uploads/${objectName.split("/").pop()}`,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
       console.error("Error getting upload URL:", error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: errorMessage });
     }
   });
 
