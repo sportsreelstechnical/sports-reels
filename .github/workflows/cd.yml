@@ -42,20 +42,13 @@ jobs:
       - name: Lowercase Repo Name
         run: echo "REPO_NAME=${GITHUB_REPOSITORY,,}" >> ${GITHUB_ENV}
 
-      - name: Build and push frontend image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./client
-          push: true
-          tags: ghcr.io/${{ env.REPO_NAME }}/frontend:staging
-
-      - name: Build and push backend image
+      - name: Build and push app image
         uses: docker/build-push-action@v5
         with:
           context: .
           file: Dockerfile
           push: true
-          tags: ghcr.io/${{ env.REPO_NAME }}/backend:staging
+          tags: ghcr.io/${{ env.REPO_NAME }}:staging
 
       - name: Deploy to staging server
         run: |
@@ -105,24 +98,15 @@ jobs:
         id: get_version
         run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
 
-      - name: Build and push frontend image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./client
-          push: true
-          tags: |
-            ghcr.io/${{ env.REPO_NAME }}/frontend:${{ steps.get_version.outputs.VERSION }}
-            ghcr.io/${{ env.REPO_NAME }}/frontend:latest
-
-      - name: Build and push backend image
+      - name: Build and push app image
         uses: docker/build-push-action@v5
         with:
           context: .
           file: Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ env.REPO_NAME }}/backend:${{ steps.get_version.outputs.VERSION }}
-            ghcr.io/${{ env.REPO_NAME }}/backend:latest
+            ghcr.io/${{ env.REPO_NAME }}:${{ steps.get_version.outputs.VERSION }}
+            ghcr.io/${{ env.REPO_NAME }}:latest
 
       - name: Deploy to production server
         run: |
