@@ -25,7 +25,7 @@
     "paths": {
       "@/*": ["./src/*"],
       "@dashboard/*": ["./src/dashboard/*"],
-      "@shared/*": ["../shared/*"]
+      "@shared/*": ["../server/shared/*"]
     }
   },
   "include": ["src"]

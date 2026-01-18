@@ -1,5 +1,5 @@
 import { db } from "../db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, inArray } from "drizzle-orm";
 import {
   type Player,
   type InsertPlayer,
@@ -39,6 +39,11 @@ export const playersRepository = {
     return player;
   },
 
+  async getPlayersByIds(ids: string[]): Promise<Player[]> {
+    if (ids.length === 0) return [];
+    return db.select().from(players).where(inArray(players.id, ids));
+  },
+
   async createPlayer(player: InsertPlayer): Promise<Player> {
     const [newPlayer] = await db.insert(players).values(player).returning();
     return newPlayer;
@@ -46,7 +51,7 @@ export const playersRepository = {
 
   async updatePlayer(
     id: string,
-    updates: Partial<InsertPlayer>
+    updates: Partial<InsertPlayer>,
   ): Promise<Player | undefined> {
     const [player] = await db
       .update(players)
@@ -72,7 +77,7 @@ export const playersRepository = {
   },
 
   async createPlayerMetrics(
-    metrics: InsertPlayerMetrics
+    metrics: InsertPlayerMetrics,
   ): Promise<PlayerMetrics> {
     const [newMetrics] = await db
       .insert(playerMetrics)
@@ -108,7 +113,7 @@ export const playersRepository = {
   },
 
   async createMedicalRecord(
-    record: InsertMedicalRecord
+    record: InsertMedicalRecord,
   ): Promise<MedicalRecord> {
     const [newRecord] = await db
       .insert(medicalRecords)
@@ -132,7 +137,7 @@ export const playersRepository = {
 
   // International Records
   async getPlayerInternationalRecords(
-    playerId: string
+    playerId: string,
   ): Promise<PlayerInternationalRecord[]> {
     return db
       .select()
@@ -142,7 +147,7 @@ export const playersRepository = {
   },
 
   async getPlayerInternationalRecord(
-    id: string
+    id: string,
   ): Promise<PlayerInternationalRecord | undefined> {
     const [record] = await db
       .select()
@@ -152,7 +157,7 @@ export const playersRepository = {
   },
 
   async createPlayerInternationalRecord(
-    record: InsertPlayerInternationalRecord
+    record: InsertPlayerInternationalRecord,
   ): Promise<PlayerInternationalRecord> {
     const [newRecord] = await db
       .insert(playerInternationalRecords)
@@ -163,7 +168,7 @@ export const playersRepository = {
 
   async updatePlayerInternationalRecord(
     id: string,
-    updates: Partial<InsertPlayerInternationalRecord>
+    updates: Partial<InsertPlayerInternationalRecord>,
   ): Promise<PlayerInternationalRecord | undefined> {
     const [record] = await db
       .update(playerInternationalRecords)

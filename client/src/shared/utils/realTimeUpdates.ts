@@ -1,18 +1,20 @@
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
-import { useState, useEffect } from 'react';
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
+import { useState, useEffect } from "react";
+import { RealtimeChannel } from "@supabase/supabase-js";
 
 export interface RealTimeUpdate {
-  type: 'pitch' | 'message' | 'contract' | 'shortlist' | 'request';
-  action: 'created' | 'updated' | 'deleted';
-  data: any;
+  type: "pitch" | "message" | "contract" | "shortlist" | "request";
+  action: "created" | "updated" | "deleted";
+  data: Record<string, unknown>;
   timestamp: Date;
 }
 
 export class RealTimeUpdatesService {
   private static instance: RealTimeUpdatesService;
-  private subscriptions: Map<string, any> = new Map();
-  private listeners: Map<string, Set<(update: RealTimeUpdate) => void>> = new Map();
+  private subscriptions: Map<string, RealtimeChannel> = new Map();
+  private listeners: Map<string, Set<(update: RealTimeUpdate) => void>> =
+    new Map();
 
   static getInstance(): RealTimeUpdatesService {
     if (!RealTimeUpdatesService.instance) {
@@ -22,162 +24,177 @@ export class RealTimeUpdatesService {
   }
 
   // Subscribe to transfer pitch updates
-  subscribeToPitchUpdates(userId: string, callback: (update: RealTimeUpdate) => void) {
+  subscribeToPitchUpdates(
+    userId: string,
+    callback: (update: RealTimeUpdate) => void,
+  ) {
     const subscription = supabase
       .channel(`pitch_updates_${userId}`)
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: '*',
-          schema: 'public',
-          table: 'transfer_pitches',
-          filter: `team_id=eq.${userId}`
+          event: "*",
+          schema: "public",
+          table: "transfer_pitches",
+          filter: `team_id=eq.${userId}`,
         },
         (payload) => {
           const update: RealTimeUpdate = {
-            type: 'pitch',
-            action: payload.eventType as any,
-            data: payload.new || payload.old,
-            timestamp: new Date()
+            type: "pitch",
+            action: payload.eventType as "created" | "updated" | "deleted",
+            data: (payload.new || payload.old) as Record<string, unknown>,
+            timestamp: new Date(),
           };
 
-          this.notifyListeners('pitch', update);
+          this.notifyListeners("pitch", update);
           callback(update);
 
           // Show toast notification
           this.showUpdateNotification(update);
-        }
+        },
       )
       .subscribe();
 
     this.subscriptions.set(`pitch_${userId}`, subscription);
-    this.addListener('pitch', callback);
+    this.addListener("pitch", callback);
   }
 
   // Subscribe to message updates
-  subscribeToMessageUpdates(userId: string, callback: (update: RealTimeUpdate) => void) {
+  subscribeToMessageUpdates(
+    userId: string,
+    callback: (update: RealTimeUpdate) => void,
+  ) {
     const subscription = supabase
       .channel(`message_updates_${userId}`)
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'messages',
-          filter: `receiver_id=eq.${userId}`
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+          filter: `receiver_id=eq.${userId}`,
         },
         (payload) => {
           const update: RealTimeUpdate = {
-            type: 'message',
-            action: 'created',
+            type: "message",
+            action: "created",
             data: payload.new,
-            timestamp: new Date()
+            timestamp: new Date(),
           };
 
-          this.notifyListeners('message', update);
+          this.notifyListeners("message", update);
           callback(update);
 
           // Show toast notification for new messages
           this.showUpdateNotification(update);
-        }
+        },
       )
       .subscribe();
 
     this.subscriptions.set(`message_${userId}`, subscription);
-    this.addListener('message', callback);
+    this.addListener("message", callback);
   }
 
   // Subscribe to contract updates
-  subscribeToContractUpdates(userId: string, callback: (update: RealTimeUpdate) => void) {
+  subscribeToContractUpdates(
+    userId: string,
+    callback: (update: RealTimeUpdate) => void,
+  ) {
     const subscription = supabase
       .channel(`contract_updates_${userId}`)
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: '*',
-          schema: 'public',
-          table: 'contracts',
-          filter: `created_by=eq.${userId}`
+          event: "*",
+          schema: "public",
+          table: "contracts",
+          filter: `created_by=eq.${userId}`,
         },
         (payload) => {
           const update: RealTimeUpdate = {
-            type: 'contract',
-            action: payload.eventType as any,
-            data: payload.new || payload.old,
-            timestamp: new Date()
+            type: "contract",
+            action: payload.eventType as "created" | "updated" | "deleted",
+            data: (payload.new || payload.old) as Record<string, unknown>,
+            timestamp: new Date(),
           };
 
-          this.notifyListeners('contract', update);
+          this.notifyListeners("contract", update);
           callback(update);
 
           // Show toast notification for contract updates
           this.showUpdateNotification(update);
-        }
+        },
       )
       .subscribe();
 
     this.subscriptions.set(`contract_${userId}`, subscription);
-    this.addListener('contract', callback);
+    this.addListener("contract", callback);
   }
 
   // Subscribe to shortlist updates
-  subscribeToShortlistUpdates(userId: string, callback: (update: RealTimeUpdate) => void) {
+  subscribeToShortlistUpdates(
+    userId: string,
+    callback: (update: RealTimeUpdate) => void,
+  ) {
     const subscription = supabase
       .channel(`shortlist_updates_${userId}`)
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: '*',
-          schema: 'public',
-          table: 'shortlist',
-          filter: `agent_id=eq.${userId}`
+          event: "*",
+          schema: "public",
+          table: "shortlist",
+          filter: `agent_id=eq.${userId}`,
         },
         (payload) => {
           const update: RealTimeUpdate = {
-            type: 'shortlist',
-            action: payload.eventType as any,
-            data: payload.new || payload.old,
-            timestamp: new Date()
+            type: "shortlist",
+            action: payload.eventType as "created" | "updated" | "deleted",
+            data: (payload.new || payload.old) as Record<string, unknown>,
+            timestamp: new Date(),
           };
 
-          this.notifyListeners('shortlist', update);
+          this.notifyListeners("shortlist", update);
           callback(update);
-        }
+        },
       )
       .subscribe();
 
     this.subscriptions.set(`shortlist_${userId}`, subscription);
-    this.addListener('shortlist', callback);
+    this.addListener("shortlist", callback);
   }
 
   // Subscribe to agent request updates
-  subscribeToRequestUpdates(userId: string, callback: (update: RealTimeUpdate) => void) {
+  subscribeToRequestUpdates(
+    userId: string,
+    callback: (update: RealTimeUpdate) => void,
+  ) {
     const subscription = supabase
       .channel(`request_updates_${userId}`)
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: '*',
-          schema: 'public',
-          table: 'agent_requests',
-          filter: `agent_id=eq.${userId}`
+          event: "*",
+          schema: "public",
+          table: "agent_requests",
+          filter: `agent_id=eq.${userId}`,
         },
         (payload) => {
           const update: RealTimeUpdate = {
-            type: 'request',
-            action: payload.eventType as any,
-            data: payload.new || payload.old,
-            timestamp: new Date()
+            type: "request",
+            action: payload.eventType as "created" | "updated" | "deleted",
+            data: (payload.new || payload.old) as Record<string, unknown>,
+            timestamp: new Date(),
           };
 
-          this.notifyListeners('request', update);
+          this.notifyListeners("request", update);
           callback(update);
-        }
+        },
       )
       .subscribe();
 
     this.subscriptions.set(`request_${userId}`, subscription);
-    this.addListener('request', callback);
+    this.addListener("request", callback);
   }
 
   // Add listener for specific update type
@@ -198,11 +215,11 @@ export class RealTimeUpdatesService {
   // Notify all listeners for a specific update type
   private notifyListeners(type: string, update: RealTimeUpdate) {
     if (this.listeners.has(type)) {
-      this.listeners.get(type)!.forEach(callback => {
+      this.listeners.get(type)!.forEach((callback) => {
         try {
           callback(update);
         } catch (error) {
-          console.error('Error in real-time update callback:', error);
+          console.error("Error in real-time update callback:", error);
         }
       });
     }
@@ -210,51 +227,51 @@ export class RealTimeUpdatesService {
 
   // Show toast notification for updates
   private showUpdateNotification(update: RealTimeUpdate) {
-    let title = '';
-    let description = '';
+    let title = "";
+    let description = "";
 
     switch (update.type) {
-      case 'pitch':
-        if (update.action === 'created') {
-          title = 'New Transfer Pitch';
-          description = 'A new transfer pitch has been created';
-        } else if (update.action === 'updated') {
-          title = 'Pitch Updated';
-          description = 'A transfer pitch has been updated';
+      case "pitch":
+        if (update.action === "created") {
+          title = "New Transfer Pitch";
+          description = "A new transfer pitch has been created";
+        } else if (update.action === "updated") {
+          title = "Pitch Updated";
+          description = "A transfer pitch has been updated";
         }
         break;
 
-      case 'message':
-        if (update.action === 'created') {
-          title = 'New Message';
-          description = 'You have received a new message';
+      case "message":
+        if (update.action === "created") {
+          title = "New Message";
+          description = "You have received a new message";
         }
         break;
 
-      case 'contract':
-        if (update.action === 'created') {
-          title = 'New Contract';
-          description = 'A new contract has been created';
-        } else if (update.action === 'updated') {
-          title = 'Contract Updated';
-          description = 'A contract has been updated';
+      case "contract":
+        if (update.action === "created") {
+          title = "New Contract";
+          description = "A new contract has been created";
+        } else if (update.action === "updated") {
+          title = "Contract Updated";
+          description = "A contract has been updated";
         }
         break;
 
-      case 'shortlist':
-        if (update.action === 'created') {
-          title = 'Added to Shortlist';
-          description = 'A player has been added to your shortlist';
-        } else if (update.action === 'deleted') {
-          title = 'Removed from Shortlist';
-          description = 'A player has been removed from your shortlist';
+      case "shortlist":
+        if (update.action === "created") {
+          title = "Added to Shortlist";
+          description = "A player has been added to your shortlist";
+        } else if (update.action === "deleted") {
+          title = "Removed from Shortlist";
+          description = "A player has been removed from your shortlist";
         }
         break;
 
-      case 'request':
-        if (update.action === 'created') {
-          title = 'New Request';
-          description = 'A new agent request has been created';
+      case "request":
+        if (update.action === "created") {
+          title = "New Request";
+          description = "A new agent request has been created";
         }
         break;
     }
@@ -275,10 +292,10 @@ export class RealTimeUpdatesService {
       `message_${userId}`,
       `contract_${userId}`,
       `shortlist_${userId}`,
-      `request_${userId}`
+      `request_${userId}`,
     ];
 
-    keys.forEach(key => {
+    keys.forEach((key) => {
       const subscription = this.subscriptions.get(key);
       if (subscription) {
         subscription.unsubscribe();
@@ -294,7 +311,7 @@ export class RealTimeUpdatesService {
   unsubscribeFromType(userId: string, type: string) {
     const key = `${type}_${userId}`;
     const subscription = this.subscriptions.get(key);
-    
+
     if (subscription) {
       subscription.unsubscribe();
       this.subscriptions.delete(key);
@@ -307,8 +324,8 @@ export class RealTimeUpdatesService {
   // Get subscription status
   getSubscriptionStatus(userId: string): { [key: string]: boolean } {
     const status: { [key: string]: boolean } = {};
-    
-    ['pitch', 'message', 'contract', 'shortlist', 'request'].forEach(type => {
+
+    ["pitch", "message", "contract", "shortlist", "request"].forEach((type) => {
       const key = `${type}_${userId}`;
       status[type] = this.subscriptions.has(key);
     });
@@ -317,12 +334,16 @@ export class RealTimeUpdatesService {
   }
 
   // Manually trigger an update (useful for testing)
-  triggerManualUpdate(type: string, action: string, data: any) {
+  triggerManualUpdate(
+    type: string,
+    action: string,
+    data: Record<string, unknown>,
+  ) {
     const update: RealTimeUpdate = {
-      type: type as any,
-      action: action as any,
+      type: type as RealTimeUpdate["type"],
+      action: action as RealTimeUpdate["action"],
       data,
-      timestamp: new Date()
+      timestamp: new Date(),
     };
 
     this.notifyListeners(type, update);
@@ -337,31 +358,49 @@ export const useRealTimeUpdates = (userId: string, types: string[] = []) => {
   const [updates, setUpdates] = useState<RealTimeUpdate[]>([]);
   const [isConnected, setIsConnected] = useState(false);
 
+  const typesStr = JSON.stringify(types);
+
   useEffect(() => {
     if (!userId) return;
 
-    const updateCallbacks: { [key: string]: (update: RealTimeUpdate) => void } = {};
+    const updateCallbacks: { [key: string]: (update: RealTimeUpdate) => void } =
+      {};
 
-    types.forEach(type => {
+    types.forEach((type) => {
       updateCallbacks[type] = (update: RealTimeUpdate) => {
-        setUpdates(prev => [update, ...prev.slice(0, 9)]); // Keep last 10 updates
+        setUpdates((prev) => [update, ...prev.slice(0, 9)]); // Keep last 10 updates
       };
 
       switch (type) {
-        case 'pitch':
-          realTimeUpdates.subscribeToPitchUpdates(userId, updateCallbacks[type]);
+        case "pitch":
+          realTimeUpdates.subscribeToPitchUpdates(
+            userId,
+            updateCallbacks[type],
+          );
           break;
-        case 'message':
-          realTimeUpdates.subscribeToMessageUpdates(userId, updateCallbacks[type]);
+        case "message":
+          realTimeUpdates.subscribeToMessageUpdates(
+            userId,
+            updateCallbacks[type],
+          );
           break;
-        case 'contract':
-          realTimeUpdates.subscribeToContractUpdates(userId, updateCallbacks[type]);
+        case "contract":
+          realTimeUpdates.subscribeToContractUpdates(
+            userId,
+            updateCallbacks[type],
+          );
           break;
-        case 'shortlist':
-          realTimeUpdates.subscribeToShortlistUpdates(userId, updateCallbacks[type]);
+        case "shortlist":
+          realTimeUpdates.subscribeToShortlistUpdates(
+            userId,
+            updateCallbacks[type],
+          );
           break;
-        case 'request':
-          realTimeUpdates.subscribeToRequestUpdates(userId, updateCallbacks[type]);
+        case "request":
+          realTimeUpdates.subscribeToRequestUpdates(
+            userId,
+            updateCallbacks[type],
+          );
           break;
       }
     });
@@ -369,7 +408,7 @@ export const useRealTimeUpdates = (userId: string, types: string[] = []) => {
     setIsConnected(true);
 
     return () => {
-      types.forEach(type => {
+      types.forEach((type) => {
         if (updateCallbacks[type]) {
           realTimeUpdates.removeListener(type, updateCallbacks[type]);
         }
@@ -377,11 +416,12 @@ export const useRealTimeUpdates = (userId: string, types: string[] = []) => {
       realTimeUpdates.unsubscribe(userId);
       setIsConnected(false);
     };
-  }, [userId, types.join(',')]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, typesStr]);
 
   return {
     updates,
     isConnected,
-    clearUpdates: () => setUpdates([])
+    clearUpdates: () => setUpdates([]),
   };
 };

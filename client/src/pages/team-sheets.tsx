@@ -27,7 +27,7 @@ import {
   Play,
   Trash2
 } from "lucide-react";
-import type { Player, TeamSheet, TeamSheetPlayer } from "@shared/schema";
+import type { Player, TeamSheet, TeamSheetPlayer, InsertTeamSheet, InsertTeamSheetPlayer } from "@shared/schema";
 
 const COUNTRIES = [
   "England", "Spain", "Germany", "Italy", "France",
@@ -75,7 +75,7 @@ export default function TeamSheets() {
   });
 
   const createSheetMutation = useMutation({
-    mutationFn: async (data: any) => apiRequest("POST", "/api/team-sheets", data),
+    mutationFn: async (data: Omit<InsertTeamSheet, "teamId">) => apiRequest("POST", "/api/team-sheets", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/team-sheets"] });
       setShowCreateDialog(false);
@@ -84,18 +84,18 @@ export default function TeamSheets() {
       setFormFormation("4-3-3");
       toast({ title: "Team sheet created" });
     },
-    onError: (err: any) => toast({ title: "Error", description: err.message, variant: "destructive" }),
+    onError: (err: Error) => toast({ title: "Error", description: err.message, variant: "destructive" }),
   });
 
   const addPlayerMutation = useMutation({
-    mutationFn: async ({ sheetId, data }: { sheetId: string; data: any }) =>
+    mutationFn: async ({ sheetId, data }: { sheetId: string; data: Omit<InsertTeamSheetPlayer, "teamSheetId"> }) =>
       apiRequest("POST", `/api/team-sheets/${sheetId}/players`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/team-sheets", selectedSheet] });
       setShowPlayerSelect(false);
       toast({ title: "Player added" });
     },
-    onError: (err: any) => toast({ title: "Error", description: err.message, variant: "destructive" }),
+    onError: (err: Error) => toast({ title: "Error", description: err.message, variant: "destructive" }),
   });
 
   const removePlayerMutation = useMutation({

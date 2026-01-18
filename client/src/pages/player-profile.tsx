@@ -37,17 +37,17 @@ export default function PlayerProfile({ params, isScoutView }: PlayerProfileProp
   const { balance } = useCheckTokens();
 
   // Get auth data to check if user is embassy
-  const { data: authData } = useQuery<{ user: any }>({
+  const { data: authData } = useQuery<{ user: { role: string } }>({
     queryKey: ["/api/auth/me"],
   });
   const isEmbassy = authData?.user?.role === "embassy";
 
   const { data: playerData, isLoading } = useQuery<{
     player: Player;
-    metrics: any[];
-    eligibilityScores: any[];
-    medicalRecords: any[];
-    biometricData: any[];
+    metrics: unknown[];
+    eligibilityScores: unknown[];
+    medicalRecords: unknown[];
+    biometricData: unknown[];
     videos: VideoType[];
   }>({
     queryKey: ["/api/players", playerId],

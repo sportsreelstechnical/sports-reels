@@ -19,7 +19,7 @@ import {
     Pause
 } from 'lucide-react';
 
-interface PlayerTrackingData {
+export interface PlayerTrackingData {
     playerId: string;
     playerName: string;
     jerseyNumber?: number;
@@ -38,6 +38,7 @@ interface PlayerTrackingData {
         y: number;
         intensity: number;
         timestamp: number;
+        confidence: number;
     }>;
     keyMoments: Array<{
         timestamp: number;
@@ -46,6 +47,9 @@ interface PlayerTrackingData {
         confidence: number;
         fieldPosition: string;
         outcome?: 'successful' | 'failed';
+        importance?: 'high' | 'medium' | 'low';
+        source?: string;
+        context?: string;
     }>;
 }
 

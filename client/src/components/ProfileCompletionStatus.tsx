@@ -17,7 +17,7 @@ const ProfileCompletionStatus: React.FC = () => {
 
   const calculateCompletionPercentage = () => {
     let completed = 0;
-    let total = 4; // Basic completion items
+    const total = 4; // Basic completion items
 
     if (completionStatus.isTeamProfileComplete) completed++;
     if (completionStatus.hasMinimumPlayers) completed++;

@@ -11,6 +11,7 @@ import { registerPlayerRoutes } from "./routes/players";
 import { registerVideoRoutes } from "./routes/videos";
 import { registerMessagingRoutes } from "./routes/messaging";
 import { registerDashboardRoutes } from "./routes/dashboard";
+import { registerTeamRoutes } from "./routes/teams";
 import { registerEligibilityRoutes } from "./routes/eligibility";
 import { registerComplianceRoutes } from "./routes/compliance";
 import { registerScoutingRoutes } from "./routes/scouting";
@@ -19,7 +20,7 @@ import { requireAuth } from "./middleware/auth";
 
 export async function registerRoutes(
   httpServer: Server,
-  app: Express
+  app: Express,
 ): Promise<Server> {
   // Register object storage routes
   registerObjectStorageRoutes(app);
@@ -30,7 +31,9 @@ export async function registerRoutes(
   registerPlayerRoutes(app);
   registerVideoRoutes(app);
   registerMessagingRoutes(app);
+  registerMessagingRoutes(app);
   registerDashboardRoutes(app);
+  registerTeamRoutes(app);
   registerEligibilityRoutes(app);
   registerComplianceRoutes(app);
   registerScoutingRoutes(app);

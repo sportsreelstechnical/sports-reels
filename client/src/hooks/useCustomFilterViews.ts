@@ -1,8 +1,7 @@
-
-import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
-import { useToast } from '@/hooks/use-toast';
+import { useState, useEffect, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 
 interface FilterConfig {
   position?: string;
@@ -25,104 +24,109 @@ export const useCustomFilterViews = () => {
   const [views, setViews] = useState<CustomFilterView[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (profile?.user_type === 'team') {
-      fetchCustomViews();
-    }
-  }, [profile]);
-
-  const fetchCustomViews = async () => {
+  const fetchCustomViews = useCallback(async () => {
     if (!profile?.id) return;
 
     try {
       const { data: teamData } = await supabase
-        .from('teams')
-        .select('id')
-        .eq('profile_id', profile.id)
+        .from("teams")
+        .select("id")
+        .eq("profile_id", profile.id)
         .single();
 
       if (!teamData) return;
 
+      const typedTeamData = teamData as unknown as { id: string };
+
       const { data, error } = await supabase
-        .from('custom_filter_views')
-        .select('*')
-        .eq('team_id', teamData.id)
-        .order('created_at', { ascending: false });
+        .from("custom_filter_views")
+        .select("*")
+        .eq("team_id", typedTeamData.id)
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
-      
+
       // Type cast the filter_config from Json to FilterConfig with proper validation
-      const typedViews = (data || []).map(view => {
+       
+      const typedViews = (data || []).map((view: any) => {
         let filterConfig: FilterConfig;
-        
+
         try {
-          const config = typeof view.filter_config === 'string' 
-            ? JSON.parse(view.filter_config) 
-            : view.filter_config;
-          
+          const config =
+            typeof view.filter_config === "string"
+              ? JSON.parse(view.filter_config)
+              : view.filter_config;
+
           filterConfig = {
             position: config?.position,
             transferType: config?.transferType,
             budgetRange: config?.budgetRange,
             region: config?.region,
-            sortBy: config?.sortBy || 'newest'
+            sortBy: config?.sortBy || "newest",
           };
         } catch (e) {
           // Fallback to default config if parsing fails
           filterConfig = {
-            sortBy: 'newest'
+            sortBy: "newest",
           };
         }
-        
+
         return {
           ...view,
-          filter_config: filterConfig
+          filter_config: filterConfig,
         };
       });
-      
+
       setViews(typedViews);
     } catch (error) {
-      console.error('Error fetching custom views:', error);
+      console.error("Error fetching custom views:", error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [profile?.id]);
+
+  useEffect(() => {
+    if (profile?.user_type === "team") {
+      fetchCustomViews();
+    }
+  }, [profile?.user_type, fetchCustomViews]);
 
   const saveView = async (viewName: string, filterConfig: FilterConfig) => {
     if (!profile?.id) return false;
 
     try {
       const { data: teamData } = await supabase
-        .from('teams')
-        .select('id')
-        .eq('profile_id', profile.id)
+        .from("teams")
+        .select("id")
+        .eq("profile_id", profile.id)
         .single();
 
-      if (!teamData) throw new Error('Team not found');
+      if (!teamData) throw new Error("Team not found");
 
-      const { error } = await supabase
-        .from('custom_filter_views')
-        .insert({
-          team_id: teamData.id,
-          view_name: viewName,
-          filter_config: JSON.stringify(filterConfig)
-        });
+      const typedTeamData = teamData as unknown as { id: string };
+
+      const { error } = await supabase.from("custom_filter_views").insert({
+        team_id: typedTeamData.id,
+        view_name: viewName,
+        filter_config: JSON.stringify(filterConfig),
+         
+      } as any);
 
       if (error) throw error;
 
       toast({
         title: "Success",
-        description: `Filter view "${viewName}" saved successfully`
+        description: `Filter view "${viewName}" saved successfully`,
       });
 
       await fetchCustomViews();
       return true;
     } catch (error) {
-      console.error('Error saving view:', error);
+      console.error("Error saving view:", error);
       toast({
         title: "Error",
         description: "Failed to save filter view",
-        variant: "destructive"
+        variant: "destructive",
       });
       return false;
     }
@@ -131,25 +135,25 @@ export const useCustomFilterViews = () => {
   const deleteView = async (viewId: string) => {
     try {
       const { error } = await supabase
-        .from('custom_filter_views')
+        .from("custom_filter_views")
         .delete()
-        .eq('id', viewId);
+        .eq("id", viewId);
 
       if (error) throw error;
 
       toast({
         title: "Success",
-        description: "Filter view deleted successfully"
+        description: "Filter view deleted successfully",
       });
 
       await fetchCustomViews();
       return true;
     } catch (error) {
-      console.error('Error deleting view:', error);
+      console.error("Error deleting view:", error);
       toast({
         title: "Error",
         description: "Failed to delete filter view",
-        variant: "destructive"
+        variant: "destructive",
       });
       return false;
     }
@@ -160,6 +164,6 @@ export const useCustomFilterViews = () => {
     loading,
     saveView,
     deleteView,
-    refreshViews: fetchCustomViews
+    refreshViews: fetchCustomViews,
   };
 };

@@ -1,5 +1,5 @@
 import { db } from "../db";
-import { eq, desc, sql } from "drizzle-orm";
+import { eq, desc, sql, and } from "drizzle-orm";
 import {
   type Video,
   type InsertVideo,
@@ -28,6 +28,20 @@ export const videosRepository = {
     return db.select().from(videos).orderBy(desc(videos.uploadDate));
   },
 
+  async getVideosByTitle(title: string, teamId?: string): Promise<Video[]> {
+    const conditions = [eq(videos.title, title)];
+
+    if (teamId) {
+      conditions.push(eq(videos.teamId, teamId));
+    }
+
+    return db
+      .select()
+      .from(videos)
+      .where(and(...conditions))
+      .orderBy(desc(videos.uploadDate));
+  },
+
   async getVideo(id: string): Promise<Video | undefined> {
     const [video] = await db.select().from(videos).where(eq(videos.id, id));
     return video;
@@ -40,7 +54,7 @@ export const videosRepository = {
 
   async updateVideo(
     id: string,
-    updates: Partial<InsertVideo>
+    updates: Partial<InsertVideo>,
   ): Promise<Video | undefined> {
     const [video] = await db
       .update(videos)
@@ -48,6 +62,10 @@ export const videosRepository = {
       .where(eq(videos.id, id))
       .returning();
     return video;
+  },
+
+  async deleteVideo(id: string): Promise<void> {
+    await db.delete(videos).where(eq(videos.id, id));
   },
 
   // Video Insights
@@ -60,7 +78,7 @@ export const videosRepository = {
   },
 
   async createVideoInsights(
-    insights: InsertVideoInsights
+    insights: InsertVideoInsights,
   ): Promise<VideoInsights> {
     const [newInsights] = await db
       .insert(videoInsights)
@@ -78,7 +96,7 @@ export const videosRepository = {
   },
 
   async getVideoPlayerTagsForPlayer(
-    playerId: string
+    playerId: string,
   ): Promise<Array<VideoPlayerTag & { video: Video | null }>> {
     const tags = await db
       .select()
@@ -91,7 +109,7 @@ export const videosRepository = {
           .from(videos)
           .where(eq(videos.id, tag.videoId));
         return { ...tag, video: video || null };
-      })
+      }),
     );
     return result;
   },
@@ -105,7 +123,7 @@ export const videosRepository = {
   },
 
   async createVideoPlayerTag(
-    tag: InsertVideoPlayerTag
+    tag: InsertVideoPlayerTag,
   ): Promise<VideoPlayerTag> {
     const [newTag] = await db.insert(videoPlayerTags).values(tag).returning();
     return newTag;
@@ -113,7 +131,7 @@ export const videosRepository = {
 
   async updateVideoPlayerTag(
     id: string,
-    updates: Partial<InsertVideoPlayerTag>
+    updates: Partial<InsertVideoPlayerTag>,
   ): Promise<VideoPlayerTag | undefined> {
     const [tag] = await db
       .update(videoPlayerTags)

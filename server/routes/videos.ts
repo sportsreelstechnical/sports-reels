@@ -4,11 +4,7 @@ import { storage } from "../storage";
 import { requireAuth } from "../middleware/auth";
 import { insertVideoSchema } from "@shared/schema";
 import { MAX_PLAYERS_PER_VIDEO } from "../constants";
-import {
-  updatePlayerStatsFromVideos,
-} from "../utils/helpers";
-
-
+import { updatePlayerStatsFromVideos } from "../utils/helpers";
 
 export function registerVideoRoutes(app: Express): void {
   app.get("/api/videos", requireAuth, async (req: Request, res: Response) => {
@@ -24,6 +20,32 @@ export function registerVideoRoutes(app: Express): void {
       }
     }
   });
+
+  app.get(
+    "/api/videos/by-title",
+    requireAuth,
+    async (req: Request, res: Response) => {
+      try {
+        const { title, teamId } = req.query;
+
+        if (!title || typeof title !== "string") {
+          return res.status(400).json({ error: "Title is required" });
+        }
+
+        const videos = await storage.getVideosByTitle(
+          title,
+          teamId as string | undefined,
+        );
+        res.json(videos);
+      } catch (error) {
+        if (error instanceof Error) {
+          res.status(500).json({ error: error.message });
+        } else {
+          res.status(500).json({ error: "Unknown error" });
+        }
+      }
+    },
+  );
 
   app.post("/api/videos", requireAuth, async (req: Request, res: Response) => {
     try {
@@ -70,7 +92,28 @@ export function registerVideoRoutes(app: Express): void {
           res.status(400).json({ error: "Unknown error" });
         }
       }
-    }
+    },
+  );
+
+  app.delete(
+    "/api/videos/:id",
+    requireAuth,
+    async (req: Request, res: Response) => {
+      try {
+        const video = await storage.getVideo(req.params.id);
+        if (!video) {
+          return res.status(404).json({ error: "Video not found" });
+        }
+        await storage.deleteVideo(req.params.id);
+        res.json({ success: true });
+      } catch (error) {
+        if (error instanceof Error) {
+          res.status(500).json({ error: error.message });
+        } else {
+          res.status(500).json({ error: "Unknown error" });
+        }
+      }
+    },
   );
 
   app.get(
@@ -87,7 +130,7 @@ export function registerVideoRoutes(app: Express): void {
           res.status(500).json({ error: "Unknown error" });
         }
       }
-    }
+    },
   );
 
   app.post(
@@ -130,7 +173,7 @@ export function registerVideoRoutes(app: Express): void {
           res.status(400).json({ error: "Unknown error" });
         }
       }
-    }
+    },
   );
 
   app.put(
@@ -155,7 +198,7 @@ export function registerVideoRoutes(app: Express): void {
           res.status(400).json({ error: "Unknown error" });
         }
       }
-    }
+    },
   );
 
   app.delete(
@@ -184,6 +227,6 @@ export function registerVideoRoutes(app: Express): void {
           res.status(500).json({ error: "Unknown error" });
         }
       }
-    }
+    },
   );
 }

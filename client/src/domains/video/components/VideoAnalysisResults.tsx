@@ -40,21 +40,23 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { SmartVideoPlayer } from './SmartVideoPlayer';
 
+import { AnalysisData, VideoEntity } from '@/types/video-analysis';
+
 interface VideoAnalysisResultsProps {
   videoId: string;
   videoType: 'match' | 'training' | 'highlight' | 'interview';
   teamId: string;
 }
 
-interface AnalysisData {
-  playerActions: any[];
-  keyMoments: any[];
-  summary: string;
-  insights: string[];
-  performanceRating: number;
-  heatmapData?: any[];
-  playerStats?: any[];
-  timeline?: any[];
+interface VideoViewData {
+  title: string;
+  duration: string;
+  durationSeconds?: number;
+  upload_date: string;
+  video_url: string | null;
+  description?: string;
+  video_type?: string;
+  thumbnail_url?: string;
 }
 
 const VideoAnalysisResults: React.FC<VideoAnalysisResultsProps> = ({
@@ -63,7 +65,7 @@ const VideoAnalysisResults: React.FC<VideoAnalysisResultsProps> = ({
   teamId
 }) => {
 
-  const [videoData, setVideoData] = useState<any>({
+  const [videoData, setVideoData] = useState<VideoViewData>({
     title: "Loading...",
     duration: "0:00",
     upload_date: "",
@@ -134,13 +136,18 @@ const VideoAnalysisResults: React.FC<VideoAnalysisResultsProps> = ({
         }
 
         if (data) {
-          const mappedData = {
-            title: data.title || 'Untitled Video',
-            duration: data.duration ? formatDuration(data.duration) : '0:00',
-            upload_date: data.created_at ? new Date(data.created_at).toLocaleDateString() : '',
-            video_url: data.video_url || null,
-            description: data.description || '',
-            video_type: data.video_type || 'highlight'
+          // Cast the data to our entity type since supabase inference might be missing/generic
+          const videoEntity = data as unknown as VideoEntity;
+
+          const mappedData: VideoViewData = {
+            title: videoEntity.title || 'Untitled Video',
+            duration: videoEntity.duration ? formatDuration(videoEntity.duration) : '0:00',
+            durationSeconds: videoEntity.duration,
+            upload_date: videoEntity.created_at ? new Date(videoEntity.created_at).toLocaleDateString() : '',
+            video_url: videoEntity.video_url || null,
+            description: videoEntity.description || '',
+            video_type: videoEntity.video_type || 'highlight',
+            thumbnail_url: videoEntity.thumbnail_url
           };
 
           setVideoData(mappedData);
@@ -245,7 +252,7 @@ const VideoAnalysisResults: React.FC<VideoAnalysisResultsProps> = ({
                   videoUrl={videoData?.video_url}
                   thumbnailUrl={videoData?.thumbnail_url}
                   title={videoData?.title || 'Video'}
-                  duration={videoData?.duration}
+                  duration={videoData?.durationSeconds}
                   className="w-full h-full"
                   controls={true}
                   autoPlay={false}

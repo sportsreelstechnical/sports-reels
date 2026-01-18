@@ -82,7 +82,7 @@ export default function Videos() {
       }
       return data;
     },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     onSuccess: (data: any) => {
       toast({
         title: "Analysis Complete",
@@ -217,7 +217,7 @@ export default function Videos() {
       }
       return results;
     },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     onSuccess: (data: any) => {
       toast({
         title: "Team Sheet Applied",

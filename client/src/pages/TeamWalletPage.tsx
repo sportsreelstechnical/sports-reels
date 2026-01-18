@@ -10,20 +10,11 @@ const TeamWalletPage: React.FC = () => {
   const [teamId, setTeamId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Redirect if not authenticated or not a team
-  if (!profile) {
-    return <Navigate to="/" replace />;
-  }
-
-  if (profile.user_type !== 'team') {
-    return <Navigate to="/" replace />;
-  }
-
   useEffect(() => {
     const fetchOrCreateTeam = async () => {
-      if (!profile?.id) {
-        console.log('No profile ID available');
-        setLoading(false);
+      // Don't fetch if conditions aren't met
+      if (!profile?.id || profile.user_type !== 'team') {
+        if (!profile) setLoading(false);
         return;
       }
 
@@ -53,20 +44,23 @@ const TeamWalletPage: React.FC = () => {
                 team_name: profile.full_name || 'My Team',
                 country: profile.country || 'United States',
                 sport_type: 'football' // Default sport type
-              })
+                 
+              } as any)
               .select('id, team_name')
               .single();
 
             if (createError) {
               console.error('Error creating team:', createError);
-            } else {
+            } else if (newTeam) {
               console.log('Team created successfully:', newTeam);
-              setTeamId(newTeam.id);
+               
+              setTeamId((newTeam as any).id);
             }
           }
-        } else {
+        } else if (teamData) {
           console.log('Team data found:', teamData);
-          setTeamId(teamData.id);
+           
+          setTeamId((teamData as any).id);
         }
       } catch (error) {
         console.error('Exception in fetchOrCreateTeam:', error);
@@ -77,6 +71,15 @@ const TeamWalletPage: React.FC = () => {
 
     fetchOrCreateTeam();
   }, [profile]);
+
+  // Redirect if not authenticated or not a team
+  if (!loading && !profile) {
+    return <Navigate to="/" replace />;
+  }
+
+  if (!loading && profile?.user_type !== 'team') {
+    return <Navigate to="/" replace />;
+  }
 
   if (loading) {
     return (

@@ -21,7 +21,7 @@ import { mockPlayers } from "@/lib/mock-data";
 import { getVisaStatus } from "@/components/StatusBadge";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import type { Player } from "@/lib/types";
+import type { Player } from "@shared/schema";
 
 const playerFormSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
@@ -85,7 +85,7 @@ export default function Players() {
   const [advancedFilters, setAdvancedFilters] = useState<AdvancedFilters>(defaultFilters);
   const { toast } = useToast();
 
-  const { data: apiPlayers, isLoading } = useQuery<any[]>({
+  const { data: apiPlayers, isLoading } = useQuery<Player[]>({
     queryKey: ["/api/players"],
   });
 
@@ -124,26 +124,58 @@ export default function Players() {
     },
   });
 
-  const players = (apiPlayers && apiPlayers.length > 0)
-    ? apiPlayers.map((p: any) => ({
-      id: p.id,
-      firstName: p.firstName,
-      lastName: p.lastName,
-      nationality: p.nationality,
-      dateOfBirth: p.dateOfBirth,
-      position: p.position,
-      currentClub: p.currentClubId || "Unknown Club",
+  interface PlayerViewModel {
+    id: string;
+    firstName: string;
+    lastName: string;
+    nationality: string;
+    dateOfBirth: string | null;
+    position: string;
+    currentClub: string;
+    currentLeague: string;
+    leagueBand: number;
+    leaguePosition: number;
+    nationalTeamCaps: number;
+    internationalCaps: number;
+    continentalGames: number;
+    currentSeasonMinutes: number;
+    totalCareerMinutes: number;
+    height: number | null;
+    weight: number | null;
+    preferredFoot: string | null;
+    medicalDataAvailable: boolean;
+    gpsDataAvailable: boolean;
+    schengenScore: number;
+    ukGbeScore: number;
+    usP1Score: number;
+    usO1Score: number;
+    middleEastScore: number;
+    asiaScore: number;
+    fifaTransferScore: number;
+    overallEligibilityScore: number;
+    lastUpdated: string;
+  }
+
+  const players: PlayerViewModel[] = (apiPlayers && apiPlayers.length > 0)
+    ? apiPlayers.map((player) => ({
+      id: player.id,
+      firstName: player.firstName,
+      lastName: player.lastName,
+      nationality: player.nationality,
+      dateOfBirth: player.dateOfBirth,
+      position: player.position,
+      currentClub: player.currentClubId || "Unknown Club",
       currentLeague: "Unknown League",
-      leagueBand: 5 as const,
+      leagueBand: 5,
       leaguePosition: 0,
-      nationalTeamCaps: p.nationalTeamCaps || 0,
-      internationalCaps: p.internationalCaps || 0,
-      continentalGames: p.continentalGames || 0,
+      nationalTeamCaps: player.nationalTeamCaps || 0,
+      internationalCaps: player.internationalCaps || 0,
+      continentalGames: player.continentalGames || 0,
       currentSeasonMinutes: 0,
       totalCareerMinutes: 0,
-      height: p.height,
-      weight: p.weight,
-      preferredFoot: p.preferredFoot,
+      height: player.height,
+      weight: player.weight,
+      preferredFoot: player.preferredFoot,
       medicalDataAvailable: false,
       gpsDataAvailable: false,
       schengenScore: 50,
@@ -154,17 +186,17 @@ export default function Players() {
       asiaScore: 50,
       fifaTransferScore: 50,
       overallEligibilityScore: 50,
-      lastUpdated: p.updatedAt || new Date().toISOString(),
+      lastUpdated: player.updatedAt ? new Date(player.updatedAt).toISOString() : new Date().toISOString(),
     }))
     : mockPlayers;
 
   const nationalities = useMemo(() =>
-    Array.from(new Set(players.map((p: Player) => p.nationality))).filter(Boolean).sort(),
+    Array.from(new Set(players.map((p) => p.nationality))).filter(Boolean).sort(),
     [players]
   );
 
   const positions = useMemo(() =>
-    Array.from(new Set(players.map((p: Player) => p.position))).filter(Boolean).sort(),
+    Array.from(new Set(players.map((p) => p.position))).filter(Boolean).sort(),
     [players]
   );
 
@@ -180,7 +212,7 @@ export default function Players() {
   }, [advancedFilters]);
 
   const filteredPlayers = useMemo(() => {
-    return players.filter((player: Player) => {
+    return players.filter((player) => {
       const matchesSearch =
         player.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         player.lastName.toLowerCase().includes(searchQuery.toLowerCase()) ||

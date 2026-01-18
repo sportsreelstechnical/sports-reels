@@ -130,18 +130,18 @@ export default function Reports() {
     const doc = new jsPDF();
     const profile = report.playerProfile as Record<string, unknown> || {};
     const eligibility = report.eligibilityScores as Record<string, unknown> || {};
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const videos = (report.videosIncluded as any[] || []);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const documents = (report.documentsIncluded as any[] || []);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const invitations = (report.invitationLetters as any[] || []);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const verifications = (report.embassyVerifications as any[] || []);
     const recommendations = (report.recommendations as string[] || []);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const performance = (report.performanceStats as any[] || []);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const international = (report.internationalCareer as any[] || []);
 
     let y = 20;

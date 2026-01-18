@@ -6,7 +6,7 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Coins, TrendingUp, TrendingDown, Clock, User, Video, Eye, Star, MessageSquare, Zap, Package, CreditCard, History, FileText, Send } from "lucide-react";
+import { Coins, TrendingUp, TrendingDown, Clock, User, Video, Eye, Star, MessageSquare, Zap, Package, CreditCard, History, FileText, Send, type LucideIcon } from "lucide-react";
 import { format } from "date-fns";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -48,7 +48,7 @@ interface TokenPack {
 
 type TokenCosts = Record<string, number>;
 
-const actionIcons: Record<string, any> = {
+const actionIcons: Record<string, LucideIcon> = {
   view_profile: User,
   shortlist: Star,
   video_analysis: Zap,
@@ -231,8 +231,8 @@ export default function TokenBank() {
                           <Coins className="w-5 h-5 text-amber-500" />
                           <span className="text-xl font-semibold">{pack.tokens} tokens</span>
                         </div>
-                        <Button 
-                          className="w-full" 
+                        <Button
+                          className="w-full"
                           onClick={() => purchaseMutation.mutate(pack.id)}
                           disabled={purchaseMutation.isPending}
                           data-testid={`button-buy-pack-${pack.tokens}`}
@@ -268,9 +268,9 @@ export default function TokenBank() {
                       transfer_report: "text-orange-500",
                     };
                     return (
-                      <div 
+                      <div
                         key={action}
-                        className="flex flex-col items-center p-4 rounded-md bg-muted/50" 
+                        className="flex flex-col items-center p-4 rounded-md bg-muted/50"
                         data-testid={`cost-${action}`}
                       >
                         <Icon className={`w-8 h-8 mb-2 ${iconColors[action] || "text-muted-foreground"}`} />
@@ -341,8 +341,8 @@ export default function TokenBank() {
                       const Icon = actionIcons[tx.action] || Coins;
                       const isCredit = tx.type === "credit";
                       return (
-                        <div 
-                          key={tx.id} 
+                        <div
+                          key={tx.id}
                           className="flex items-center justify-between p-4 rounded-md border"
                           data-testid={`transaction-${tx.id}`}
                         >

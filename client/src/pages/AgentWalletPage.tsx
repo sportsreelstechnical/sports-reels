@@ -10,15 +10,6 @@ const AgentWalletPage: React.FC = () => {
   const [agentId, setAgentId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Redirect if not authenticated or not an agent
-  if (!profile) {
-    return <Navigate to="/" replace />;
-  }
-
-  if (profile.user_type !== 'agent') {
-    return <Navigate to="/" replace />;
-  }
-
   useEffect(() => {
     const fetchOrCreateAgent = async () => {
       if (!profile?.id) {
@@ -52,7 +43,8 @@ const AgentWalletPage: React.FC = () => {
                 profile_id: profile.id,
                 agency_name: profile.full_name || 'My Agency',
                 specialization: ['football'] // Default specialization
-              })
+                 
+              } as any)
               .select('id, agency_name')
               .single();
 
@@ -60,11 +52,17 @@ const AgentWalletPage: React.FC = () => {
               console.error('Error creating agent:', createError);
             } else {
               console.log('Agent created successfully:', newAgent);
-              setAgentId(newAgent.id);
+              if (newAgent) {
+                 
+                setAgentId((newAgent as any).id);
+              }
             }
           }
         } else {
-          setAgentId(agentData.id);
+          if (agentData) {
+             
+            setAgentId((agentData as any).id);
+          }
         }
       } catch (error) {
         console.error('Exception in fetchOrCreateAgent:', error);
@@ -75,6 +73,15 @@ const AgentWalletPage: React.FC = () => {
 
     fetchOrCreateAgent();
   }, [profile]);
+
+  // Redirect if not authenticated or not an agent
+  if (!profile) {
+    return <Navigate to="/" replace />;
+  }
+
+  if (profile.user_type !== 'agent') {
+    return <Navigate to="/" replace />;
+  }
 
   if (loading) {
     return (

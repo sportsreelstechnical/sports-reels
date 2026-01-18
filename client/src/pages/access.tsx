@@ -11,10 +11,10 @@ import type { UserRole } from "@/lib/types";
 export default function Access() {
   // todo: remove mock functionality
   const [permissions, setPermissions] = useState([
-    { role: "sporting_director" as UserRole, label: "Sporting Director", hasAccess: true, icon: null as any },
-    { role: "legal" as UserRole, label: "Legal Team", hasAccess: true, icon: null as any },
-    { role: "scout" as UserRole, label: "Scouts", hasAccess: true, icon: null as any },
-    { role: "coach" as UserRole, label: "Coaches", hasAccess: false, icon: null as any },
+    { role: "sporting_director" as UserRole, label: "Sporting Director", hasAccess: true },
+    { role: "legal" as UserRole, label: "Legal Team", hasAccess: true },
+    { role: "scout" as UserRole, label: "Scouts", hasAccess: true },
+    { role: "coach" as UserRole, label: "Coaches", hasAccess: false },
   ]);
 
   const teamMembers = [

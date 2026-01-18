@@ -12,7 +12,7 @@ export interface User {
   email: string;
   firstName?: string;
   lastName?: string;
-  role: 'sporting_director' | 'legal' | 'scout' | 'coach' | 'admin' | 'agent' | 'embassy';
+  role: 'sporting_director' | 'legal' | 'scout' | 'coach' | 'admin' | 'agent' | 'embassy' | 'federation_admin';
   teamId?: string;
   embassyCountry?: string;
 }
@@ -28,6 +28,7 @@ export interface Profile {
   role?: string;
   country?: string; // Optional for now
   profile_completed?: boolean;
+  is_verified?: boolean;
 }
 
 interface AuthContextType {
@@ -78,7 +79,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const fetchUser = async () => {
     try {
-      const data = await api.get('/api/auth/me');
+      const data = await api.get('/api/auth/me') as { user: User; team?: Team };
       handleUserResponse(data);
     } catch (error) {
       // Not authenticated
@@ -110,7 +111,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (userData.user_type === 'agent') payload.role = 'agent';
       else if (userData.user_type === 'team') payload.role = 'sporting_director'; // Default team role
 
-      const data = await api.post('/api/auth/signup', payload);
+      const data = await api.post('/api/auth/signup', payload) as { user: User; team?: Team };
       handleUserResponse(data);
 
       return { error: null };
@@ -127,7 +128,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const signIn = async (email: string, password: string) => {
     try {
-      const data = await api.post('/api/auth/login', { username: email, password });
+      const data = await api.post('/api/auth/login', { username: email, password }) as { user: User; team?: Team };
       handleUserResponse(data);
 
       console.log('Sign in successful, redirecting to dashboard');

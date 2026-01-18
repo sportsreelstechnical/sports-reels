@@ -1,5 +1,5 @@
-import { supabase } from '@/integrations/supabase/client';
-import { EnhancedNotificationService } from './enhancedNotificationService';
+import { supabase } from "@/integrations/supabase/client";
+import { EnhancedNotificationService } from "../../domains/notifications/services/enhancedNotificationService";
 
 export class SmoothWorkflowService {
   // Handle agent expressing interest with all notifications
@@ -11,38 +11,38 @@ export class SmoothWorkflowService {
     teamName: string;
     agentName: string;
     message?: string;
-    interestType: 'interested' | 'requested';
+    interestType: "interested" | "requested";
   }) {
     try {
-      console.log('🎯 Handling agent express interest workflow');
+      console.log("🎯 Handling agent express interest workflow");
 
       // 1. Create agent interest record
       const { error: interestError } = await supabase
-        .from('agent_interest')
+        .from("agent_interest")
         .insert({
           pitch_id: data.pitchId,
           agent_id: data.agentId,
           status: data.interestType,
           message: data.message,
-          created_at: new Date().toISOString()
+          created_at: new Date().toISOString(),
         });
 
       if (interestError) throw interestError;
 
       // 2. Get team's user_id for notification
       if (!data.teamProfileId) {
-        console.error('❌ No team profile ID provided');
-        throw new Error('Team profile ID is required');
+        console.error("❌ No team profile ID provided");
+        throw new Error("Team profile ID is required");
       }
 
       const { data: teamProfile, error: profileError } = await supabase
-        .from('profiles')
-        .select('user_id')
-        .eq('id', data.teamProfileId)
+        .from("profiles")
+        .select("user_id")
+        .eq("id", data.teamProfileId)
         .single();
 
       if (profileError) {
-        console.error('❌ Error fetching team profile:', profileError);
+        console.error("❌ Error fetching team profile:", profileError);
         throw profileError;
       }
 
@@ -60,27 +60,29 @@ export class SmoothWorkflowService {
             player_name: data.playerName,
             team_name: data.teamName,
             agent_name: data.agentName,
-            action: 'expressed_interest'
-          }
+            action: "expressed_interest",
+          },
         });
 
-        console.log('✅ Team notification created for agent interest');
+        console.log("✅ Team notification created for agent interest");
       }
 
       // 4. Trigger immediate UI updates
-      window.dispatchEvent(new CustomEvent('workflowUpdate', {
-        detail: {
-          type: 'agent_interest_expressed',
-          pitchId: data.pitchId,
-          teamProfileId: data.teamProfileId,
-          playerName: data.playerName,
-          agentName: data.agentName
-        }
-      }));
+      window.dispatchEvent(
+        new CustomEvent("workflowUpdate", {
+          detail: {
+            type: "agent_interest_expressed",
+            pitchId: data.pitchId,
+            teamProfileId: data.teamProfileId,
+            playerName: data.playerName,
+            agentName: data.agentName,
+          },
+        }),
+      );
 
       return { success: true };
     } catch (error) {
-      console.error('❌ Error in agent express interest workflow:', error);
+      console.error("❌ Error in agent express interest workflow:", error);
       return { success: false, error };
     }
   }
@@ -94,30 +96,33 @@ export class SmoothWorkflowService {
     agentName: string;
   }) {
     try {
-      console.log('🗑️ Handling agent cancel interest workflow');
+      console.log("🗑️ Handling agent cancel interest workflow");
 
       // 1. Delete interest record
       const { error } = await supabase
-        .from('agent_interest')
+        .from("agent_interest")
         .delete()
-        .eq('id', data.interestId);
+        .eq("id", data.interestId);
 
       if (error) throw error;
 
       // 2. Get team's user_id for notification
       if (!data.teamProfileId) {
-        console.error('❌ No team profile ID provided for cancellation');
-        throw new Error('Team profile ID is required');
+        console.error("❌ No team profile ID provided for cancellation");
+        throw new Error("Team profile ID is required");
       }
 
       const { data: teamProfile, error: profileError } = await supabase
-        .from('profiles')
-        .select('user_id')
-        .eq('id', data.teamProfileId)
+        .from("profiles")
+        .select("user_id")
+        .eq("id", data.teamProfileId)
         .single();
 
       if (profileError) {
-        console.error('❌ Error fetching team profile for cancellation:', profileError);
+        console.error(
+          "❌ Error fetching team profile for cancellation:",
+          profileError,
+        );
         throw profileError;
       }
 
@@ -134,25 +139,27 @@ export class SmoothWorkflowService {
             pitch_id: data.pitchId,
             player_name: data.playerName,
             agent_name: data.agentName,
-            action: 'cancelled_interest'
-          }
+            action: "cancelled_interest",
+          },
         });
 
-        console.log('✅ Team notification created for cancelled interest');
+        console.log("✅ Team notification created for cancelled interest");
       }
 
       // 4. Trigger immediate UI updates
-      window.dispatchEvent(new CustomEvent('workflowUpdate', {
-        detail: {
-          type: 'agent_interest_cancelled',
-          pitchId: data.pitchId,
-          agentName: data.agentName
-        }
-      }));
+      window.dispatchEvent(
+        new CustomEvent("workflowUpdate", {
+          detail: {
+            type: "agent_interest_cancelled",
+            pitchId: data.pitchId,
+            agentName: data.agentName,
+          },
+        }),
+      );
 
       return { success: true };
     } catch (error) {
-      console.error('❌ Error in agent cancel interest workflow:', error);
+      console.error("❌ Error in agent cancel interest workflow:", error);
       return { success: false, error };
     }
   }
@@ -165,24 +172,24 @@ export class SmoothWorkflowService {
     teamName: string;
   }) {
     try {
-      console.log('🚀 Handling team start negotiation workflow');
+      console.log("🚀 Handling team start negotiation workflow");
 
       // 1. Update interest status
       const { error } = await supabase
-        .from('agent_interest')
-        .update({ 
-          status: 'negotiating',
-          updated_at: new Date().toISOString()
+        .from("agent_interest")
+        .update({
+          status: "negotiating",
+          updated_at: new Date().toISOString(),
         })
-        .eq('id', data.interestId);
+        .eq("id", data.interestId);
 
       if (error) throw error;
 
       // 2. Get agent's user_id for notification
       const { data: agentProfile } = await supabase
-        .from('profiles')
-        .select('user_id')
-        .eq('id', data.agentProfileId)
+        .from("profiles")
+        .select("user_id")
+        .eq("id", data.agentProfileId)
         .single();
 
       if (agentProfile?.user_id) {
@@ -198,25 +205,27 @@ export class SmoothWorkflowService {
             interest_id: data.interestId,
             player_name: data.playerName,
             team_name: data.teamName,
-            action: 'negotiation_started'
-          }
+            action: "negotiation_started",
+          },
         });
 
-        console.log('✅ Agent notification created for negotiation start');
+        console.log("✅ Agent notification created for negotiation start");
       }
 
       // 4. Trigger immediate UI updates
-      window.dispatchEvent(new CustomEvent('workflowUpdate', {
-        detail: {
-          type: 'team_started_negotiation',
-          interestId: data.interestId,
-          teamName: data.teamName
-        }
-      }));
+      window.dispatchEvent(
+        new CustomEvent("workflowUpdate", {
+          detail: {
+            type: "team_started_negotiation",
+            interestId: data.interestId,
+            teamName: data.teamName,
+          },
+        }),
+      );
 
       return { success: true };
     } catch (error) {
-      console.error('❌ Error in team start negotiation workflow:', error);
+      console.error("❌ Error in team start negotiation workflow:", error);
       return { success: false, error };
     }
   }
@@ -227,23 +236,29 @@ export class SmoothWorkflowService {
     agentProfileId: string;
     playerName: string;
     teamName: string;
-    contractData: any;
+    contractData: {
+      pitch_id: string;
+      agent_id: string;
+      team_id: string;
+      contract_value: number;
+      currency: string;
+    };
   }) {
     try {
-      console.log('📄 Handling contract creation workflow');
+      console.log("📄 Handling contract creation workflow");
 
       // 1. Create contract (simplified for demo)
       const { data: contract, error: contractError } = await supabase
-        .from('contracts')
+        .from("contracts")
         .insert({
           pitch_id: data.contractData.pitch_id,
           agent_id: data.contractData.agent_id,
           team_id: data.contractData.team_id,
-          status: 'draft',
-          deal_stage: 'negotiating',
+          status: "draft",
+          deal_stage: "negotiating",
           contract_value: data.contractData.contract_value,
           currency: data.contractData.currency,
-          created_at: new Date().toISOString()
+          created_at: new Date().toISOString(),
         })
         .select()
         .single();
@@ -252,9 +267,9 @@ export class SmoothWorkflowService {
 
       // 2. Get agent's user_id for notification
       const { data: agentProfile } = await supabase
-        .from('profiles')
-        .select('user_id')
-        .eq('id', data.agentProfileId)
+        .from("profiles")
+        .select("user_id")
+        .eq("id", data.agentProfileId)
         .single();
 
       if (agentProfile?.user_id) {
@@ -270,26 +285,28 @@ export class SmoothWorkflowService {
             contract_id: contract.id,
             player_name: data.playerName,
             team_name: data.teamName,
-            action: 'contract_created'
-          }
+            action: "contract_created",
+          },
         });
 
-        console.log('✅ Agent notification created for contract creation');
+        console.log("✅ Agent notification created for contract creation");
       }
 
       // 4. Trigger immediate UI updates
-      window.dispatchEvent(new CustomEvent('workflowUpdate', {
-        detail: {
-          type: 'contract_created',
-          contractId: contract.id,
-          playerName: data.playerName,
-          teamName: data.teamName
-        }
-      }));
+      window.dispatchEvent(
+        new CustomEvent("workflowUpdate", {
+          detail: {
+            type: "contract_created",
+            contractId: contract.id,
+            playerName: data.playerName,
+            teamName: data.teamName,
+          },
+        }),
+      );
 
       return { success: true, contract };
     } catch (error) {
-      console.error('❌ Error in contract creation workflow:', error);
+      console.error("❌ Error in contract creation workflow:", error);
       return { success: false, error };
     }
   }

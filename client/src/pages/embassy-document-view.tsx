@@ -18,7 +18,7 @@ interface DocumentDetails {
 
 export default function EmbassyDocumentView() {
   const { id } = useParams<{ id: string }>();
-  /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+   
   const documentId = id;
 
   const { data, isLoading, error } = useQuery<DocumentDetails>({

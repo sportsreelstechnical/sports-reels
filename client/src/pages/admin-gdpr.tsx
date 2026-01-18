@@ -67,11 +67,7 @@ export default function AdminGdpr() {
 
   const updateRequestMutation = useMutation({
     mutationFn: async ({ id, status, rejectionReason }: { id: string; status: string; rejectionReason?: string }) => {
-      return apiRequest(`/api/admin/gdpr-requests/${id}`, {
-        method: "PATCH",
-        body: JSON.stringify({ status, rejectionReason }),
-        headers: { "Content-Type": "application/json" },
-      });
+      return apiRequest("PATCH", `/api/admin/gdpr-requests/${id}`, { status, rejectionReason });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/gdpr-requests"] });
@@ -86,11 +82,9 @@ export default function AdminGdpr() {
 
   const exportDataMutation = useMutation({
     mutationFn: async (id: string) => {
-      return apiRequest(`/api/admin/gdpr-requests/${id}/export`, {
-        method: "POST",
-      });
+      return apiRequest("POST", `/api/admin/gdpr-requests/${id}/export`);
     },
-    onSuccess: (data: any) => {
+    onSuccess: (data: unknown) => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/gdpr-requests"] });
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);

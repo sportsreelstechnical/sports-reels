@@ -5,12 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
 } from "@/components/ui/select";
 import {
   Dialog,
@@ -31,10 +31,10 @@ import {
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { 
-  UserPlus, 
-  Key, 
-  Trash2, 
+import {
+  UserPlus,
+  Key,
+  Trash2,
   Search,
   Users,
   Mail,
@@ -72,11 +72,7 @@ export default function AdminUsers() {
 
   const createUserMutation = useMutation({
     mutationFn: async (userData: typeof newUser) => {
-      return apiRequest("/api/admin/users", {
-        method: "POST",
-        body: JSON.stringify(userData),
-        headers: { "Content-Type": "application/json" },
-      });
+      return apiRequest("POST", "/api/admin/users", userData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
@@ -104,10 +100,10 @@ export default function AdminUsers() {
         method: "POST",
       });
     },
-    onSuccess: (data: any) => {
-      toast({ 
-        title: "Password reset token created", 
-        description: `Token: ${data.token?.substring(0, 20)}... (24hr expiry)` 
+    onSuccess: (data: { token: string }) => {
+      toast({
+        title: "Password reset token created",
+        description: `Token: ${data.token?.substring(0, 20)}... (24hr expiry)`
       });
     },
     onError: (error: Error) => {
@@ -132,7 +128,7 @@ export default function AdminUsers() {
   });
 
   const filteredUsers = users?.filter(user => {
-    const matchesSearch = !searchQuery || 
+    const matchesSearch = !searchQuery ||
       user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.firstName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -174,9 +170,9 @@ export default function AdminUsers() {
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
                 <Label htmlFor="role">Role</Label>
-                <Select 
-                  value={newUser.role} 
-                  onValueChange={(value) => setNewUser({...newUser, role: value})}
+                <Select
+                  value={newUser.role}
+                  onValueChange={(value) => setNewUser({ ...newUser, role: value })}
                 >
                   <SelectTrigger data-testid="select-user-role">
                     <SelectValue placeholder="Select role" />
@@ -194,60 +190,60 @@ export default function AdminUsers() {
               <div className="grid grid-cols-2 gap-2">
                 <div className="grid gap-2">
                   <Label htmlFor="firstName">First Name</Label>
-                  <Input 
+                  <Input
                     id="firstName"
                     value={newUser.firstName}
-                    onChange={(e) => setNewUser({...newUser, firstName: e.target.value})}
+                    onChange={(e) => setNewUser({ ...newUser, firstName: e.target.value })}
                     data-testid="input-first-name"
                   />
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="lastName">Last Name</Label>
-                  <Input 
+                  <Input
                     id="lastName"
                     value={newUser.lastName}
-                    onChange={(e) => setNewUser({...newUser, lastName: e.target.value})}
+                    onChange={(e) => setNewUser({ ...newUser, lastName: e.target.value })}
                     data-testid="input-last-name"
                   />
                 </div>
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="username">Username</Label>
-                <Input 
+                <Input
                   id="username"
                   value={newUser.username}
-                  onChange={(e) => setNewUser({...newUser, username: e.target.value})}
+                  onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
                   data-testid="input-username"
                 />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="email">Email</Label>
-                <Input 
+                <Input
                   id="email"
                   type="email"
                   value={newUser.email}
-                  onChange={(e) => setNewUser({...newUser, email: e.target.value})}
+                  onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
                   data-testid="input-email"
                 />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="password">Password</Label>
-                <Input 
+                <Input
                   id="password"
                   type="password"
                   value={newUser.password}
-                  onChange={(e) => setNewUser({...newUser, password: e.target.value})}
+                  onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
                   data-testid="input-password"
                 />
               </div>
               {newUser.role === "embassy" && (
                 <div className="grid gap-2">
                   <Label htmlFor="country">Country</Label>
-                  <Input 
+                  <Input
                     id="country"
                     placeholder="e.g., United Kingdom"
                     value={newUser.country}
-                    onChange={(e) => setNewUser({...newUser, country: e.target.value})}
+                    onChange={(e) => setNewUser({ ...newUser, country: e.target.value })}
                     data-testid="input-country"
                   />
                 </div>
@@ -255,7 +251,7 @@ export default function AdminUsers() {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>Cancel</Button>
-              <Button 
+              <Button
                 onClick={() => createUserMutation.mutate(newUser)}
                 disabled={createUserMutation.isPending || !newUser.username || !newUser.password}
                 data-testid="button-submit-user"
@@ -273,7 +269,7 @@ export default function AdminUsers() {
             <div className="flex-1 min-w-[200px]">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input 
+                <Input
                   placeholder="Search users..."
                   className="pl-10"
                   value={searchQuery}
@@ -347,8 +343,8 @@ export default function AdminUsers() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <Button 
-                          variant="ghost" 
+                        <Button
+                          variant="ghost"
                           size="icon"
                           onClick={() => resetPasswordMutation.mutate(user.id)}
                           disabled={resetPasswordMutation.isPending}
@@ -356,8 +352,8 @@ export default function AdminUsers() {
                         >
                           <Key className="h-4 w-4" />
                         </Button>
-                        <Button 
-                          variant="ghost" 
+                        <Button
+                          variant="ghost"
                           size="icon"
                           onClick={() => {
                             if (confirm("Are you sure you want to delete this user?")) {
@@ -379,8 +375,8 @@ export default function AdminUsers() {
             <div className="text-center py-8">
               <Users className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
               <p className="text-muted-foreground">No users found</p>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="mt-4"
                 onClick={() => setCreateDialogOpen(true)}
                 data-testid="button-create-first-user"

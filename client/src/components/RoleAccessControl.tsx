@@ -8,7 +8,6 @@ import type { UserRole } from "@/lib/types";
 interface RolePermission {
   role: UserRole;
   label: string;
-  icon: typeof Users;
   hasAccess: boolean;
 }
 
@@ -37,8 +36,8 @@ export default function RoleAccessControl({ permissions, onToggle }: RoleAccessC
         {permissions.map((permission) => {
           const Icon = roleIcons[permission.role];
           return (
-            <div 
-              key={permission.role} 
+            <div
+              key={permission.role}
               className="flex items-center justify-between gap-4 p-3 bg-muted/50 rounded-md"
             >
               <div className="flex items-center gap-3">
@@ -47,12 +46,12 @@ export default function RoleAccessControl({ permissions, onToggle }: RoleAccessC
                 </div>
                 <div>
                   <Label className="font-medium">{permission.label}</Label>
-                  <Badge 
-                    variant="secondary" 
-                    className={`text-xs mt-1 ${permission.hasAccess 
-                      ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" 
+                  <Badge
+                    variant="secondary"
+                    className={`text-xs mt-1 ${permission.hasAccess
+                      ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
                       : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
-                    }`}
+                      }`}
                   >
                     {permission.hasAccess ? "Has Access" : "No Access"}
                   </Badge>

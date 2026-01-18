@@ -67,7 +67,7 @@ export default function MessagesPage() {
       const response = await apiRequest("POST", "/api/conversations", data);
       return await response.json();
     },
-    onSuccess: (newConv: any) => {
+    onSuccess: (newConv: { id: string }) => {
       toast({
         title: "Conversation Created",
         description: "You can now start messaging in this conversation.",
@@ -278,9 +278,8 @@ export default function MessagesPage() {
                 <button
                   key={conv.id}
                   onClick={() => setSelectedConversation(conv.id)}
-                  className={`w-full p-3 rounded-md text-left hover-elevate ${
-                    selectedConversation === conv.id ? "bg-accent" : ""
-                  }`}
+                  className={`w-full p-3 rounded-md text-left hover-elevate ${selectedConversation === conv.id ? "bg-accent" : ""
+                    }`}
                   data-testid={`button-conversation-${conv.id}`}
                 >
                   <div className="flex items-center gap-3">
@@ -369,8 +368,8 @@ export default function MessagesPage() {
                   onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSendMessage()}
                   data-testid="input-message"
                 />
-                <Button 
-                  onClick={handleSendMessage} 
+                <Button
+                  onClick={handleSendMessage}
                   disabled={sendMessageMutation.isPending || !newMessage.trim()}
                   data-testid="button-send-message"
                 >

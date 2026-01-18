@@ -1,14 +1,19 @@
-export type UserRole = "sporting_director" | "legal" | "scout" | "coach" | "admin";
+export type UserRole =
+  | "sporting_director"
+  | "legal"
+  | "scout"
+  | "coach"
+  | "admin";
 
 export type VisaStatus = "green" | "yellow" | "red";
 
-export type VisaType = 
-  | "schengen_sports" 
-  | "uk_gbe" 
-  | "us_p1" 
-  | "us_o1" 
-  | "fifa_transfer" 
-  | "middle_east" 
+export type VisaType =
+  | "schengen_sports"
+  | "uk_gbe"
+  | "us_p1"
+  | "us_o1"
+  | "fifa_transfer"
+  | "middle_east"
   | "asia_sports";
 
 export type LeagueBand = 1 | 2 | 3 | 4 | 5;
@@ -73,6 +78,13 @@ export interface BiometricData {
   gpsDataAvailable: boolean;
 }
 
+export interface Injury {
+  date: string;
+  type: string;
+  recoveryTime?: string;
+  notes?: string;
+}
+
 export interface MedicalRecord {
   id: string;
   playerId: string;
@@ -80,7 +92,7 @@ export interface MedicalRecord {
   recordType: string;
   description?: string;
   fitnessLevel?: string;
-  injuryHistory?: any[];
+  injuryHistory?: Injury[];
   clearanceStatus?: string;
   expiryDate?: string;
 }
@@ -171,7 +183,7 @@ export interface VisaRule {
   description?: string;
   minPoints?: number;
   maxPoints?: number;
-  criteria: any;
+  criteria: Record<string, unknown>;
   leagueBandMultipliers: LeagueBandMultipliers;
   active: boolean;
 }
@@ -328,16 +340,44 @@ export const VISA_TYPES: { type: VisaType; name: string; country: string }[] = [
   { type: "us_p1", name: "US P-1 Athlete Visa", country: "USA" },
   { type: "us_o1", name: "US O-1 Extraordinary Ability", country: "USA" },
   { type: "fifa_transfer", name: "FIFA Transfer Rules", country: "Global" },
-  { type: "middle_east", name: "Middle East Sports Visa", country: "UAE/Saudi" },
+  {
+    type: "middle_east",
+    name: "Middle East Sports Visa",
+    country: "UAE/Saudi",
+  },
   { type: "asia_sports", name: "Asia Sports Visa", country: "Asia" },
 ];
 
-export const LEAGUE_BANDS: { band: LeagueBand; description: string; examples: string }[] = [
-  { band: 1, description: "Top 5 European Leagues", examples: "EPL, La Liga, Bundesliga, Serie A, Ligue 1" },
-  { band: 2, description: "Strong European Leagues", examples: "Eredivisie, Portuguese Liga, Belgian Pro League" },
-  { band: 3, description: "Mid-tier European & Top Other", examples: "Scottish Prem, Turkish Super Lig, MLS" },
-  { band: 4, description: "Developing Leagues", examples: "Championship, Liga MX, A-League" },
-  { band: 5, description: "Emerging Markets", examples: "African Leagues, Asian Leagues, Lower divisions" },
+export const LEAGUE_BANDS: {
+  band: LeagueBand;
+  description: string;
+  examples: string;
+}[] = [
+  {
+    band: 1,
+    description: "Top 5 European Leagues",
+    examples: "EPL, La Liga, Bundesliga, Serie A, Ligue 1",
+  },
+  {
+    band: 2,
+    description: "Strong European Leagues",
+    examples: "Eredivisie, Portuguese Liga, Belgian Pro League",
+  },
+  {
+    band: 3,
+    description: "Mid-tier European & Top Other",
+    examples: "Scottish Prem, Turkish Super Lig, MLS",
+  },
+  {
+    band: 4,
+    description: "Developing Leagues",
+    examples: "Championship, Liga MX, A-League",
+  },
+  {
+    band: 5,
+    description: "Emerging Markets",
+    examples: "African Leagues, Asian Leagues, Lower divisions",
+  },
 ];
 
 export const COMPLIANCE_DOCUMENT_PRICE = 49.99;

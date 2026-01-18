@@ -15,7 +15,7 @@ export const useAutoTranslate = (containerRef?: React.RefObject<HTMLElement>) =>
 
     const translateContainer = async () => {
       const container = containerRef?.current || document.body;
-      
+
       // Get all text nodes in the container
       const walker = document.createTreeWalker(
         container,
@@ -24,21 +24,21 @@ export const useAutoTranslate = (containerRef?: React.RefObject<HTMLElement>) =>
           acceptNode: (node) => {
             const text = node.textContent?.trim();
             // Skip empty text, scripts, styles, and already translated nodes
-            if (!text || 
-                text.length < 2 ||
-                node.parentElement?.tagName === 'SCRIPT' || 
-                node.parentElement?.tagName === 'STYLE' ||
-                node.parentElement?.hasAttribute('data-auto-translated') ||
-                // Skip technical content
-                text.includes('http') || 
-                text.includes('www.') ||
-                text.includes('console.') ||
-                text.match(/^[A-Z_]+$/) ||
-                text.match(/^\d+$/) ||
-                text.includes('px') ||
-                text.includes('rem') ||
-                text.includes('vh') ||
-                text.includes('vw')) {
+            if (!text ||
+              text.length < 2 ||
+              node.parentElement?.tagName === 'SCRIPT' ||
+              node.parentElement?.tagName === 'STYLE' ||
+              node.parentElement?.hasAttribute('data-auto-translated') ||
+              // Skip technical content
+              text.includes('http') ||
+              text.includes('www.') ||
+              text.includes('console.') ||
+              text.match(/^[A-Z_]+$/) ||
+              text.match(/^\d+$/) ||
+              text.includes('px') ||
+              text.includes('rem') ||
+              text.includes('vh') ||
+              text.includes('vw')) {
               return NodeFilter.FILTER_REJECT;
             }
             return NodeFilter.FILTER_ACCEPT;
@@ -48,7 +48,7 @@ export const useAutoTranslate = (containerRef?: React.RefObject<HTMLElement>) =>
 
       const textNodes: Text[] = [];
       let node;
-      while (node = walker.nextNode()) {
+      while ((node = walker.nextNode())) {
         textNodes.push(node as Text);
       }
 
@@ -56,7 +56,7 @@ export const useAutoTranslate = (containerRef?: React.RefObject<HTMLElement>) =>
       const batchSize = 5;
       for (let i = 0; i < textNodes.length; i += batchSize) {
         const batch = textNodes.slice(i, i + batchSize);
-        
+
         await Promise.all(batch.map(async (textNode) => {
           const originalText = textNode.textContent?.trim();
           if (!originalText) return;

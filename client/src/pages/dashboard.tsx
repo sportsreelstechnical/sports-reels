@@ -37,12 +37,12 @@ export default function Dashboard() {
     queryKey: ["/api/dashboard/stats"],
   });
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const { data: verificationsData } = useQuery<any[]>({
     queryKey: ["/api/embassy/verifications"],
   });
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const { data: inquiriesData } = useQuery<any[]>({
     queryKey: ["/api/scouting/inquiries"],
   });

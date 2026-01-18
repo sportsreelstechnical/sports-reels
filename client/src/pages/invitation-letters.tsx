@@ -59,7 +59,7 @@ export default function InvitationLettersPage() {
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: { 
+    accept: {
       "application/pdf": [".pdf"],
       "application/msword": [".doc"],
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"],
@@ -183,7 +183,7 @@ export default function InvitationLettersPage() {
       const response = await apiRequest("POST", `/api/invitation-letters/${letterId}/notify-embassy`, {});
       return await response.json();
     },
-    onSuccess: (data: any) => {
+    onSuccess: (data: { newBalance: number }) => {
       toast({
         title: "Embassy Notified",
         description: `The embassy has been notified. 4 tokens deducted. New balance: ${data.newBalance} tokens.`,
@@ -544,7 +544,7 @@ export default function InvitationLettersPage() {
 
   const [selectedCountry, setSelectedCountry] = useState<string>("");
   const watchedCountry = form.watch("targetCountry");
-  
+
   useEffect(() => {
     if (watchedCountry !== selectedCountry) {
       setSelectedCountry(watchedCountry);
@@ -552,8 +552,8 @@ export default function InvitationLettersPage() {
     }
   }, [watchedCountry, selectedCountry, form]);
 
-  const availableLeagues = selectedCountry && countriesWithLeagues[selectedCountry] 
-    ? countriesWithLeagues[selectedCountry].leagues 
+  const availableLeagues = selectedCountry && countriesWithLeagues[selectedCountry]
+    ? countriesWithLeagues[selectedCountry].leagues
     : [];
 
   const offerTypes = [
@@ -674,12 +674,12 @@ export default function InvitationLettersPage() {
                       <FormItem>
                         <FormLabel>Club Address</FormLabel>
                         <FormControl>
-                          <Textarea 
+                          <Textarea
                             placeholder="Full club address as shown on letter"
                             className="resize-none"
                             rows={2}
-                            {...field} 
-                            data-testid="input-club-address" 
+                            {...field}
+                            data-testid="input-club-address"
                           />
                         </FormControl>
                         <FormMessage />
@@ -693,14 +693,14 @@ export default function InvitationLettersPage() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Target League</FormLabel>
-                        <Select 
+                        <Select
                           onValueChange={(value) => {
                             field.onChange(value);
                             const league = availableLeagues.find(l => l.name === value);
                             if (league) {
                               form.setValue("targetLeagueBand", league.band);
                             }
-                          }} 
+                          }}
                           value={field.value}
                           disabled={!selectedCountry}
                         >
@@ -866,7 +866,7 @@ export default function InvitationLettersPage() {
                                   <SelectItem value="none">No federation letter</SelectItem>
                                   {issuedFederationLetters.map((letter) => (
                                     <SelectItem key={letter.id} value={letter.id}>
-                                      {letter.requestNumber} - {letter.federationName || letter.federationCountry} 
+                                      {letter.requestNumber} - {letter.federationName || letter.federationCountry}
                                       {letter.issuedAt && ` (Issued: ${new Date(letter.issuedAt).toLocaleDateString()})`}
                                     </SelectItem>
                                   ))}
@@ -886,9 +886,8 @@ export default function InvitationLettersPage() {
                     <Label className="text-sm font-medium">Document Upload</Label>
                     <div
                       {...getRootProps()}
-                      className={`border-2 border-dashed rounded-md p-6 text-center cursor-pointer transition-colors ${
-                        isDragActive ? "border-primary bg-primary/5" : "border-muted-foreground/25 hover:border-primary/50"
-                      }`}
+                      className={`border-2 border-dashed rounded-md p-6 text-center cursor-pointer transition-colors ${isDragActive ? "border-primary bg-primary/5" : "border-muted-foreground/25 hover:border-primary/50"
+                        }`}
                       data-testid="dropzone-document"
                     >
                       <input {...getInputProps()} data-testid="input-document-file" />
@@ -896,9 +895,9 @@ export default function InvitationLettersPage() {
                         <div className="flex items-center justify-center gap-2">
                           <File className="h-6 w-6 text-primary" />
                           <span className="font-medium text-sm truncate max-w-[200px]">{uploadedFile.name}</span>
-                          <Button 
-                            size="icon" 
-                            variant="ghost" 
+                          <Button
+                            size="icon"
+                            variant="ghost"
                             type="button"
                             onClick={(e) => { e.stopPropagation(); setUploadedFile(null); }}
                             data-testid="button-remove-document"
@@ -1005,8 +1004,8 @@ export default function InvitationLettersPage() {
             <CardContent>
               <div className="space-y-3">
                 {allLetters.map((letter) => (
-                  <div 
-                    key={letter.id} 
+                  <div
+                    key={letter.id}
                     className="flex flex-wrap items-center justify-between gap-4 p-4 border rounded-md hover-elevate"
                     data-testid={`card-letter-${letter.id}`}
                   >
@@ -1042,8 +1041,8 @@ export default function InvitationLettersPage() {
                           Report Ready
                         </Badge>
                       )}
-                      <Button 
-                        size="sm" 
+                      <Button
+                        size="sm"
                         variant="outline"
                         onClick={() => {
                           setSelectedLetter(letter);
@@ -1055,7 +1054,7 @@ export default function InvitationLettersPage() {
                         View
                       </Button>
                       {!letter.consularReportGenerated && (
-                        <Button 
+                        <Button
                           size="sm"
                           onClick={() => generateReportMutation.mutate(letter.id)}
                           disabled={generateReportMutation.isPending}
@@ -1066,7 +1065,7 @@ export default function InvitationLettersPage() {
                         </Button>
                       )}
                       {letter.embassyNotificationStatus !== "notified" ? (
-                        <Button 
+                        <Button
                           size="sm"
                           variant="outline"
                           onClick={() => notifyEmbassyMutation.mutate(letter.id)}
@@ -1085,8 +1084,8 @@ export default function InvitationLettersPage() {
                           Embassy Notified
                         </Badge>
                       )}
-                      <Button 
-                        size="icon" 
+                      <Button
+                        size="icon"
                         variant="ghost"
                         onClick={() => deleteMutation.mutate(letter.id)}
                         disabled={deleteMutation.isPending}
@@ -1188,7 +1187,7 @@ export default function InvitationLettersPage() {
               Close
             </Button>
             {selectedLetter && !selectedLetter.consularReportGenerated && (
-              <Button 
+              <Button
                 onClick={() => {
                   generateReportMutation.mutate(selectedLetter.id);
                   setIsViewDialogOpen(false);

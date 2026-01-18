@@ -34,6 +34,27 @@ export function registerPlayerRoutes(app: Express): void {
     },
   );
 
+  app.post(
+    "/api/players/batch",
+    requireAuth,
+    async (req: Request, res: Response) => {
+      try {
+        const { playerIds } = req.body;
+
+        if (!Array.isArray(playerIds)) {
+          return res.status(400).json({ error: "playerIds must be an array" });
+        }
+
+        const players = await storage.getPlayersByIds(playerIds);
+        res.json(players);
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "An unknown error occurred";
+        res.status(500).json({ error: message });
+      }
+    },
+  );
+
   app.get(
     "/api/players/:id",
     requireAuth,

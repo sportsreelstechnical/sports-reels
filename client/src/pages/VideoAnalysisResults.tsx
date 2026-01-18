@@ -42,17 +42,23 @@ import {
   ArrowLeft,
   Quote
 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { apiRequest } from '@/lib/queryClient';
 import { SmartVideoPlayer, SmartVideoPlayerRef } from '@/domains/video/components/SmartVideoPlayer';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { ComprehensiveAIAnalysisService } from '@/domains/video/services/comprehensiveAIAnalysisService';
+import {
+  ComprehensiveAIAnalysisService,
+  EnhancedMatchAnalysis,
+  EnhancedTrainingAnalysis,
+  EnhancedHighlightAnalysis,
+  EnhancedInterviewAnalysis
+} from '@/domains/video/services/comprehensiveAIAnalysisService';
 import { EnhancedVideoAnalysisService } from '@/domains/video/services/enhancedVideoAnalysisService';
 import { VideoFrameExtractor } from '@/utils/videoFrameExtractor';
 import { r2VideoRetrievalService } from '@/domains/video/services/r2VideoRetrievalService';
 import { usePlayersData } from '@/domains/players/hooks/usePlayersData';
 import PlayerTagDisplay from '@/components/PlayerTagDisplay';
-import PlayerTrackingVisualization from '@/components/PlayerTrackingVisualization';
+import PlayerTrackingVisualization, { PlayerTrackingData } from '@/components/PlayerTrackingVisualization';
 import FormationVisualizer from '@/components/FormationVisualizer';
 import HeatMapVisualization from '@/components/HeatMapVisualization';
 import EnhancedFormationVisualizer from '@/components/EnhancedFormationVisualizer';
@@ -78,22 +84,236 @@ interface Video {
   compressed_url?: string;
 }
 
+interface PlayerAction {
+  timestamp: number;
+  action: string;
+  description: string;
+  confidence: number;
+  players: string[];
+  zone?: string;
+  outcome?: string;
+}
+
+interface KeyMoment {
+  timestamp: number;
+  type: string;
+  description: string;
+  importance: 'high' | 'medium' | 'low';
+  source?: string;
+  context?: string;
+  participants?: string[];
+  skillLevel?: number;
+  marketability?: number;
+}
+
+interface PlayerStat {
+  name: string;
+  position: string;
+  rating: number;
+  actions: number;
+  keyPasses: number;
+  goals: number;
+}
+
+interface AnalysisTimelineItem {
+  minute: number;
+  events: string[];
+}
+
+interface AIMatchAnalysis {
+  playerActions?: PlayerAction[];
+  keyMoments?: KeyMoment[];
+  performanceMetrics?: { overallRating?: number };
+  playerStats?: PlayerStat[];
+  timeline?: AnalysisTimelineItem[];
+}
+
+import { PlayerWithTeam } from '@/domains/players/hooks/usePlayersData';
+
+interface SkillAssessment {
+  skill: string;
+  rating: number;
+  improvement: string;
+  playerName?: string;
+  position?: string;
+  technicalRating?: number;
+  physicalRating?: number;
+  tacticalRating?: number;
+}
+
+interface AITrainingAnalysis {
+  skillAssessment?: SkillAssessment[];
+  coachingInsights?: { keyLearnings?: string[]; sessionEffectiveness?: number };
+  sessionStructure?: { mainDrills?: string[] };
+}
+
+interface KeyMoment {
+  timestamp: number;
+  type: string;
+  description: string;
+  importance: 'high' | 'medium' | 'low';
+  source?: string;
+  context?: string;
+  participants?: string[];
+  skillLevel?: number;
+  marketability?: number;
+  playerInvolved?: string;
+  playerName?: string;
+  position?: string;
+  skillRating?: number;
+  highlightMoments?: KeyMoment[];
+  outcome?: string;
+  fieldPosition?: string;
+  confidence?: number;
+}
+
+interface AIHighlightAnalysis {
+  keyMoments?: KeyMoment[];
+  performanceInsights?: { overallQuality?: number };
+  playerHighlights?: KeyMoment[];
+}
+
+interface KeyQuote {
+  timestamp: number;
+  quote: string;
+  speaker: string;
+  relevance: number;
+  importance?: 'high' | 'medium' | 'low';
+}
+
+interface AIInterviewAnalysis {
+  keyQuotes?: KeyQuote[];
+  communicationAnalysis?: { overallEffectiveness?: number };
+}
+
+interface AIAnalysisResult {
+  matchAnalysis?: AIMatchAnalysis;
+  trainingAnalysis?: AITrainingAnalysis;
+  highlightAnalysis?: AIHighlightAnalysis;
+  interviewAnalysis?: AIInterviewAnalysis;
+  summary?: string;
+  recommendations?: string[];
+  confidence?: number;
+}
+
+
+
+interface TacticalAnalysis {
+  formationChanges: Array<{
+    formation: string;
+    positions: Array<{
+      playerId: string;
+      position: string;
+      x: number;
+      y: number;
+    }>;
+    confidence: number;
+    timestamp: number;
+  }>;
+  pressingMoments: Array<{
+    timestamp: number;
+    duration: number;
+    intensity: 'low' | 'medium' | 'high';
+    playersInvolved: string[];
+    success: boolean;
+  }>;
+  buildUpPlay: Array<{
+    timestamp: number;
+    duration: number;
+    playersInvolved: string[];
+    passes: number;
+    outcome: 'successful' | 'failed';
+  }>;
+  defensiveActions: Array<{
+    timestamp: number;
+    type: 'tackle' | 'interception' | 'clearance' | 'block';
+    playerId: string;
+    success: boolean;
+    fieldPosition: string;
+  }>;
+  attackingPatterns: Array<{
+    timestamp: number;
+    type: 'counter-attack' | 'possession-play' | 'set-piece' | 'individual-run';
+    playersInvolved: string[];
+    outcome: 'goal' | 'shot' | 'corner' | 'failed';
+  }>;
+}
+
+interface MatchStatistics {
+  possession: {
+    home: number;
+    away: number;
+  };
+  shots: {
+    home: number;
+    away: number;
+  };
+  passes: {
+    home: number;
+    away: number;
+    accuracy: {
+      home: number;
+      away: number;
+    };
+  };
+  goals: Array<{
+    timestamp: number;
+    playerId: string;
+    team: 'home' | 'away';
+    type: 'open-play' | 'penalty' | 'free-kick' | 'corner' | 'own-goal';
+    assistPlayerId?: string;
+    fieldPosition: string;
+  }>;
+  cards: Array<{
+    timestamp: number;
+    playerId: string;
+    team: 'home' | 'away';
+    type: 'yellow' | 'red';
+    reason: string;
+  }>;
+  substitutions: Array<{
+    timestamp: number;
+    playerOut: string;
+    playerIn: string;
+    team: 'home' | 'away';
+    reason: 'tactical' | 'injury' | 'performance';
+  }>;
+}
+
+interface PerformanceMetrics {
+  overallTeamRating: number;
+  individualRatings: unknown[];
+  tacticalEffectiveness: number;
+  physicalPerformance: number;
+  technicalExecution: number;
+}
+
+interface SportSpecificInsights {
+  formation: string;
+  tacticalStyle: string;
+  keyStrengths: string[];
+  areasForImprovement: string[];
+  criticalMoments: unknown[];
+  performanceMetrics: PerformanceMetrics;
+}
+
 interface AnalysisData {
-  playerActions: any[];
-  keyMoments: any[];
+  playerActions: PlayerAction[];
+  keyMoments: KeyMoment[];
   summary: string;
   insights: string[];
   performanceRating: number;
-  heatmapData?: any[];
-  playerStats?: any[];
-  timeline?: any[];
-  playerTracking?: any[];
-  tacticalAnalysis?: any;
-  matchStatistics?: any;
-  sportSpecificInsights?: any;
+  heatmapData?: Record<string, unknown>[];
+  playerStats?: PlayerStat[];
+  timeline?: AnalysisTimelineItem[];
+  playerTracking?: PlayerTrackingData[];
+  tacticalAnalysis?: TacticalAnalysis;
+  matchStatistics?: MatchStatistics;
+  sportSpecificInsights?: SportSpecificInsights;
   recommendations?: string[];
   confidence?: number;
   processingTime?: number;
+  [key: string]: unknown; // Allow additional properties from spread
 }
 
 const VideoAnalysisResults = () => {
@@ -172,30 +392,25 @@ const VideoAnalysisResults = () => {
 
   useEffect(() => {
     fetchCurrentTeam();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
-    if (videoTitle) {
-      fetchVideoData();
-    }
-  }, [videoTitle]);
+
 
   // Detect sport when video data is loaded
   useEffect(() => {
     if (video) {
       detectVideoSport();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [video]);
 
   const fetchCurrentTeam = async () => {
     try {
       if (!profile?.id) return;
 
-      const { data: teamData } = await supabase
-        .from('teams')
-        .select('id')
-        .eq('profile_id', profile.id)
-        .single();
+      const response = await apiRequest('GET', '/api/teams/current');
+      const teamData = await response.json();
 
       if (teamData) {
         setCurrentTeamId(teamData.id);
@@ -222,42 +437,30 @@ const VideoAnalysisResults = () => {
     try {
       console.log('Attempting to resolve duplicate videos for title:', title);
 
-      // Build query - for agents, don't filter by team_id
-      let duplicateQuery = supabase
-        .from('videos')
-        .select('id, created_at, video_url, thumbnail_url')
-        .eq('title', title);
-
-      // Only filter by team_id if user is a team (not an agent)
+      // Build query params
+      const params = new URLSearchParams({ title });
       if (profile?.user_type === 'team' && currentTeamId) {
-        duplicateQuery = duplicateQuery.eq('team_id', currentTeamId);
+        params.append('teamId', currentTeamId);
       }
 
-      const { data: duplicateVideos, error } = await duplicateQuery
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
+      const response = await apiRequest('GET', `/api/videos/by-title?${params.toString()}`);
+      const duplicateVideos = await response.json();
 
       if (duplicateVideos && duplicateVideos.length > 1) {
         console.log(`Found ${duplicateVideos.length} duplicate videos:`, duplicateVideos);
 
         // Keep the most recent one, delete the older ones
-        const videosToDelete = duplicateVideos.slice(1);
+        const videosToDelete = (duplicateVideos as { id: string }[]).slice(1);
         const deleteIds = videosToDelete.map(v => v.id);
 
         console.log('Deleting duplicate videos with IDs:', deleteIds);
 
-        const { error: deleteError } = await supabase
-          .from('videos')
-          .delete()
-          .in('id', deleteIds);
-
-        if (deleteError) {
-          console.error('Error deleting duplicate videos:', deleteError);
-        } else {
+        try {
+          await Promise.all(deleteIds.map(id => apiRequest('DELETE', `/api/videos/${id}`)));
           console.log('Successfully deleted duplicate videos');
-          // Refresh the page to load the remaining video
           window.location.reload();
+        } catch (error) {
+          console.error('Error deleting duplicate videos:', error);
         }
       }
     } catch (error) {
@@ -274,39 +477,51 @@ const VideoAnalysisResults = () => {
 
       console.log('Fetching video data:', { videoTitle, decodedTitle, currentTeamId, isAgent: profile?.user_type === 'agent' });
 
-      // Build query - for agents, don't filter by team_id
-      let query = supabase
-        .from('videos')
-        .select('*')
-        .eq('title', decodedTitle);
+      // Build query parameters
+      const params = new URLSearchParams({ title: decodedTitle });
 
       // Only filter by team_id if user is a team (not an agent)
       if (profile?.user_type === 'team' && currentTeamId) {
-        query = query.eq('team_id', currentTeamId);
+        params.append('teamId', currentTeamId);
       }
 
-      // First, let's check how many videos exist with this title
-      const countQuery = profile?.user_type === 'team' && currentTeamId
-        ? supabase
-          .from('videos')
-          .select('*', { count: 'exact', head: true })
-          .eq('title', decodedTitle)
-          .eq('team_id', currentTeamId)
-        : supabase
-          .from('videos')
-          .select('*', { count: 'exact', head: true })
-          .eq('title', decodedTitle);
+      console.log('Requesting video via API:', params.toString());
 
-      const { count: countResult } = await countQuery;
-      const count = countResult || 0;
+      let videos: RawVideoResponse[] = [];
+      try {
+        const response = await apiRequest('GET', `/api/videos/by-title?${params.toString()}`);
+        videos = await response.json();
+      } catch (err) {
+        console.error('API video fetch error:', err);
+        throw err;
+      }
+
+      const count = videos.length;
       setVideoCount(count);
       console.log(`Found ${count} videos with title: "${decodedTitle}"`);
 
-      // Fetch the video
-      const { data, error } = await query
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
+      interface RawVideoResponse {
+        id: string;
+        title: string;
+        video_url: string;
+        thumbnail_url?: string;
+        duration: number;
+        video_type: string;
+        description?: string;
+        tagged_players?: unknown[];
+        ai_analysis_status: string;
+        created_at: string;
+        opposing_team?: string;
+        match_date?: string;
+        score_display?: string;
+        league?: string;
+        file_size?: number;
+        compressed_url?: string;
+      }
+
+      const rawData = videos.length > 0 ? videos[0] : null;
+
+      const data = rawData as RawVideoResponse;
 
       if (error) throw error;
 
@@ -320,7 +535,7 @@ const VideoAnalysisResults = () => {
           video_type: data.video_type as 'match' | 'training' | 'interview' | 'highlight',
           description: data.description,
           tags: Array.isArray(data.tagged_players)
-            ? data.tagged_players.map((tag: any) => String(tag))
+            ? data.tagged_players.map((tag: unknown) => String(tag))
             : [],
           ai_analysis_status: (data.ai_analysis_status === 'pending' ||
             data.ai_analysis_status === 'analyzing' ||
@@ -360,6 +575,13 @@ const VideoAnalysisResults = () => {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (videoTitle) {
+      fetchVideoData();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [videoTitle]);
 
   const handleAnalyzeVideo = async () => {
     if (!video) return;
@@ -402,12 +624,15 @@ const VideoAnalysisResults = () => {
       setDetectedSport(detectedSport);
 
       // Use actual player data with names and jersey numbers
-      const playerTagsWithData = taggedPlayers.map(player => ({
-        playerId: player.id,
-        playerName: player.full_name || 'Unknown Player',
-        jerseyNumber: parseInt(player.jersey_number) || null,
-        position: player.position || 'Unknown'
-      }));
+      const playerTagsWithData = (taggedPlayers as PlayerWithTeam[]).map((p: PlayerWithTeam) => {
+        const player = p;
+        return {
+          playerId: player.id,
+          playerName: player.full_name || 'Unknown Player',
+          jerseyNumber: parseInt(player.jersey_number) || null,
+          position: player.position || 'Unknown'
+        };
+      });
 
       console.log('Enhanced Video Analysis Debug Info:', {
         videoTitle: video.title,
@@ -485,7 +710,7 @@ const VideoAnalysisResults = () => {
         // Update analysis data with enhanced results
         setAnalysisData({
           ...analysisData,
-          ...result.analysis
+          ...(result.analysis as unknown as Partial<AnalysisData>)
         });
         setHasAnalysis(true);
 
@@ -517,19 +742,19 @@ const VideoAnalysisResults = () => {
     try {
       // First, try to get sport from team's sport_type
       if (currentTeamId) {
-        const { data: teamData } = await supabase
-          .from('teams')
-          .select('sport_type')
-          .eq('id', currentTeamId)
-          .single();
-
-        if (teamData?.sport_type) {
-          console.log('Sport detected from team:', teamData.sport_type);
-          // Normalize sport type names
-          const sportType = teamData.sport_type.toLowerCase();
-          if (sportType === 'soccer') return 'football';
-          if (sportType === 'football' || sportType === 'soccer') return 'football';
-          return teamData.sport_type as any;
+        try {
+          const response = await apiRequest('GET', '/api/teams/current');
+          const teamData = await response.json();
+          if (teamData?.sport_type) {
+            console.log('Sport detected from team:', teamData.sport_type);
+            // Normalize sport type names
+            const sportType = teamData.sport_type.toLowerCase();
+            if (sportType === 'soccer') return 'football';
+            if (sportType === 'football' || sportType === 'soccer') return 'football';
+            return teamData.sport_type as 'football' | 'basketball' | 'volleyball' | 'tennis' | 'rugby' | 'baseball' | 'soccer' | 'cricket' | 'hockey' | 'golf' | 'swimming' | 'athletics';
+          }
+        } catch (error) {
+          console.error('Error fetching team sport type:', error);
         }
       }
 
@@ -629,14 +854,14 @@ const VideoAnalysisResults = () => {
     }
   };
 
-  const mapAIResultsToAnalysisData = (aiResults: any): AnalysisData => {
+  const mapAIResultsToAnalysisData = (aiResults: AIAnalysisResult): AnalysisData => {
     // Map comprehensive AI analysis results to the expected AnalysisData format
     const videoType = video?.video_type;
 
     switch (videoType) {
       case 'match':
         return {
-          playerActions: aiResults.matchAnalysis?.playerActions?.map((action: any) => ({
+          playerActions: (aiResults.matchAnalysis as unknown as AIMatchAnalysis)?.playerActions?.map((action: PlayerAction) => ({
             timestamp: action.timestamp || 0,
             action: action.action || 'Unknown',
             description: action.description || '',
@@ -644,7 +869,7 @@ const VideoAnalysisResults = () => {
             players: action.players || ['Unknown Player'],
             zone: action.zone || 'Unknown Zone'
           })) || [],
-          keyMoments: aiResults.matchAnalysis?.keyMoments?.map((moment: any) => ({
+          keyMoments: aiResults.matchAnalysis?.keyMoments?.map(moment => ({
             timestamp: moment.timestamp || 0,
             type: moment.type || 'Unknown',
             description: moment.description || '',
@@ -653,7 +878,7 @@ const VideoAnalysisResults = () => {
           summary: aiResults.summary || 'AI analysis completed successfully.',
           insights: aiResults.recommendations || ['Analysis insights will appear here.'],
           performanceRating: aiResults.matchAnalysis?.performanceMetrics?.overallRating || 7.5,
-          playerStats: aiResults.matchAnalysis?.playerStats?.map((player: any) => ({
+          playerStats: aiResults.matchAnalysis?.playerStats?.map((player: PlayerStat) => ({
             name: player.name || 'Unknown Player',
             position: player.position || 'Unknown',
             rating: player.rating || 7.0,
@@ -661,15 +886,15 @@ const VideoAnalysisResults = () => {
             keyPasses: player.keyPasses || 0,
             goals: player.goals || 0
           })) || [],
-          timeline: aiResults.matchAnalysis?.timeline?.map((item: any) => ({
+          timeline: aiResults.matchAnalysis?.timeline?.map(item => ({
             minute: item.minute || 0,
             events: item.events || ['Event']
           })) || []
         };
 
-      case 'training':
+      case 'training': {
         return {
-          playerActions: aiResults.trainingAnalysis?.skillAssessment?.map((player: any) => ({
+          playerActions: aiResults.trainingAnalysis?.skillAssessment?.map(player => ({
             timestamp: 0,
             action: 'Training Assessment',
             description: `${player.playerName} - Technical: ${player.technicalRating}/10, Physical: ${player.physicalRating}/10, Tactical: ${player.tacticalRating}/10`,
@@ -677,7 +902,7 @@ const VideoAnalysisResults = () => {
             players: [player.playerName],
             zone: 'Training Ground'
           })) || [],
-          keyMoments: aiResults.trainingAnalysis?.coachingInsights?.keyLearnings?.map((learning: any, index: number) => ({
+          keyMoments: aiResults.trainingAnalysis?.coachingInsights?.keyLearnings?.map((learning, index) => ({
             timestamp: index * 60,
             type: 'Key Learning',
             description: learning,
@@ -686,7 +911,7 @@ const VideoAnalysisResults = () => {
           summary: aiResults.summary || 'Training session analysis completed.',
           insights: aiResults.recommendations || ['Training insights will appear here.'],
           performanceRating: aiResults.trainingAnalysis?.coachingInsights?.sessionEffectiveness || 7.5,
-          playerStats: aiResults.trainingAnalysis?.skillAssessment?.map((player: any) => ({
+          playerStats: aiResults.trainingAnalysis?.skillAssessment?.map(player => ({
             name: player.playerName || 'Unknown Player',
             position: player.position || 'Unknown',
             rating: (player.technicalRating + player.physicalRating + player.tacticalRating) / 3,
@@ -694,15 +919,16 @@ const VideoAnalysisResults = () => {
             keyPasses: 0,
             goals: 0
           })) || [],
-          timeline: aiResults.trainingAnalysis?.sessionStructure?.mainDrills?.map((drill: any, index: number) => ({
+          timeline: aiResults.trainingAnalysis?.sessionStructure?.mainDrills?.map((drill, index) => ({
             minute: index * 15,
             events: [drill]
           })) || []
         };
+      }
 
-      case 'highlight':
+      case 'highlight': {
         return {
-          playerActions: aiResults.highlightAnalysis?.keyMoments?.map((moment: any) => ({
+          playerActions: aiResults.highlightAnalysis?.keyMoments?.map(moment => ({
             timestamp: moment.timestamp || 0,
             action: moment.type || 'Highlight',
             description: moment.description || '',
@@ -710,7 +936,7 @@ const VideoAnalysisResults = () => {
             players: [moment.playerInvolved || 'Unknown Player'],
             zone: 'Highlight Zone'
           })) || [],
-          keyMoments: aiResults.highlightAnalysis?.keyMoments?.map((moment: any) => ({
+          keyMoments: aiResults.highlightAnalysis?.keyMoments?.map(moment => ({
             timestamp: moment.timestamp || 0,
             type: moment.type || 'Highlight',
             description: moment.description || '',
@@ -719,7 +945,7 @@ const VideoAnalysisResults = () => {
           summary: aiResults.summary || 'Highlight analysis completed.',
           insights: aiResults.recommendations || ['Highlight insights will appear here.'],
           performanceRating: aiResults.highlightAnalysis?.performanceInsights?.overallQuality || 7.5,
-          playerStats: aiResults.highlightAnalysis?.playerHighlights?.map((player: any) => ({
+          playerStats: aiResults.highlightAnalysis?.playerHighlights?.map(player => ({
             name: player.playerName || 'Unknown Player',
             position: player.position || 'Unknown',
             rating: player.skillRating || 7.0,
@@ -727,15 +953,16 @@ const VideoAnalysisResults = () => {
             keyPasses: 0,
             goals: 0
           })) || [],
-          timeline: aiResults.highlightAnalysis?.keyMoments?.map((moment: any, index: number) => ({
+          timeline: aiResults.highlightAnalysis?.keyMoments?.map((moment, index) => ({
             minute: Math.floor((moment.timestamp || 0) / 60),
             events: [moment.type || 'Highlight', moment.description || '']
           })) || []
         };
+      }
 
-      case 'interview':
+      case 'interview': {
         return {
-          playerActions: aiResults.interviewAnalysis?.keyQuotes?.map((quote: any) => ({
+          playerActions: aiResults.interviewAnalysis?.keyQuotes?.map(quote => ({
             timestamp: quote.timestamp || 0,
             action: 'Quote',
             description: quote.quote || '',
@@ -743,7 +970,7 @@ const VideoAnalysisResults = () => {
             players: [quote.speaker || 'Unknown Speaker'],
             zone: 'Interview'
           })) || [],
-          keyMoments: aiResults.interviewAnalysis?.keyQuotes?.map((quote: any) => ({
+          keyMoments: aiResults.interviewAnalysis?.keyQuotes?.map(quote => ({
             timestamp: quote.timestamp || 0,
             type: 'Key Quote',
             description: quote.quote || '',
@@ -760,11 +987,12 @@ const VideoAnalysisResults = () => {
             keyPasses: 0,
             goals: 0
           }],
-          timeline: aiResults.interviewAnalysis?.keyQuotes?.map((quote: any, index: number) => ({
+          timeline: aiResults.interviewAnalysis?.keyQuotes?.map((quote, index) => ({
             minute: Math.floor((quote.timestamp || 0) / 60),
             events: [quote.speaker || 'Speaker', quote.quote?.substring(0, 50) + '...' || '']
           })) || []
         };
+      }
 
       default:
         return {
@@ -832,7 +1060,7 @@ const VideoAnalysisResults = () => {
   };
 
   // Generate sample data for testing
-  const generateSampleData = () => {
+  const generateSampleData = (): AnalysisData | null => {
     if (!taggedPlayers.length) return null;
 
     const sampleActions = [
@@ -865,7 +1093,7 @@ const VideoAnalysisResults = () => {
       }
     ];
 
-    const samplePlayerTracking = taggedPlayers.map((player, index) => ({
+    const samplePlayerTracking: PlayerTrackingData[] = (taggedPlayers as PlayerWithTeam[]).map((player, index) => ({
       playerId: player.id,
       playerName: player.full_name,
       jerseyNumber: parseInt(player.jersey_number) || 30,
@@ -879,11 +1107,19 @@ const VideoAnalysisResults = () => {
       averageSpeed: 5.2,
       maxSpeed: 8.1,
       heatMapData: [
-        { x: 50, y: 85, intensity: 0.8, timestamp: 0 },
-        { x: 45, y: 80, intensity: 0.6, timestamp: 30 },
-        { x: 55, y: 75, intensity: 0.9, timestamp: 60 }
+        { x: 50, y: 85, intensity: 0.8, timestamp: 0, confidence: 0.9 },
+        { x: 45, y: 80, intensity: 0.6, timestamp: 30, confidence: 0.85 },
+        { x: 55, y: 75, intensity: 0.9, timestamp: 60, confidence: 0.95 }
       ],
-      keyMoments: sampleActions.filter((_, i) => i === index)
+      keyMoments: sampleActions.filter((_, i) => i === index).map(action => ({
+        timestamp: action.timestamp,
+        type: action.action as 'goal' | 'assist' | 'save' | 'tackle' | 'pass' | 'shot' | 'foul' | 'substitution',
+        description: action.description,
+        confidence: action.confidence,
+        fieldPosition: action.zone,
+        outcome: action.outcome as 'successful' | 'failed',
+        importance: 'medium'
+      }))
     }));
 
     return {
@@ -891,25 +1127,59 @@ const VideoAnalysisResults = () => {
       playerTracking: samplePlayerTracking,
       tacticalAnalysis: {
         formationChanges: [
-          { timestamp: 120.5, formation: "1-2-2", description: "Defensive formation" }
+          {
+            timestamp: 120.5,
+            formation: "1-2-2",
+            positions: [],
+            confidence: 0.85
+          }
         ],
         pressingMoments: [
-          { timestamp: 67.3, intensity: "high", description: "Full court press" }
+          {
+            timestamp: 67.3,
+            intensity: "high",
+            duration: 5,
+            playersInvolved: [taggedPlayers[0]?.id],
+            success: true
+          }
         ],
         buildUpPlay: [
-          { timestamp: 89.1, type: "fast_break", description: "Quick transition" }
-        ]
+          {
+            timestamp: 89.1,
+            duration: 10,
+            playersInvolved: [taggedPlayers[0]?.id],
+            passes: 5,
+            outcome: "successful"
+          }
+        ],
+        defensiveActions: [],
+        attackingPatterns: []
       },
       matchStatistics: {
         possession: { home: 55, away: 45 },
         shots: { home: 25, away: 18 },
         passes: { home: 320, away: 280, accuracy: { home: 85, away: 78 } },
-        goals: sampleActions.filter(a => a.action === 'shot'),
+        goals: sampleActions.filter(a => a.action === 'shot').map(a => ({
+          timestamp: a.timestamp,
+          playerId: taggedPlayers[0]?.id,
+          team: 'home',
+          type: 'open-play',
+          fieldPosition: a.zone || 'unknown'
+        })),
         cards: [],
         substitutions: []
       },
       // Add missing properties
-      keyMoments: sampleActions,
+      keyMoments: sampleActions.map(action => ({
+        timestamp: action.timestamp,
+        type: action.action as 'goal' | 'assist' | 'save' | 'tackle' | 'pass' | 'shot' | 'foul' | 'substitution',
+        description: action.description,
+        confidence: action.confidence,
+        fieldPosition: action.zone,
+        outcome: action.outcome as 'successful' | 'failed',
+        participants: action.players,
+        importance: 'medium' as const
+      })),
       summary: "Steph Curry dominated this game with exceptional shooting and court vision. His 3-point shooting was particularly effective, and he showed great leadership in directing the team's offense.",
       insights: [
         "Exceptional 3-point shooting accuracy from beyond the arc",
@@ -928,20 +1198,27 @@ const VideoAnalysisResults = () => {
       confidence: 0.92,
       processingTime: 45000,
       sportSpecificInsights: {
-        basketball: {
-          shooting: "High accuracy from 3-point range",
-          passing: "Excellent court vision and assist rate",
-          defense: "Strong perimeter defense"
+        formation: "1-2-2",
+        tacticalStyle: "High Tempo",
+        keyStrengths: ["Shooting", "Transition"],
+        areasForImprovement: ["Defense"],
+        criticalMoments: [],
+        performanceMetrics: {
+          overallTeamRating: 8.5,
+          individualRatings: [],
+          tacticalEffectiveness: 8.0,
+          physicalPerformance: 8.2,
+          technicalExecution: 8.5
         }
       },
       // Add more missing properties
       timeline: sampleActions.map(action => ({
-        timestamp: action.timestamp,
-        type: action.action,
-        description: action.description
+        minute: Math.floor(action.timestamp / 60),
+        events: [action.description]
       })),
-      playerStats: taggedPlayers.map((player, index) => ({
+      playerStats: (taggedPlayers as PlayerWithTeam[]).map((player, index) => ({
         name: player.full_name,
+        position: player.position,
         rating: 8.5 - (index * 0.2),
         actions: Math.floor(Math.random() * 20) + 10,
         keyPasses: Math.floor(Math.random() * 10) + 5,
@@ -951,22 +1228,22 @@ const VideoAnalysisResults = () => {
   };
 
   // Extract key moments from player tracking if not available in main analysis
-  const extractKeyMomentsFromPlayerTracking = (data: any) => {
+  const extractKeyMomentsFromPlayerTracking = (data: AnalysisData) => {
     if (!data?.playerTracking) return [];
 
-    const allKeyMoments: any[] = [];
-    data.playerTracking.forEach((player: any) => {
+    const allKeyMoments: KeyMoment[] = [];
+    data.playerTracking.forEach((player) => {
       if (player.keyMoments && Array.isArray(player.keyMoments)) {
-        player.keyMoments.forEach((moment: any) => {
+        player.keyMoments.forEach((moment) => {
           allKeyMoments.push({
             timestamp: moment.timestamp || 0,
-            type: moment.type || 'action',
-            description: moment.description || `${player.playerName} - ${moment.type || 'action'}`,
+            type: moment.type || 'pass',
+            description: moment.description || `${player.playerName} - ${moment.type || 'pass'}`,
             confidence: moment.confidence || 0.8,
-            players: [player.playerName],
+            participants: [player.playerName],
             outcome: moment.outcome || 'unknown',
-            zone: moment.fieldPosition || 'Unknown zone',
-            importance: moment.importance || 'high'
+            fieldPosition: moment.fieldPosition || 'Unknown zone',
+            importance: moment.importance || 'medium'
           });
         });
       }
@@ -997,10 +1274,10 @@ const VideoAnalysisResults = () => {
       timestamp: moment.timestamp,
       action: moment.type,
       description: moment.description,
-      players: moment.players,
+      players: moment.participants || [],
       confidence: moment.confidence,
-      outcome: moment.outcome,
-      zone: moment.zone
+      outcome: moment.outcome || 'unknown',
+      zone: moment.fieldPosition || 'unknown'
     }));
     if (extractedActions.length > 0) {
       effectiveAnalysisData.playerActions = extractedActions;
@@ -1016,11 +1293,11 @@ const VideoAnalysisResults = () => {
   }) || [];
 
   const filteredKeyMoments = effectiveAnalysisData?.keyMoments.filter(moment => {
-    const matchesFilter = momentFilter === 'all' || (moment as any).type?.toLowerCase() === momentFilter;
+    const matchesFilter = momentFilter === 'all' || (moment as KeyMoment).type?.toLowerCase() === momentFilter;
     const matchesSearch = momentSearchTerm === '' ||
       moment.description?.toLowerCase().includes(momentSearchTerm.toLowerCase()) ||
-      (moment as any).context?.toLowerCase().includes(momentSearchTerm.toLowerCase()) ||
-      (moment as any).participants?.some((participant: string) => participant.toLowerCase().includes(momentSearchTerm.toLowerCase()));
+      (moment as KeyMoment).context?.toLowerCase().includes(momentSearchTerm.toLowerCase()) ||
+      (moment as KeyMoment).participants?.some((participant: string) => participant.toLowerCase().includes(momentSearchTerm.toLowerCase()));
     return matchesFilter && matchesSearch;
   }) || [];
 
@@ -1085,6 +1362,8 @@ const VideoAnalysisResults = () => {
       </Layout>
     );
   }
+
+
 
   return (
     <Layout>
@@ -1413,11 +1692,11 @@ const VideoAnalysisResults = () => {
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {(effectiveAnalysisData as any)?.timeline?.map((item, index) => (
+                      {(effectiveAnalysisData as AnalysisData)?.timeline?.map((item, index) => (
                         <div
                           key={index}
                           className="flex items-center gap-4 p-3 bg-gray-700/30 rounded-lg hover:bg-gray-700/50 transition-colors cursor-pointer hover:border-bright-pink/30 border border-transparent"
-                          onClick={() => jumpToTimestamp(item.timestamp || (item.minute * 60))}
+                          onClick={() => jumpToTimestamp(item.minute * 60)}
                         >
                           <div className="w-12 h-12 bg-bright-pink/20 rounded-full flex items-center justify-center text-bright-pink font-semibold">
                             {item.minute}'
@@ -1525,7 +1804,7 @@ const VideoAnalysisResults = () => {
                     <Card className="bg-gray-800/50 border-gray-700/50 backdrop-blur-sm">
                       <CardContent className="p-4 text-center">
                         <div className="text-2xl font-bold text-white">
-                          {effectiveAnalysisData?.playerActions?.filter((a: any) => a.action === 'goal').length || 0}
+                          {effectiveAnalysisData?.playerActions?.filter((a: PlayerAction) => a.action === 'goal').length || 0}
                         </div>
                         <div className="text-xs text-gray-400">Goals</div>
                       </CardContent>
@@ -1533,7 +1812,7 @@ const VideoAnalysisResults = () => {
                     <Card className="bg-gray-800/50 border-gray-700/50 backdrop-blur-sm">
                       <CardContent className="p-4 text-center">
                         <div className="text-2xl font-bold text-white">
-                          {effectiveAnalysisData?.playerActions?.filter((a: any) => a.action === 'assist').length || 0}
+                          {effectiveAnalysisData?.playerActions?.filter((a: PlayerAction) => a.action === 'assist').length || 0}
                         </div>
                         <div className="text-xs text-gray-400">Assists</div>
                       </CardContent>
@@ -1541,7 +1820,7 @@ const VideoAnalysisResults = () => {
                     <Card className="bg-gray-800/50 border-gray-700/50 backdrop-blur-sm">
                       <CardContent className="p-4 text-center">
                         <div className="text-2xl font-bold text-white">
-                          {effectiveAnalysisData?.playerActions?.filter((a: any) => a.action === 'tackle').length || 0}
+                          {effectiveAnalysisData?.playerActions?.filter((a: PlayerAction) => a.action === 'tackle').length || 0}
                         </div>
                         <div className="text-xs text-gray-400">Tackles</div>
                       </CardContent>
@@ -1549,7 +1828,7 @@ const VideoAnalysisResults = () => {
                     <Card className="bg-gray-800/50 border-gray-700/50 backdrop-blur-sm">
                       <CardContent className="p-4 text-center">
                         <div className="text-2xl font-bold text-white">
-                          {effectiveAnalysisData?.playerActions?.filter((a: any) => a.action === 'shot').length || 0}
+                          {effectiveAnalysisData?.playerActions?.filter((a: PlayerAction) => a.action === 'shot').length || 0}
                         </div>
                         <div className="text-xs text-gray-400">Shots</div>
                       </CardContent>
@@ -1557,7 +1836,7 @@ const VideoAnalysisResults = () => {
                     <Card className="bg-gray-800/50 border-gray-700/50 backdrop-blur-sm">
                       <CardContent className="p-4 text-center">
                         <div className="text-2xl font-bold text-white">
-                          {effectiveAnalysisData?.playerActions?.filter((a: any) => a.action === 'save' || a.action === 'brilliant_save').length || 0}
+                          {effectiveAnalysisData?.playerActions?.filter((a: PlayerAction) => a.action === 'save' || a.action === 'brilliant_save').length || 0}
                         </div>
                         <div className="text-xs text-gray-400">Saves</div>
                       </CardContent>
@@ -1917,10 +2196,10 @@ const VideoAnalysisResults = () => {
                             <div className="flex justify-between">
                               <span className="text-gray-300 text-sm">Clarity</span>
                               <span className="text-white font-semibold">
-                                {(effectiveAnalysisData as any)?.playerStats?.[0]?.rating || 0}/10
+                                {(effectiveAnalysisData as AnalysisData)?.playerStats?.[0]?.rating || 0}/10
                               </span>
                             </div>
-                            <Progress value={((effectiveAnalysisData as any)?.playerStats?.[0]?.rating || 0) * 10} className="h-2" />
+                            <Progress value={((effectiveAnalysisData as AnalysisData)?.playerStats?.[0]?.rating || 0) * 10} className="h-2" />
                             <div className="flex justify-between">
                               <span className="text-gray-300 text-sm">Confidence</span>
                               <span className="text-white font-semibold">
@@ -2028,7 +2307,7 @@ const VideoAnalysisResults = () => {
                                   {moment.type?.replace(/_/g, ' ').toUpperCase() || 'KEY MOMENT'}
                                 </Badge>
                                 <Badge variant="outline" className={
-                                  moment.importance === 'critical' || moment.importance === 'high'
+                                  moment.importance === 'high'
                                     ? 'border-red-500/50 text-red-400'
                                     : moment.importance === 'medium'
                                       ? 'border-yellow-500/50 text-yellow-400'
@@ -2406,25 +2685,25 @@ const VideoAnalysisResults = () => {
                               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                                 <div>
                                   <div className="text-xl font-bold text-white">
-                                    {effectiveAnalysisData.playerActions.filter((a: any) => a.action === 'goal').length}
+                                    {effectiveAnalysisData.playerActions.filter((a: PlayerAction) => a.action === 'goal').length}
                                   </div>
                                   <div className="text-xs text-gray-400">Goals</div>
                                 </div>
                                 <div>
                                   <div className="text-xl font-bold text-white">
-                                    {effectiveAnalysisData.playerActions.filter((a: any) => a.action === 'assist').length}
+                                    {effectiveAnalysisData.playerActions.filter((a: PlayerAction) => a.action === 'assist').length}
                                   </div>
                                   <div className="text-xs text-gray-400">Assists</div>
                                 </div>
                                 <div>
                                   <div className="text-xl font-bold text-white">
-                                    {effectiveAnalysisData.playerActions.filter((a: any) => a.action === 'tackle').length}
+                                    {effectiveAnalysisData.playerActions.filter((a: PlayerAction) => a.action === 'tackle').length}
                                   </div>
                                   <div className="text-xs text-gray-400">Tackles</div>
                                 </div>
                                 <div>
                                   <div className="text-xl font-bold text-white">
-                                    {effectiveAnalysisData.playerActions.filter((a: any) => a.action === 'pass').length}
+                                    {effectiveAnalysisData.playerActions.filter((a: PlayerAction) => a.action === 'pass').length}
                                   </div>
                                   <div className="text-xs text-gray-400">Passes</div>
                                 </div>

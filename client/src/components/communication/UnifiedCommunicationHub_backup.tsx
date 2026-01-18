@@ -286,7 +286,7 @@ const UnifiedCommunicationHub: React.FC<UnifiedCommunicationHubProps> = ({
 
   const fetchMessages = async () => {
     try {
-      let query = supabase
+      const query = supabase
         .from('messages')
         .select(`
           *,
