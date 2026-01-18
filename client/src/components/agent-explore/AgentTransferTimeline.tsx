@@ -634,13 +634,16 @@ const AgentTransferTimeline = () => {
     }
 
     try {
-      let { data: agentData, error: agentError } = await supabase
+      const { data: initialAgentData, error: agentError } = await supabase
         .from('agents')
         .select('id')
         .eq('profile_id', profile.id)
         .maybeSingle();
 
-      if (agentError) {
+       
+      let agentData = initialAgentData;
+
+      if (agentError && agentError.code !== 'PGRST116') {
         console.error('Error fetching agent data:', agentError);
         toast({
           title: "Error",

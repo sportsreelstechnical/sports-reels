@@ -20,7 +20,7 @@ const AutoTranslateProvider: React.FC<AutoTranslateProviderProps> = ({ children 
     }
 
     setIsTranslating(true);
-    
+
     try {
       if (currentLanguage === 'en') {
         // Reset to English - restore original text
@@ -33,15 +33,15 @@ const AutoTranslateProvider: React.FC<AutoTranslateProviderProps> = ({ children 
         return;
       }
 
-    // Get all text nodes in the document
-    const walker = document.createTreeWalker(
-      document.body,
-      NodeFilter.SHOW_TEXT,
+      // Get all text nodes in the document
+      const walker = document.createTreeWalker(
+        document.body,
+        NodeFilter.SHOW_TEXT,
         {
           acceptNode: (node) => {
             const text = node.textContent?.trim();
             const parent = node.parentElement;
-            
+
             // Skip empty text, scripts, styles, and form inputs
             if (
               !text ||
@@ -74,7 +74,7 @@ const AutoTranslateProvider: React.FC<AutoTranslateProviderProps> = ({ children 
               const dataAttributes = Array.from(currentElement.attributes || [])
                 .map(attr => attr.name)
                 .join(' ');
-              
+
               // Skip if inside language selector or translation components
               if (
                 classNames.includes('language-selector') ||
@@ -95,61 +95,61 @@ const AutoTranslateProvider: React.FC<AutoTranslateProviderProps> = ({ children 
               ) {
                 return NodeFilter.FILTER_REJECT;
               }
-              
+
               currentElement = currentElement.parentElement;
             }
-            
+
             return NodeFilter.FILTER_ACCEPT;
           }
         }
-    );
+      );
 
-    const textNodes: Text[] = [];
-    let node;
-    while (node = walker.nextNode()) {
-      textNodes.push(node as Text);
-    }
-
-    if (textNodes.length === 0) {
-      return;
-    }
-
-    // Collect all translations first, then apply them all at once for smooth effect
-    const translationPromises = textNodes.map(async (textNode) => {
-      const originalText = textNode.textContent?.trim();
-      if (!originalText) return null;
-
-      // Store original text for reverting to English
-      const parentElement = textNode.parentElement;
-      if (parentElement && !parentElement.hasAttribute('data-original-text')) {
-        parentElement.setAttribute('data-original-text', originalText);
+      const textNodes: Text[] = [];
+      let node;
+      while ((node = walker.nextNode())) {
+        textNodes.push(node as Text);
       }
 
-      try {
-        const translatedText = await translateText(originalText, currentLanguage);
-        return {
-          node: textNode,
-          originalText,
-          translatedText: translatedText || originalText
-        };
-      } catch (error) {
-        return {
-          node: textNode,
-          originalText,
-          translatedText: originalText
-        };
+      if (textNodes.length === 0) {
+        return;
       }
-    });
 
-    // Wait for ALL translations to complete
-    const translations = await Promise.all(translationPromises);
+      // Collect all translations first, then apply them all at once for smooth effect
+      const translationPromises = textNodes.map(async (textNode) => {
+        const originalText = textNode.textContent?.trim();
+        if (!originalText) return null;
 
-    // Apply all translations simultaneously for smooth visual effect
-    translations.forEach(translation => {
-      if (translation && translation.translatedText !== translation.originalText) {
-        translation.node.textContent = translation.translatedText;
-      }
-    });
+        // Store original text for reverting to English
+        const parentElement = textNode.parentElement;
+        if (parentElement && !parentElement.hasAttribute('data-original-text')) {
+          parentElement.setAttribute('data-original-text', originalText);
+        }
+
+        try {
+          const translatedText = await translateText(originalText, currentLanguage);
+          return {
+            node: textNode,
+            originalText,
+            translatedText: translatedText || originalText
+          };
+        } catch (error) {
+          return {
+            node: textNode,
+            originalText,
+            translatedText: originalText
+          };
+        }
+      });
+
+      // Wait for ALL translations to complete
+      const translations = await Promise.all(translationPromises);
+
+      // Apply all translations simultaneously for smooth visual effect
+      translations.forEach(translation => {
+        if (translation && translation.translatedText !== translation.originalText) {
+          translation.node.textContent = translation.translatedText;
+        }
+      });
     } finally {
       setIsTranslating(false);
     }
@@ -168,7 +168,7 @@ const AutoTranslateProvider: React.FC<AutoTranslateProviderProps> = ({ children 
     // Simple, single timeout to avoid loops
     const timeout = setTimeout(() => {
       setRenderKey(prev => prev + 1);
-      
+
       // Trigger translation after a shorter delay for better UX
       setTimeout(() => {
         if (!isTranslating) {
@@ -200,11 +200,11 @@ const AutoTranslateProvider: React.FC<AutoTranslateProviderProps> = ({ children 
           mutation.addedNodes.forEach((node) => {
             if (node.nodeType === Node.ELEMENT_NODE) {
               const element = node as Element;
-              
+
               // Skip if this is a translation-related change
-              if (element.hasAttribute('data-original-text') || 
-                  element.hasAttribute('data-no-translate') ||
-                  element.closest('[data-no-translate]')) {
+              if (element.hasAttribute('data-original-text') ||
+                element.hasAttribute('data-no-translate') ||
+                element.closest('[data-no-translate]')) {
                 return;
               }
 
@@ -212,9 +212,9 @@ const AutoTranslateProvider: React.FC<AutoTranslateProviderProps> = ({ children 
               const textContent = element.textContent?.trim();
               if (textContent && textContent.length > 10) {
                 // Additional check: make sure this isn't just a text node change from translation
-                const hasNewElements = element.querySelectorAll('*').length > 0 || 
-                                     element.tagName !== 'SPAN';
-                
+                const hasNewElements = element.querySelectorAll('*').length > 0 ||
+                  element.tagName !== 'SPAN';
+
                 if (hasNewElements) {
                   hasNewContent = true;
                 }
@@ -229,7 +229,7 @@ const AutoTranslateProvider: React.FC<AutoTranslateProviderProps> = ({ children 
         if (observerTimeout) {
           clearTimeout(observerTimeout);
         }
-        
+
         // Debounce new content translation
         observerTimeout = setTimeout(() => {
           if (!isTranslating && !translationInProgress) {

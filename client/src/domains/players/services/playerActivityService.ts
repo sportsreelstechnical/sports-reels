@@ -60,7 +60,7 @@ export class PlayerActivityService {
         console.error("Error inserting activity log:", error);
         console.warn(
           "Activity log table not available, logged to console only:",
-          error.message
+          error.message,
         );
 
         // Additional debugging
@@ -84,7 +84,7 @@ export class PlayerActivityService {
    */
   async logPlayerCreated(
     player: DatabasePlayer,
-    uploadSessionId?: string
+    uploadSessionId?: string,
   ): Promise<void> {
     await this.logActivity({
       player_id: player.id,
@@ -94,7 +94,7 @@ export class PlayerActivityService {
       details: PlayerActivityService.generateActivityDetails(
         "created",
         undefined,
-        player
+        player,
       ),
     });
   }
@@ -106,7 +106,7 @@ export class PlayerActivityService {
     playerId: string,
     oldValues: Partial<DatabasePlayer>,
     newValues: Partial<DatabasePlayer>,
-    changedFields: string[]
+    changedFields: string[],
   ): Promise<void> {
     console.log("Player update detected:", {
       player_id: playerId,
@@ -134,7 +134,7 @@ export class PlayerActivityService {
         "updated",
         oldValues,
         newValues,
-        changedFields
+        changedFields,
       ),
     });
   }
@@ -174,7 +174,7 @@ export class PlayerActivityService {
    */
   async logBulkUploadSession(
     uploadSessionId: string,
-    players: DatabasePlayer[]
+    players: DatabasePlayer[],
   ): Promise<void> {
     // Log each player as bulk uploaded
     for (const player of players) {
@@ -259,7 +259,7 @@ export class PlayerActivityService {
    */
   static getChangedFields(
     oldPlayer: Partial<DatabasePlayer>,
-    newPlayer: Partial<DatabasePlayer>
+    newPlayer: Partial<DatabasePlayer>,
   ): string[] {
     const changedFields: string[] = [];
 
@@ -329,13 +329,13 @@ export class PlayerActivityService {
     action: string,
     oldPlayer?: Partial<DatabasePlayer>,
     newPlayer?: Partial<DatabasePlayer>,
-    changedFields?: string[]
+    changedFields?: string[],
   ): string {
     switch (action) {
       case "created":
         return `Player ${newPlayer?.full_name || "Unknown"} was added to the roster`;
 
-      case "updated":
+      case "updated": {
         if (!changedFields || changedFields.length === 0) {
           return `Player ${oldPlayer?.full_name || "Unknown"} was updated`;
         }
@@ -427,6 +427,7 @@ export class PlayerActivityService {
           const lastItem = changeDescriptions.pop();
           return `Updated ${changeDescriptions.join(", ")} and ${lastItem} for ${oldPlayer?.full_name || "Unknown"}`;
         }
+      }
 
       case "deleted":
         return `Player ${oldPlayer?.full_name || "Unknown"} was removed from the roster`;

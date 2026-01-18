@@ -67,7 +67,7 @@ export class BulkPlayerUploadService {
       return this.parseExcel(file);
     } else {
       throw new Error(
-        "Unsupported file format. Please use CSV or Excel files."
+        "Unsupported file format. Please use CSV or Excel files.",
       );
     }
   }
@@ -84,7 +84,7 @@ export class BulkPlayerUploadService {
           const csv = e.target?.result as string;
           console.log(
             `📄 Raw CSV content (first 500 chars):`,
-            csv.substring(0, 500)
+            csv.substring(0, 500),
           );
 
           const lines = csv.split("\n").filter((line) => line.trim());
@@ -92,7 +92,7 @@ export class BulkPlayerUploadService {
 
           if (lines.length < 2) {
             throw new Error(
-              "CSV file must contain at least a header row and one data row"
+              "CSV file must contain at least a header row and one data row",
             );
           }
 
@@ -138,7 +138,7 @@ export class BulkPlayerUploadService {
 
           if (jsonData.length < 2) {
             throw new Error(
-              "Excel file must contain at least a header row and one data row"
+              "Excel file must contain at least a header row and one data row",
             );
           }
 
@@ -193,7 +193,7 @@ export class BulkPlayerUploadService {
   private mapRowToPlayer(
     headers: string[],
     values: any[],
-    rowNumber: number
+    rowNumber: number,
   ): PlayerUploadData {
     const player: any = {};
 
@@ -345,11 +345,11 @@ export class BulkPlayerUploadService {
         const parsedValue = this.parseValue(value, fieldName);
         player[fieldName] = parsedValue;
         console.log(
-          `  ✅ Mapped "${header}" -> "${fieldName}": "${value}" -> "${parsedValue}"`
+          `  ✅ Mapped "${header}" -> "${fieldName}": "${value}" -> "${parsedValue}"`,
         );
       } else {
         console.log(
-          `  ❌ Unmapped field: "${header}" (normalized: "${normalizedHeader}")`
+          `  ❌ Unmapped field: "${header}" (normalized: "${normalizedHeader}")`,
         );
       }
     });
@@ -404,7 +404,7 @@ export class BulkPlayerUploadService {
       // Already in MM/DD/YYYY format, just return as is
       const result = `${month}/${day}/${year}`;
       console.log(
-        `✅ MM/DD/YYYY (already correct): "${cleanDate}" -> "${result}"`
+        `✅ MM/DD/YYYY (already correct): "${cleanDate}" -> "${result}"`,
       );
       return result;
     }
@@ -441,7 +441,7 @@ export class BulkPlayerUploadService {
 
     // Try parsing DD MMM YYYY format (e.g., "15 Jan 1999") and convert to MM/DD/YYYY
     const dd_mmm_yyyy = cleanDate.match(
-      /^(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})$/
+      /^(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})$/,
     );
     if (dd_mmm_yyyy) {
       const [, day, monthName, year] = dd_mmm_yyyy;
@@ -458,7 +458,7 @@ export class BulkPlayerUploadService {
 
     // Try parsing MMM DD, YYYY format (e.g., "Jan 15, 1999") and convert to MM/DD/YYYY
     const mmm_dd_yyyy = cleanDate.match(
-      /^([A-Za-z]{3})\s+(\d{1,2}),\s+(\d{4})$/
+      /^([A-Za-z]{3})\s+(\d{1,2}),\s+(\d{4})$/,
     );
     if (mmm_dd_yyyy) {
       const parsedDate = new Date(cleanDate);
@@ -501,27 +501,31 @@ export class BulkPlayerUploadService {
       case "jersey_number":
       case "age":
       case "height":
-      case "weight":
+      case "weight": {
         const num = parseInt(stringValue);
         return isNaN(num) ? null : num;
+      }
 
-      case "market_value":
+      case "market_value": {
         const float = parseFloat(stringValue.replace(/[^0-9.-]/g, ""));
         return isNaN(float) ? null : float;
+      }
 
-      case "gender":
+      case "gender": {
         const gender = stringValue.toLowerCase();
         if (["male", "m", "man"].includes(gender)) return "male";
         if (["female", "f", "woman"].includes(gender)) return "female";
         if (["other", "o"].includes(gender)) return "other";
         return "male"; // default
+      }
 
-      case "foot":
+      case "foot": {
         const foot = stringValue.toLowerCase();
         if (["left", "l"].includes(foot)) return "left";
         if (["right", "r"].includes(foot)) return "right";
         if (["both", "b", "ambidextrous"].includes(foot)) return "both";
         return null;
+      }
 
       case "date_of_birth":
       case "joined_date":
@@ -594,7 +598,7 @@ export class BulkPlayerUploadService {
    */
   private validatePlayer(
     player: PlayerUploadData,
-    rowNumber: number
+    rowNumber: number,
   ): Array<{ row: number; field: string; message: string }> {
     const errors: Array<{ row: number; field: string; message: string }> = [];
 
@@ -835,7 +839,7 @@ export class BulkPlayerUploadService {
   async uploadPlayers(
     players: PlayerUploadData[],
     file?: File,
-    uploadSessionId?: string
+    uploadSessionId?: string,
   ): Promise<{
     success: number;
     errors: string[];
@@ -875,7 +879,7 @@ export class BulkPlayerUploadService {
         if (sessionError) {
           console.warn(
             "Upload history table not available, using fallback session ID:",
-            sessionError.message
+            sessionError.message,
           );
           sessionId = `fallback-${Date.now()}`;
         } else {
@@ -884,7 +888,7 @@ export class BulkPlayerUploadService {
       } catch (error) {
         console.warn(
           "Upload history table not available, using fallback session ID:",
-          error
+          error,
         );
         sessionId = `fallback-${Date.now()}`;
       }
@@ -916,7 +920,7 @@ export class BulkPlayerUploadService {
         }
       } catch (error) {
         errors.push(
-          `Failed to upload ${player.full_name}: ${error instanceof Error ? error.message : "Unknown error"}`
+          `Failed to upload ${player.full_name}: ${error instanceof Error ? error.message : "Unknown error"}`,
         );
       }
     }
@@ -940,7 +944,7 @@ export class BulkPlayerUploadService {
     } catch (error) {
       console.warn(
         "Could not update upload session (table may not exist):",
-        error
+        error,
       );
     }
 

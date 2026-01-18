@@ -134,11 +134,14 @@ const ExploreRequests = () => {
       setSubmitting(true);
 
       // Get agent ID - if agent doesn't exist, create one
-      let { data: agentData, error: agentError } = await supabase
+      const { data: initialAgentData, error: agentError } = await supabase
         .from('agents')
         .select('id')
         .eq('profile_id', profile.id)
         .maybeSingle();
+
+       
+      let agentData = initialAgentData;
 
       if (agentError && agentError.code !== 'PGRST116') {
         throw agentError;
@@ -196,7 +199,7 @@ const ExploreRequests = () => {
         currency: 'USD'
       });
       setShowCreateForm(false);
-      
+
       toast({
         title: "Success",
         description: "Request posted successfully",
@@ -439,7 +442,7 @@ const ExploreRequests = () => {
                 No Active Requests
               </h3>
               <p className="text-gray-400 font-poppins">
-                {profile?.user_type === 'agent' 
+                {profile?.user_type === 'agent'
                   ? "Be the first to post a player request and let teams know what you're looking for."
                   : "No agent requests are currently available."
                 }
@@ -494,7 +497,7 @@ const ExploreRequests = () => {
           )}
         </CardContent>
       </Card>
-      
+
       {/* Player Profile Modal */}
       <PlayerProfileWrapper
         isOpen={isPlayerModalOpen}
