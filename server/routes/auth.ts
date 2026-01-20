@@ -9,13 +9,13 @@ export function registerAuthRoutes(app: Express): void {
   app.get("/api/auth/google", (req, res, next) => {
     const role = req.query.role as string;
     if (role) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       (req.session as any).intendedRole = role;
     }
     passport.authenticate("google", { scope: ["profile", "email"] })(
       req,
       res,
-      next
+      next,
     );
   });
 
@@ -23,7 +23,7 @@ export function registerAuthRoutes(app: Express): void {
     "/api/auth/google/callback",
     passport.authenticate("google", { failureRedirect: "/dashboard" }), // TODO: Redirect to login page on failure
     (req, res) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       const user = req.user as any;
       req.session.userId = user.id;
       req.session.userRole = user.role;
@@ -40,11 +40,13 @@ export function registerAuthRoutes(app: Express): void {
       req.session.save((err) => {
         if (err) {
           console.error("Session save error:", err);
-          return res.redirect("/dashboard?error=session_error");
+          return res.redirect(
+            `${process.env.FRONTEND_URL || ""}/dashboard?error=session_error`,
+          );
         }
-        res.redirect("/dashboard");
+        res.redirect(`${process.env.FRONTEND_URL || ""}/dashboard`);
       });
-    }
+    },
   );
   app.post("/api/auth/signup", async (req: Request, res: Response) => {
     try {
@@ -211,7 +213,7 @@ export function registerAuthRoutes(app: Express): void {
           resolve(undefined);
         });
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
     } catch (error: any) {
       console.error("Signup error:", error);
       res.status(400).json({ error: error.message });
@@ -276,7 +278,7 @@ export function registerAuthRoutes(app: Express): void {
           resolve(undefined);
         });
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
     } catch (error: any) {
       console.error("Login error:", error);
       res.status(400).json({ error: error.message });

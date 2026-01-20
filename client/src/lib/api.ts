@@ -14,7 +14,7 @@ const getFullUrl = (path: string) => {
 export async function apiRequest<T = unknown>(
   method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE",
   path: string,
-  body?: unknown
+  body?: unknown,
 ): Promise<T> {
   const fullUrl = getFullUrl(path);
 
@@ -24,6 +24,7 @@ export async function apiRequest<T = unknown>(
       "Content-Type": "application/json",
     },
     body: body ? JSON.stringify(body) : undefined,
+    credentials: "include",
   });
 
   if (!res.ok) {
@@ -43,7 +44,7 @@ export const getQueryFn =
   <T>(url: string) =>
   async (): Promise<T> => {
     const fullUrl = getFullUrl(url);
-    const res = await fetch(fullUrl);
+    const res = await fetch(fullUrl, { credentials: "include" });
     if (!res.ok) {
       throw new Error(await res.text());
     }
