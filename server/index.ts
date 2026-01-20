@@ -22,6 +22,7 @@ app.use(
     origin: (origin, callback) => {
       const allowedOrigins = [
         "http://localhost:5173",
+        "https://app.sportsreels.org",
         ...(process.env.ALLOWED_ORIGIN
           ? process.env.ALLOWED_ORIGIN.split(",")
           : []),
