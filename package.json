@@ -8,7 +8,7 @@
     "dev:server": "NODE_ENV=development tsx --env-file=.env server/index.ts",
     "dev:client": "npm run dev --prefix client",
     "build": "tsx script/build.ts",
-    "start": "NODE_ENV=production node dist/index.cjs",
+    "start": "npm run db:push && NODE_ENV=production node dist/index.cjs",
     "check": "tsc",
     "db:push": "drizzle-kit push --config=server/drizzle.config.ts",
     "prepare": "husky",
@@ -57,7 +57,8 @@
     "ws": "^8.18.0",
     "xlsx": "^0.18.5",
     "zod": "^3.24.2",
-    "zod-validation-error": "^3.4.0"
+    "zod-validation-error": "^3.4.0",
+    "drizzle-kit": "^0.31.4"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.0",
@@ -79,7 +80,6 @@
     "@vitejs/plugin-react": "^4.7.0",
     "@vitejs/plugin-react-swc": "^3.5.0",
     "autoprefixer": "^10.4.20",
-    "drizzle-kit": "^0.31.4",
     "esbuild": "^0.25.0",
     "eslint": "^9.9.0",
     "eslint-plugin-react-hooks": "^5.1.0-rc.0",
