@@ -58,6 +58,7 @@ app.use(express.urlencoded({ extended: false }));
 app.use(
   session({
     secret: process.env.SESSION_SECRET || "sports-reels-secret-key",
+    proxy: true,
     resave: false,
     saveUninitialized: false,
     cookie: {
