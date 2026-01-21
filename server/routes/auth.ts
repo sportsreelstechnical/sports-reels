@@ -9,7 +9,6 @@ export function registerAuthRoutes(app: Express): void {
   app.get("/api/auth/google", (req, res, next) => {
     const role = req.query.role as string;
     if (role) {
-       
       (req.session as any).intendedRole = role;
     }
     passport.authenticate("google", { scope: ["profile", "email"] })(
@@ -23,7 +22,6 @@ export function registerAuthRoutes(app: Express): void {
     "/api/auth/google/callback",
     passport.authenticate("google", { failureRedirect: "/dashboard" }), // TODO: Redirect to login page on failure
     (req, res) => {
-       
       const user = req.user as any;
       req.session.userId = user.id;
       req.session.userRole = user.role;
@@ -66,6 +64,7 @@ export function registerAuthRoutes(app: Express): void {
               // "admin", // Admin role restricted from public signup
               "agent",
               "embassy",
+              "federation_admin",
             ])
             .optional()
             .default("scout"),
@@ -87,6 +86,11 @@ export function registerAuthRoutes(app: Express): void {
       const existingUser = await storage.getUserByUsername(data.username);
       if (existingUser) {
         return res.status(400).json({ error: "Username already exists" });
+      }
+
+      const existingEmail = await storage.getUserByEmail(data.email);
+      if (existingEmail) {
+        return res.status(400).json({ error: "Email already exists" });
       }
 
       let teamId: string | undefined;
@@ -213,7 +217,6 @@ export function registerAuthRoutes(app: Express): void {
           resolve(undefined);
         });
       });
-       
     } catch (error: any) {
       console.error("Signup error:", error);
       res.status(400).json({ error: error.message });
@@ -278,7 +281,6 @@ export function registerAuthRoutes(app: Express): void {
           resolve(undefined);
         });
       });
-       
     } catch (error: any) {
       console.error("Login error:", error);
       res.status(400).json({ error: error.message });

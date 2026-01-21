@@ -1,5 +1,6 @@
 import type { Express, Request, Response } from "express";
 import { storage } from "../storage";
+import { z } from "zod";
 import { requireAuth, requireTeamRole } from "../middleware/auth";
 import {
   insertPlayerSchema,
@@ -89,13 +90,28 @@ export function registerPlayerRoutes(app: Express): void {
 
   app.post("/api/players", requireAuth, async (req: Request, res: Response) => {
     try {
-      const playerData = insertPlayerSchema.parse({
+      // Use teamId from session if available, otherwise fallback to body or demo-team
+      // This ensures players created by logged-in users are assigned to their team
+      const teamId = req.session.teamId || req.body.teamId || "demo-team";
+
+      console.log(`Creating player for team: ${teamId}`);
+
+      const dataToValidate = {
         ...req.body,
-        teamId: req.body.teamId || "demo-team",
-      });
+        teamId,
+      };
+
+      const playerData = insertPlayerSchema.parse(dataToValidate);
       const player = await storage.createPlayer(playerData);
       res.json(player);
     } catch (error) {
+      console.error("Error creating player:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({
+          error: "Validation error",
+          details: error.errors,
+        });
+      }
       const message =
         error instanceof Error ? error.message : "An unknown error occurred";
       res.status(400).json({ error: message });

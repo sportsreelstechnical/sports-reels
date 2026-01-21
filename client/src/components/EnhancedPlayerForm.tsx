@@ -141,7 +141,7 @@ export const EnhancedPlayerForm: React.FC<EnhancedPlayerFormProps> = ({
         firstName: formData.firstName,
         lastName: formData.lastName,
         position: formData.position,
-        age: formData.age ? parseInt(formData.age) : null,
+        // age: formData.age ? parseInt(formData.age) : null, // Removed as not in schema
         height: formData.height ? parseInt(formData.height) : null,
         weight: formData.weight ? parseInt(formData.weight) : null,
         nationality: formData.nationality,
@@ -152,7 +152,7 @@ export const EnhancedPlayerForm: React.FC<EnhancedPlayerFormProps> = ({
         preferredFoot: formData.preferredFoot || null,
         agentName: formData.agentName || null,
         currentClubName: formData.currentClubName || null,
-        // joinedDate: formData.joinedDate || null, // Not in basic schema? Check
+        // joinedDate: formData.joinedDate || null, // Not in basic schema
         contractEndDate: formData.contractEndDate || null,
         // fifaId: formData.fifaId || null,
         // bio: formData.bio || null,
@@ -172,7 +172,12 @@ export const EnhancedPlayerForm: React.FC<EnhancedPlayerFormProps> = ({
 
       if (!response.ok) {
         const errData = await response.json();
-        throw new Error(errData.error || 'Failed to save player');
+        // Construct a more detailed error message if validation errors exist
+        let errorMessage = errData.error || 'Failed to save player';
+        if (errData.details) {
+          errorMessage += ': ' + errData.details.map((d: any) => `${d.path.join('.')}: ${d.message}`).join(', ');
+        }
+        throw new Error(errorMessage);
       }
 
       const savedPlayer = await response.json();
@@ -186,7 +191,7 @@ export const EnhancedPlayerForm: React.FC<EnhancedPlayerFormProps> = ({
       });
 
       onPlayerSaved?.();
-    } catch (error: Error) {
+    } catch (error: any) {
       console.error('Error saving player:', error);
       toast({
         title: "Error",
