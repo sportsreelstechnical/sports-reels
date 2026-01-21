@@ -40,6 +40,7 @@ export const roles = [
     icon: FileCheck,
     color: "bg-orange-500/10 text-orange-600 dark:text-orange-400",
   },
+  /*
   {
     id: "admin",
     title: "Platform Administrator",
@@ -48,4 +49,5 @@ export const roles = [
     icon: Settings,
     color: "bg-red-500/10 text-red-600 dark:text-red-400",
   },
+  */
 ];
