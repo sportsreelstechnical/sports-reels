@@ -17,7 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Search, Plus, Filter, Grid, List, User, ChevronDown, ChevronUp, X, SlidersHorizontal } from "lucide-react";
-import { mockPlayers } from "@/lib/mock-data";
+
 import { getVisaStatus } from "@/components/StatusBadge";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -782,8 +782,8 @@ export default function Players() {
                 : "space-y-4"
               }>
                 {filteredPlayers
-                  .filter((p: Player) => getVisaStatus(p.overallEligibilityScore) === status)
-                  .map((player: Player) => (
+                  .filter((p: PlayerViewModel) => getVisaStatus(p.overallEligibilityScore) === status)
+                  .map((player: PlayerViewModel) => (
                     <PlayerCard
                       key={player.id}
                       player={player}
