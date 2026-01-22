@@ -1,5 +1,4 @@
-
-import { supabase } from '@/integrations/supabase/client';
+import { apiRequest } from "@/lib/queryClient";
 
 export interface EnhancedNotification {
   id: string;
@@ -30,55 +29,49 @@ export interface NotificationPreferences {
 
 export class EnhancedNotificationService {
   // Get user notifications
-  static async getUserNotifications(userId: string, limit = 50, offset = 0, type?: string): Promise<EnhancedNotification[]> {
+  static async getUserNotifications(
+    userId: string,
+    limit = 50,
+    offset = 0,
+    type?: string,
+  ): Promise<EnhancedNotification[]> {
     try {
-      let query = supabase
-        .from('notifications')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .range(offset, offset + limit - 1);
+      const queryParams = new URLSearchParams({
+        limit: limit.toString(),
+        offset: offset.toString(),
+      });
 
       if (type) {
-        query = query.eq('type', type);
+        queryParams.append("type", type);
       }
 
-      const { data, error } = await query;
-      if (error) throw error;
+      const response = await apiRequest(
+        "GET",
+        `/api/notifications?${queryParams.toString()}`,
+      );
+      if (!response.ok) throw new Error("Failed to fetch notifications");
 
-      return (data || []).map(notification => ({
-        id: notification.id,
-        user_id: notification.user_id,
-        title: notification.title,
-        message: notification.message,
-        type: notification.type,
-        is_read: notification.is_read || false,
-        action_url: notification.action_url,
-        action_text: notification.action_text,
-        metadata: notification.metadata ? 
-          (typeof notification.metadata === 'string' ? JSON.parse(notification.metadata) : notification.metadata) : 
-          null,
-        created_at: notification.created_at
-      }));
+      return await response.json();
     } catch (error) {
-      console.error('Error fetching notifications:', error);
-      throw error;
+      console.error("Error fetching notifications:", error);
+      // Return empty array instead of throwing to prevent UI crash
+      return [];
     }
   }
 
   // Get unread notification count
   static async getUnreadCount(userId: string): Promise<number> {
     try {
-      const { count, error } = await supabase
-        .from('notifications')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', userId)
-        .eq('is_read', false);
+      const response = await apiRequest(
+        "GET",
+        "/api/notifications/unread-count",
+      );
+      if (!response.ok) throw new Error("Failed to fetch unread count");
 
-      if (error) throw error;
-      return count || 0;
+      const data = await response.json();
+      return data.count || 0;
     } catch (error) {
-      console.error('Error getting unread count:', error);
+      console.error("Error getting unread count:", error);
       return 0;
     }
   }
@@ -86,17 +79,13 @@ export class EnhancedNotificationService {
   // Mark notification as read
   static async markAsRead(notificationId: string): Promise<boolean> {
     try {
-      const { error } = await supabase
-        .from('notifications')
-        .update({ 
-          is_read: true
-        })
-        .eq('id', notificationId);
-
-      if (error) throw error;
-      return true;
+      const response = await apiRequest(
+        "PATCH",
+        `/api/notifications/${notificationId}/read`,
+      );
+      return response.ok;
     } catch (error) {
-      console.error('Error marking notification as read:', error);
+      console.error("Error marking notification as read:", error);
       return false;
     }
   }
@@ -104,18 +93,10 @@ export class EnhancedNotificationService {
   // Mark all notifications as read
   static async markAllAsRead(userId: string): Promise<boolean> {
     try {
-      const { error } = await supabase
-        .from('notifications')
-        .update({ 
-          is_read: true
-        })
-        .eq('user_id', userId)
-        .eq('is_read', false);
-
-      if (error) throw error;
-      return true;
+      const response = await apiRequest("PATCH", "/api/notifications/read-all");
+      return response.ok;
     } catch (error) {
-      console.error('Error marking all notifications as read:', error);
+      console.error("Error marking all notifications as read:", error);
       return false;
     }
   }
@@ -131,163 +112,126 @@ export class EnhancedNotificationService {
     metadata?: any;
   }): Promise<EnhancedNotification> {
     try {
-      const notificationPayload = {
-        user_id: notificationData.user_id,
-        title: notificationData.title,
-        message: notificationData.message,
-        type: notificationData.type,
-        action_url: notificationData.action_url,
-        action_text: notificationData.action_text,
-        metadata: notificationData.metadata ? JSON.stringify(notificationData.metadata) : null,
-        is_read: false,
-        created_at: new Date().toISOString()
-      };
-
-      console.log('Creating notification for:', notificationData.title);
-
-      // Use database function to bypass RLS for system notifications
-      const { data: functionResult, error: functionError } = await supabase
-        .rpc('create_system_notification', {
-          target_user_id: notificationData.user_id,
-          notification_title: notificationData.title,
-          notification_message: notificationData.message,
-          notification_type: notificationData.type,
-          notification_action_url: notificationData.action_url,
-          notification_action_text: notificationData.action_text,
-          notification_metadata: notificationData.metadata || {}
-        });
-
-      if (functionError) {
-        console.error('Database function error creating notification:', functionError);
-        throw functionError;
-      }
-
-      console.log('✅ Notification created with ID:', functionResult);
-
-      // Return the notification data without fetching it back (to avoid RLS issues)
-      // We have all the data we need from the original payload
-      return {
-        id: functionResult,
-        user_id: notificationData.user_id,
-        title: notificationData.title,
-        message: notificationData.message,
-        type: notificationData.type,
-        is_read: false,
-        action_url: notificationData.action_url,
-        action_text: notificationData.action_text,
-        metadata: notificationData.metadata,
-        created_at: new Date().toISOString()
-      };
+      const response = await apiRequest(
+        "POST",
+        "/api/notifications",
+        notificationData,
+      );
+      if (!response.ok) throw new Error("Failed to create notification");
+      return await response.json();
     } catch (error) {
-      console.error('Error creating notification:', error);
+      console.error("Error creating notification:", error);
       throw error;
     }
   }
 
   // Create message notification
-  static async createMessageNotification(userId: string, messageData: {
-    sender_name: string;
-    message_type: string;
-    pitch_id?: string;
-    player_id?: string;
-    message_id: string;
-  }): Promise<EnhancedNotification> {
-    const title = 'New Message Received';
+  static async createMessageNotification(
+    userId: string,
+    messageData: {
+      sender_name: string;
+      message_type: string;
+      pitch_id?: string;
+      player_id?: string;
+      message_id: string;
+    },
+  ): Promise<EnhancedNotification> {
+    const title = "New Message Received";
     const message = `You have received a new ${messageData.message_type} message from ${messageData.sender_name}`;
-    
+
     return this.createNotification({
       user_id: userId,
       title,
       message,
-      type: 'message',
+      type: "message",
       action_url: `/messages/${messageData.message_id}`,
-      action_text: 'View Message',
+      action_text: "View Message",
       metadata: {
         message_id: messageData.message_id,
         sender_name: messageData.sender_name,
         message_type: messageData.message_type,
         pitch_id: messageData.pitch_id,
-        player_id: messageData.player_id
-      }
+        player_id: messageData.player_id,
+      },
     });
   }
 
   // Create contract notification
-  static async createContractNotification(userId: string, contractData: {
-    sender_name: string;
-    contract_type: string;
-    pitch_id?: string;
-    player_id?: string;
-    contract_id: string;
-  }): Promise<EnhancedNotification> {
-    const title = 'New Contract Received';
+  static async createContractNotification(
+    userId: string,
+    contractData: {
+      sender_name: string;
+      contract_type: string;
+      pitch_id?: string;
+      player_id?: string;
+      contract_id: string;
+    },
+  ): Promise<EnhancedNotification> {
+    const title = "New Contract Received";
     const message = `You have received a new ${contractData.contract_type} contract from ${contractData.sender_name}`;
-    
+
     return this.createNotification({
       user_id: userId,
       title,
       message,
-      type: 'contract',
+      type: "contract",
       action_url: `/contracts/${contractData.contract_id}`,
-      action_text: 'Review Contract',
+      action_text: "Review Contract",
       metadata: {
         contract_id: contractData.contract_id,
         sender_name: contractData.sender_name,
         contract_type: contractData.contract_type,
         pitch_id: contractData.pitch_id,
-        player_id: contractData.player_id
-      }
+        player_id: contractData.player_id,
+      },
     });
   }
 
   // Delete notification
   static async deleteNotification(notificationId: string): Promise<boolean> {
     try {
-      const { error } = await supabase
-        .from('notifications')
-        .delete()
-        .eq('id', notificationId);
-
-      if (error) throw error;
-      return true;
+      const response = await apiRequest(
+        "DELETE",
+        `/api/notifications/${notificationId}`,
+      );
+      return response.ok;
     } catch (error) {
-      console.error('Error deleting notification:', error);
+      console.error("Error deleting notification:", error);
       return false;
     }
   }
 
   // Get notification preferences
-  static async getNotificationPreferences(userId: string): Promise<NotificationPreferences | null> {
+  static async getNotificationPreferences(
+    userId: string,
+  ): Promise<NotificationPreferences | null> {
     try {
-      const { data, error } = await supabase
-        .from('notification_preferences')
-        .select('*')
-        .eq('user_id', userId)
-        .single();
-
-      if (error && error.code !== 'PGRST116') throw error; // PGRST116 = no rows returned
-      return data;
+      const response = await apiRequest("GET", "/api/notification-preferences");
+      if (!response.ok) {
+        if (response.status === 404) return null;
+        throw new Error("Failed to fetch preferences");
+      }
+      return await response.json();
     } catch (error) {
-      console.error('Error fetching notification preferences:', error);
+      console.error("Error fetching notification preferences:", error);
       return null;
     }
   }
 
   // Update notification preferences
-  static async updateNotificationPreferences(userId: string, preferences: Partial<NotificationPreferences>): Promise<boolean> {
+  static async updateNotificationPreferences(
+    userId: string,
+    preferences: Partial<NotificationPreferences>,
+  ): Promise<boolean> {
     try {
-      const { error } = await supabase
-        .from('notification_preferences')
-        .upsert({
-          user_id: userId,
-          ...preferences,
-          updated_at: new Date().toISOString()
-        });
-
-      if (error) throw error;
-      return true;
+      const response = await apiRequest(
+        "PATCH",
+        "/api/notification-preferences",
+        preferences,
+      );
+      return response.ok;
     } catch (error) {
-      console.error('Error updating notification preferences:', error);
+      console.error("Error updating notification preferences:", error);
       return false;
     }
   }
@@ -296,7 +240,6 @@ export class EnhancedNotificationService {
   static async createDefaultPreferences(userId: string): Promise<boolean> {
     try {
       const defaultPreferences = {
-        user_id: userId,
         email_notifications: true,
         in_app_notifications: true,
         message_notifications: true,
@@ -304,18 +247,16 @@ export class EnhancedNotificationService {
         profile_changes: true,
         login_notifications: true,
         newsletter_subscription: true,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
       };
 
-      const { error } = await supabase
-        .from('notification_preferences')
-        .insert(defaultPreferences);
-
-      if (error) throw error;
-      return true;
+      const response = await apiRequest(
+        "POST",
+        "/api/notification-preferences",
+        defaultPreferences,
+      );
+      return response.ok;
     } catch (error) {
-      console.error('Error creating default preferences:', error);
+      console.error("Error creating default preferences:", error);
       return false;
     }
   }
@@ -327,30 +268,15 @@ export class EnhancedNotificationService {
     by_type: Record<string, number>;
   }> {
     try {
-      const { data, error } = await supabase
-        .from('notifications')
-        .select('type, is_read')
-        .eq('user_id', userId);
-
-      if (error) throw error;
-
-      const stats = {
-        total: data.length,
-        unread: data.filter(n => !n.is_read).length,
-        by_type: {} as Record<string, number>
-      };
-
-      data.forEach(notification => {
-        stats.by_type[notification.type] = (stats.by_type[notification.type] || 0) + 1;
-      });
-
-      return stats;
+      const response = await apiRequest("GET", "/api/notifications/stats");
+      if (!response.ok) throw new Error("Failed to fetch stats");
+      return await response.json();
     } catch (error) {
-      console.error('Error getting notification stats:', error);
+      console.error("Error getting notification stats:", error);
       return {
         total: 0,
         unread: 0,
-        by_type: {}
+        by_type: {},
       };
     }
   }
