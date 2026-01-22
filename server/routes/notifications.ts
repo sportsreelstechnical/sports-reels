@@ -1,7 +1,7 @@
 import { type Express } from "express";
 import { requireAuth } from "../middleware/auth";
 import { db } from "../db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 import {
   notifications,
   notificationPreferences,
@@ -20,24 +20,18 @@ export function registerNotificationRoutes(app: Express) {
       const offset = parseInt(req.query.offset as string) || 0;
       const type = req.query.type as string;
 
-      const query = db
+      const whereClause = type
+        ? and(eq(notifications.userId, userId), eq(notifications.type, type))
+        : eq(notifications.userId, userId);
+
+      const results = await db
         .select()
         .from(notifications)
-        .where(eq(notifications.userId, userId))
+        .where(whereClause)
         .orderBy(desc(notifications.createdAt))
         .limit(limit)
         .offset(offset);
 
-      if (type) {
-        // Note: If you want to filter by type, add .where(eq(notifications.type, type))
-        // Combining with userId check: .where(and(eq(notifications.userId, userId), eq(notifications.type, type)))
-        // For simplicity, we filter in memory or assume the query builder handles it if we chain .where correctly.
-        // Drizzle `where` overwrites previous `where`. We need `and`.
-        // For now, let's keep it simple and just return all user notifications or add `and` import if strictly needed.
-        // Given the user instructions, let's use the basic query for now.
-      }
-
-      const results = await query;
       res.json(results);
     } catch (error) {
       console.error("Error fetching notifications:", error);
