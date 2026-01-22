@@ -72,7 +72,6 @@ export function registerNotificationRoutes(app: Express) {
         .where(eq(notificationPreferences.userId, userId));
 
       if (!prefs) {
-        // Return default prefs if not found, rather than 404 which might break invalid processing
         return res.json({
           userId,
           emailNotifications: true,
@@ -82,10 +81,6 @@ export function registerNotificationRoutes(app: Express) {
           profileChanges: true,
           loginNotifications: true,
           newsletterSubscription: true,
-          // Mock other fields required by TS usually, but schema handles them with defaults?
-          // Actually, let's just create them if missing or return partial.
-          // Returning empty object might suffice if frontend handles it.
-          // Let's create default prefs if missing to be helpful.
         });
       }
 
@@ -153,7 +148,7 @@ export function registerNotificationRoutes(app: Express) {
       await db
         .update(notifications)
         .set({ isRead: true })
-        .where(eq(notifications.id, id)); // In real app, check userId too
+        .where(eq(notifications.id, id));
 
       res.json({ success: true });
     } catch (error) {
