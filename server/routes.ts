@@ -34,7 +34,7 @@ export async function registerRoutes(
   registerPlayerRoutes(app);
   registerVideoRoutes(app);
   registerMessagingRoutes(app);
-  registerMessagingRoutes(app);
+
   registerDashboardRoutes(app);
   registerTeamRoutes(app);
   registerEligibilityRoutes(app);

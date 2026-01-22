@@ -39,6 +39,38 @@ export function registerNotificationRoutes(app: Express) {
     }
   });
 
+  // Get notification stats
+  app.get("/api/notifications/stats", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId;
+      if (!userId) return res.status(401).send("Unauthorized");
+
+      const allNotifications = await db
+        .select()
+        .from(notifications)
+        .where(eq(notifications.userId, userId));
+
+      const unreadCount = allNotifications.filter((n) => !n.isRead).length;
+
+      const byType = allNotifications.reduce(
+        (acc, curr) => {
+          acc[curr.type] = (acc[curr.type] || 0) + 1;
+          return acc;
+        },
+        {} as Record<string, number>,
+      );
+
+      res.json({
+        total: allNotifications.length,
+        unread: unreadCount,
+        by_type: byType,
+      });
+    } catch (error) {
+      console.error("Error fetching notification stats:", error);
+      res.status(500).json({ error: "Internal Server Error" });
+    }
+  });
+
   // Get unread count
   app.get("/api/notifications/unread-count", requireAuth, async (req, res) => {
     try {
@@ -49,9 +81,14 @@ export function registerNotificationRoutes(app: Express) {
       const unread = await db
         .select()
         .from(notifications)
-        .where(eq(notifications.userId, userId)); // Should filter isRead = false too
+        .where(
+          and(
+            eq(notifications.userId, userId),
+            eq(notifications.isRead, false),
+          ),
+        );
 
-      const count = unread.filter((n) => !n.isRead).length;
+      const count = unread.length;
 
       res.json({ count });
     } catch (error) {
@@ -124,10 +161,14 @@ export function registerNotificationRoutes(app: Express) {
       const userId = req.session.userId;
       if (!userId) return res.status(401).send("Unauthorized");
 
-      // In real app, validate body
+      const data = insertNotificationPreferenceSchema
+        .omit({ userId: true })
+        .partial()
+        .parse(req.body);
+
       const [updated] = await db
         .update(notificationPreferences)
-        .set({ ...req.body, updatedAt: new Date() })
+        .set({ ...data, updatedAt: new Date() })
         .where(eq(notificationPreferences.userId, userId))
         .returning();
 
