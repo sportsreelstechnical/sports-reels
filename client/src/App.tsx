@@ -2,7 +2,7 @@
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { GoogleTranslationProvider } from "@/contexts/GoogleTranslationContext";
@@ -47,7 +47,7 @@ import TranslationDemo from "./components/TranslationDemo";
 import LanguageSelectorDemo from "./components/LanguageSelectorDemo";
 import GoogleTranslationTest from "./components/GoogleTranslationTest";
 
-const queryClient = new QueryClient();
+import { queryClient } from "@/lib/queryClient";
 
 function HomeRedirect() {
   const { user, loading } = useAuth();
