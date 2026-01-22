@@ -26,7 +26,7 @@ interface PlayerProfileProps {
 export default function PlayerProfile({ params, isScoutView }: PlayerProfileProps) {
   const location = useLocation();
   const navigate = useNavigate();
-  const setLocation = (path: string) => navigate(path.startsWith("/") ? `/dashboard${path}` : path);
+  const setLocation = (path: string) => navigate(path);
   const playerId = params?.id || "";
 
   // Detect if we're in scout view based on the current path

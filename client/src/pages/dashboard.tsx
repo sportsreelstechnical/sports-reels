@@ -30,19 +30,19 @@ interface MapData {
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const setLocation = (path: string) => navigate(path.startsWith("/") ? `/dashboard${path}` : path);
+  const setLocation = (path: string) => navigate(path);
   const [searchQuery, setSearchQuery] = useState("");
 
   const { data: statsData, isLoading: statsLoading } = useQuery<DashboardStats>({
     queryKey: ["/api/dashboard/stats"],
   });
 
-   
+
   const { data: verificationsData } = useQuery<any[]>({
     queryKey: ["/api/embassy/verifications"],
   });
 
-   
+
   const { data: inquiriesData } = useQuery<any[]>({
     queryKey: ["/api/scouting/inquiries"],
   });

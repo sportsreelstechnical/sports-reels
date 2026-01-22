@@ -76,7 +76,7 @@ function calculateAge(dateOfBirth: string | null | undefined): number | null {
 
 export default function Players() {
   const navigate = useNavigate();
-  const setLocation = (path: string) => navigate(path.startsWith("/") ? `/dashboard${path}` : path);
+  const setLocation = (path: string) => navigate(path);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
@@ -173,9 +173,9 @@ export default function Players() {
       continentalGames: player.continentalGames || 0,
       currentSeasonMinutes: 0,
       totalCareerMinutes: 0,
-      height: player.height,
-      weight: player.weight,
-      preferredFoot: player.preferredFoot,
+      height: player.height || null,
+      weight: player.weight || null,
+      preferredFoot: player.preferredFoot || null,
       medicalDataAvailable: false,
       gpsDataAvailable: false,
       schengenScore: 50,
@@ -188,7 +188,7 @@ export default function Players() {
       overallEligibilityScore: 50,
       lastUpdated: player.updatedAt ? new Date(player.updatedAt).toISOString() : new Date().toISOString(),
     }))
-    : mockPlayers;
+    : [];
 
   const nationalities = useMemo(() =>
     Array.from(new Set(players.map((p) => p.nationality))).filter(Boolean).sort(),
@@ -763,13 +763,13 @@ export default function Players() {
           <TabsList>
             <TabsTrigger value="all" data-testid="tab-all">All ({filteredPlayers.length})</TabsTrigger>
             <TabsTrigger value="green" data-testid="tab-green">
-              Green ({filteredPlayers.filter((p: Player) => getVisaStatus(p.overallEligibilityScore) === "green").length})
+              Green ({filteredPlayers.filter((p: PlayerViewModel) => getVisaStatus(p.overallEligibilityScore) === "green").length})
             </TabsTrigger>
             <TabsTrigger value="yellow" data-testid="tab-yellow">
-              Yellow ({filteredPlayers.filter((p: Player) => getVisaStatus(p.overallEligibilityScore) === "yellow").length})
+              Yellow ({filteredPlayers.filter((p: PlayerViewModel) => getVisaStatus(p.overallEligibilityScore) === "yellow").length})
             </TabsTrigger>
             <TabsTrigger value="red" data-testid="tab-red">
-              Red ({filteredPlayers.filter((p: Player) => getVisaStatus(p.overallEligibilityScore) === "red").length})
+              Red ({filteredPlayers.filter((p: PlayerViewModel) => getVisaStatus(p.overallEligibilityScore) === "red").length})
             </TabsTrigger>
           </TabsList>
 
@@ -778,7 +778,7 @@ export default function Players() {
               ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
               : "space-y-4"
             }>
-              {filteredPlayers.map((player: Player) => (
+              {filteredPlayers.map((player: PlayerViewModel) => (
                 <PlayerCard
                   key={player.id}
                   player={player}

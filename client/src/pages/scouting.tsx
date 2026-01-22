@@ -14,7 +14,7 @@ import { mockScoutingInquiries, mockPlayers } from "@/lib/mock-data";
 
 export default function Scouting() {
   const navigate = useNavigate();
-  const setLocation = (path: string) => navigate(path.startsWith("/") ? `/dashboard${path}` : path);
+  const setLocation = (path: string) => navigate(path);
   const [searchQuery, setSearchQuery] = useState("");
   const [messageDialogOpen, setMessageDialogOpen] = useState(false);
   const [selectedInquiry, setSelectedInquiry] = useState<string | null>(null);
