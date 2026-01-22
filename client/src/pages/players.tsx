@@ -21,7 +21,8 @@ import { mockPlayers } from "@/lib/mock-data";
 import { getVisaStatus } from "@/components/StatusBadge";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import type { Player } from "@shared/schema";
+import type { Player as SchemaPlayer } from "@shared/schema";
+import type { Player as DomainPlayer, LeagueBand } from "@/lib/types";
 
 const playerFormSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
@@ -85,7 +86,7 @@ export default function Players() {
   const [advancedFilters, setAdvancedFilters] = useState<AdvancedFilters>(defaultFilters);
   const { toast } = useToast();
 
-  const { data: apiPlayers, isLoading } = useQuery<Player[]>({
+  const { data: apiPlayers, isLoading } = useQuery<SchemaPlayer[]>({
     queryKey: ["/api/players"],
   });
 
@@ -124,58 +125,31 @@ export default function Players() {
     },
   });
 
-  interface PlayerViewModel {
-    id: string;
-    firstName: string;
-    lastName: string;
-    nationality: string;
-    dateOfBirth: string | null;
-    position: string;
-    currentClub: string;
-    currentLeague: string;
-    leagueBand: number;
-    leaguePosition: number;
-    nationalTeamCaps: number;
-    internationalCaps: number;
-    continentalGames: number;
-    currentSeasonMinutes: number;
-    totalCareerMinutes: number;
-    height: number | null;
-    weight: number | null;
-    preferredFoot: string | null;
-    medicalDataAvailable: boolean;
-    gpsDataAvailable: boolean;
-    schengenScore: number;
-    ukGbeScore: number;
-    usP1Score: number;
-    usO1Score: number;
-    middleEastScore: number;
-    asiaScore: number;
-    fifaTransferScore: number;
-    overallEligibilityScore: number;
-    lastUpdated: string;
-  }
+  // Use DomainPlayer directly if possible, or define interface consistent with it
+  type PlayerViewModel = DomainPlayer;
 
-  const players: PlayerViewModel[] = (apiPlayers && apiPlayers.length > 0)
-    ? apiPlayers.map((player) => ({
+  const players: PlayerViewModel[] = useMemo(() => {
+    if (!apiPlayers || apiPlayers.length === 0) return [];
+
+    return apiPlayers.map((player) => ({
       id: player.id,
       firstName: player.firstName,
       lastName: player.lastName,
       nationality: player.nationality,
-      dateOfBirth: player.dateOfBirth,
+      dateOfBirth: player.dateOfBirth || "", // Handle null/undefined by providing default
       position: player.position,
-      currentClub: player.currentClubId || "Unknown Club",
+      currentClub: player.currentClubId || "Unknown Club", // Schema has currentClubId, Domain has currentClub
       currentLeague: "Unknown League",
-      leagueBand: 5,
+      leagueBand: 5 as LeagueBand, // Default or derived
       leaguePosition: 0,
       nationalTeamCaps: player.nationalTeamCaps || 0,
       internationalCaps: player.internationalCaps || 0,
       continentalGames: player.continentalGames || 0,
       currentSeasonMinutes: 0,
       totalCareerMinutes: 0,
-      height: player.height || null,
-      weight: player.weight || null,
-      preferredFoot: player.preferredFoot || null,
+      height: player.height ?? undefined, // Domain expects number | undefined
+      weight: player.weight ?? undefined,
+      preferredFoot: player.preferredFoot ?? undefined,
       medicalDataAvailable: false,
       gpsDataAvailable: false,
       schengenScore: 50,
@@ -187,8 +161,8 @@ export default function Players() {
       fifaTransferScore: 50,
       overallEligibilityScore: 50,
       lastUpdated: player.updatedAt ? new Date(player.updatedAt).toISOString() : new Date().toISOString(),
-    }))
-    : [];
+    }));
+  }, [apiPlayers]);
 
   const nationalities = useMemo(() =>
     Array.from(new Set(players.map((p) => p.nationality))).filter(Boolean).sort(),
