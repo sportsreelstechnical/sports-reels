@@ -18,6 +18,7 @@ import { registerScoutingRoutes } from "./routes/scouting";
 import { registerPlayerDocumentsRoutes } from "./routes/player-documents";
 import { registerEmbassyRoutes } from "./routes/embassy";
 import { registerTokenRoutes } from "./routes/tokens";
+import { registerNotificationRoutes } from "./routes/notifications";
 import { requireAuth } from "./middleware/auth";
 
 export async function registerRoutes(
@@ -42,6 +43,7 @@ export async function registerRoutes(
   registerPlayerDocumentsRoutes(app);
   registerEmbassyRoutes(app);
   registerTokenRoutes(app);
+  registerNotificationRoutes(app);
 
   // Object storage upload URL endpoint
   app.get("/api/object-storage/upload-url", requireAuth, async (req, res) => {

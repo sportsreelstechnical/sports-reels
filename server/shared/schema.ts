@@ -95,10 +95,10 @@ export const players = pgTable("players", {
   clubMinutesCurrentSeason: integer("club_minutes_current_season").default(0),
   clubMinutesLast12Months: integer("club_minutes_last_12_months").default(0),
   internationalMinutesCurrentSeason: integer(
-    "international_minutes_current_season"
+    "international_minutes_current_season",
   ).default(0),
   internationalMinutesLast12Months: integer(
-    "international_minutes_last_12_months"
+    "international_minutes_last_12_months",
   ).default(0),
   totalCareerMinutes: integer("total_career_minutes").default(0),
   profileDocumentUrl: text("profile_document_url"),
@@ -270,7 +270,7 @@ export const transferEligibilityAssessments = pgTable(
     visaBreakdown: jsonb("visa_breakdown"),
     calculatedAt: timestamp("calculated_at").defaultNow(),
     validUntil: timestamp("valid_until"),
-  }
+  },
 );
 
 export const transferReports = pgTable("transfer_reports", {
@@ -430,7 +430,7 @@ export const invitationLetters = pgTable("invitation_letters", {
   embassyAccessible: boolean("embassy_accessible").default(false),
   embassyNotifiedAt: timestamp("embassy_notified_at"),
   embassyNotificationStatus: text("embassy_notification_status").default(
-    "not_notified"
+    "not_notified",
   ),
   embassyNotifiedBy: varchar("embassy_notified_by"),
   embassyNotificationTokensSpent: integer("embassy_notification_tokens_spent"),
@@ -627,7 +627,7 @@ export const playerInternationalRecords = pgTable(
     notes: text("notes"),
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),
-  }
+  },
 );
 
 export const teamSheets = pgTable("team_sheets", {
@@ -791,15 +791,15 @@ export const insertPlayerSchema = createInsertSchema(players).omit({
 });
 
 export const insertPlayerMetricsSchema = createInsertSchema(playerMetrics).omit(
-  { id: true, updatedAt: true }
+  { id: true, updatedAt: true },
 );
 
 export const insertMedicalRecordSchema = createInsertSchema(
-  medicalRecords
+  medicalRecords,
 ).omit({ id: true });
 
 export const insertBiometricDataSchema = createInsertSchema(biometricData).omit(
-  { id: true }
+  { id: true },
 );
 
 export const insertVideoSchema = createInsertSchema(videos).omit({
@@ -808,7 +808,7 @@ export const insertVideoSchema = createInsertSchema(videos).omit({
 });
 
 export const insertVideoInsightsSchema = createInsertSchema(videoInsights).omit(
-  { id: true, createdAt: true }
+  { id: true, createdAt: true },
 );
 
 export const insertVisaRuleSchema = createInsertSchema(visaRules).omit({
@@ -816,7 +816,7 @@ export const insertVisaRuleSchema = createInsertSchema(visaRules).omit({
 });
 
 export const insertEligibilityScoreSchema = createInsertSchema(
-  eligibilityScores
+  eligibilityScores,
 ).omit({ id: true, calculatedAt: true });
 
 export const insertPlayerPhotoSchema = createInsertSchema(playerPhotos).omit({
@@ -825,27 +825,27 @@ export const insertPlayerPhotoSchema = createInsertSchema(playerPhotos).omit({
 });
 
 export const insertTransferEligibilityAssessmentSchema = createInsertSchema(
-  transferEligibilityAssessments
+  transferEligibilityAssessments,
 ).omit({ id: true, calculatedAt: true });
 
 export const insertTransferReportSchema = createInsertSchema(
-  transferReports
+  transferReports,
 ).omit({ id: true, generatedAt: true });
 
 export const insertComplianceOrderSchema = createInsertSchema(
-  complianceOrders
+  complianceOrders,
 ).omit({ id: true, createdAt: true });
 
 export const insertComplianceDocumentSchema = createInsertSchema(
-  complianceDocuments
+  complianceDocuments,
 ).omit({ id: true, generatedAt: true });
 
 export const insertEmbassyVerificationSchema = createInsertSchema(
-  embassyVerifications
+  embassyVerifications,
 ).omit({ id: true, submittedAt: true });
 
 export const insertScoutingInquirySchema = createInsertSchema(
-  scoutingInquiries
+  scoutingInquiries,
 ).omit({ id: true, createdAt: true, updatedAt: true });
 
 export const insertPaymentSchema = createInsertSchema(payments).omit({
@@ -854,15 +854,15 @@ export const insertPaymentSchema = createInsertSchema(payments).omit({
 });
 
 export const insertEmbassyProfileSchema = createInsertSchema(
-  embassyProfiles
+  embassyProfiles,
 ).omit({ id: true, createdAt: true });
 
 export const insertInvitationLetterSchema = createInsertSchema(
-  invitationLetters
+  invitationLetters,
 ).omit({ id: true, uploadedAt: true });
 
 export const insertConsularReportSchema = createInsertSchema(
-  consularReports
+  consularReports,
 ).omit({ id: true, generatedAt: true });
 
 export const insertConversationSchema = createInsertSchema(conversations).omit({
@@ -872,7 +872,7 @@ export const insertConversationSchema = createInsertSchema(conversations).omit({
 });
 
 export const insertConversationParticipantSchema = createInsertSchema(
-  conversationParticipants
+  conversationParticipants,
 ).omit({ id: true, joinedAt: true });
 
 export const insertMessageSchema = createInsertSchema(messages).omit({
@@ -881,7 +881,7 @@ export const insertMessageSchema = createInsertSchema(messages).omit({
 });
 
 export const insertEmbassyDocumentAccessSchema = createInsertSchema(
-  embassyDocumentAccess
+  embassyDocumentAccess,
 ).omit({ id: true, accessedAt: true });
 
 export const insertSharedVideoSchema = createInsertSchema(sharedVideos).omit({
@@ -900,15 +900,15 @@ export const insertActionLogSchema = createInsertSchema(actionLogs).omit({
 });
 
 export const insertTransferTargetSchema = createInsertSchema(
-  transferTargets
+  transferTargets,
 ).omit({ id: true, createdAt: true });
 
 export const insertVideoPlayerTagSchema = createInsertSchema(
-  videoPlayerTags
+  videoPlayerTags,
 ).omit({ id: true, createdAt: true });
 
 export const insertPlayerInternationalRecordSchema = createInsertSchema(
-  playerInternationalRecords
+  playerInternationalRecords,
 ).omit({ id: true, createdAt: true, updatedAt: true });
 
 export const insertTeamSheetSchema = createInsertSchema(teamSheets).omit({
@@ -918,19 +918,19 @@ export const insertTeamSheetSchema = createInsertSchema(teamSheets).omit({
 });
 
 export const insertTeamSheetPlayerSchema = createInsertSchema(
-  teamSheetPlayers
+  teamSheetPlayers,
 ).omit({ id: true, createdAt: true });
 
 export const insertPlayerDocumentSchema = createInsertSchema(
-  playerDocuments
+  playerDocuments,
 ).omit({ id: true, uploadedAt: true });
 
 export const insertFederationLetterRequestSchema = createInsertSchema(
-  federationLetterRequests
+  federationLetterRequests,
 ).omit({ id: true, createdAt: true, updatedAt: true });
 
 export const insertScoutShortlistSchema = createInsertSchema(
-  scoutShortlists
+  scoutShortlists,
 ).omit({ id: true, addedAt: true, updatedAt: true });
 
 export const federationProfiles = pgTable("federation_profiles", {
@@ -989,7 +989,7 @@ export const federationRequestActivities = pgTable(
     newStatus: text("new_status"),
     metadata: jsonb("metadata"),
     timestamp: timestamp("timestamp").defaultNow(),
-  }
+  },
 );
 
 export const federationRequestMessages = pgTable(
@@ -1011,7 +1011,7 @@ export const federationRequestMessages = pgTable(
     isRead: boolean("is_read").default(false),
     readAt: timestamp("read_at"),
     createdAt: timestamp("created_at").defaultNow(),
-  }
+  },
 );
 
 export const federationIssuedDocuments = pgTable(
@@ -1036,23 +1036,23 @@ export const federationIssuedDocuments = pgTable(
     downloadCount: integer("download_count").default(0),
     lastDownloadedAt: timestamp("last_downloaded_at"),
     createdAt: timestamp("created_at").defaultNow(),
-  }
+  },
 );
 
 export const insertFederationProfileSchema = createInsertSchema(
-  federationProfiles
+  federationProfiles,
 ).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertFederationFeeScheduleSchema = createInsertSchema(
-  federationFeeSchedules
+  federationFeeSchedules,
 ).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertFederationRequestActivitySchema = createInsertSchema(
-  federationRequestActivities
+  federationRequestActivities,
 ).omit({ id: true, timestamp: true });
 export const insertFederationRequestMessageSchema = createInsertSchema(
-  federationRequestMessages
+  federationRequestMessages,
 ).omit({ id: true, createdAt: true });
 export const insertFederationIssuedDocumentSchema = createInsertSchema(
-  federationIssuedDocuments
+  federationIssuedDocuments,
 ).omit({ id: true, createdAt: true });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -1253,17 +1253,17 @@ export const insertTokenBalanceSchema = createInsertSchema(tokenBalances).omit({
   updatedAt: true,
 });
 export const insertTokenTransactionSchema = createInsertSchema(
-  tokenTransactions
+  tokenTransactions,
 ).omit({ id: true, createdAt: true });
 export const insertTokenPackSchema = createInsertSchema(tokenPacks).omit({
   id: true,
   createdAt: true,
 });
 export const insertTokenPurchaseSchema = createInsertSchema(
-  tokenPurchases
+  tokenPurchases,
 ).omit({ id: true, createdAt: true });
 export const insertPlayerShareLinkSchema = createInsertSchema(
-  playerShareLinks
+  playerShareLinks,
 ).omit({ id: true, createdAt: true });
 
 export type InsertTokenBalance = z.infer<typeof insertTokenBalanceSchema>;
@@ -1315,10 +1315,10 @@ export const documentVerifications = pgTable("document_verifications", {
 });
 
 export const insertEmbassyNotificationSchema = createInsertSchema(
-  embassyNotifications
+  embassyNotifications,
 ).omit({ id: true, createdAt: true });
 export const insertDocumentVerificationSchema = createInsertSchema(
-  documentVerifications
+  documentVerifications,
 ).omit({ id: true, createdAt: true });
 
 export type InsertEmbassyNotification = z.infer<
@@ -1370,10 +1370,10 @@ export const documentAuditLogs = pgTable("document_audit_logs", {
 });
 
 export const insertDocumentVersionSchema = createInsertSchema(
-  documentVersions
+  documentVersions,
 ).omit({ id: true, createdAt: true });
 export const insertDocumentAuditLogSchema = createInsertSchema(
-  documentAuditLogs
+  documentAuditLogs,
 ).omit({ id: true, timestamp: true });
 
 export type InsertDocumentVersion = z.infer<typeof insertDocumentVersionSchema>;
@@ -1549,13 +1549,13 @@ export const federationPaymentHistory = pgTable("federation_payment_history", {
 
 // Insert Schemas
 export const insertPasswordResetTokenSchema = createInsertSchema(
-  passwordResetTokens
+  passwordResetTokens,
 ).omit({ id: true, createdAt: true });
 export const insertAdminMessageInboxSchema = createInsertSchema(
-  adminMessageInbox
+  adminMessageInbox,
 ).omit({ id: true, createdAt: true });
 export const insertPlatformMetricsSchema = createInsertSchema(
-  platformMetrics
+  platformMetrics,
 ).omit({ id: true, createdAt: true });
 export const insertGdprRequestSchema = createInsertSchema(gdprRequests).omit({
   id: true,
@@ -1567,14 +1567,14 @@ export const insertUserConsentSchema = createInsertSchema(userConsents).omit({
   consentedAt: true,
 });
 export const insertPlatformAuditLogSchema = createInsertSchema(
-  platformAuditLogs
+  platformAuditLogs,
 ).omit({ id: true, timestamp: true });
 export const insertUserSessionSchema = createInsertSchema(userSessions).omit({
   id: true,
   startedAt: true,
 });
 export const insertFederationPaymentHistorySchema = createInsertSchema(
-  federationPaymentHistory
+  federationPaymentHistory,
 ).omit({ id: true, createdAt: true });
 
 // Types
@@ -1606,3 +1606,51 @@ export type FederationPaymentHistory =
 
 export type InsertPlayerPhoto = z.infer<typeof insertPlayerPhotoSchema>;
 export type PlayerPhoto = typeof playerPhotos.$inferSelect;
+
+// Notification System Tables
+export const notifications = pgTable("notifications", {
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  type: text("type").notNull(),
+  isRead: boolean("is_read").default(false),
+  actionUrl: text("action_url"),
+  actionText: text("action_text"),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const notificationPreferences = pgTable("notification_preferences", {
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  emailNotifications: boolean("email_notifications").default(true),
+  inAppNotifications: boolean("in_app_notifications").default(true),
+  messageNotifications: boolean("message_notifications").default(true),
+  transferUpdates: boolean("transfer_updates").default(true),
+  profileChanges: boolean("profile_changes").default(true),
+  loginNotifications: boolean("login_notifications").default(true),
+  newsletterSubscription: boolean("newsletter_subscription").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertNotificationSchema = createInsertSchema(notifications).omit({
+  id: true,
+  createdAt: true,
+});
+export const insertNotificationPreferenceSchema = createInsertSchema(
+  notificationPreferences,
+).omit({ id: true, createdAt: true, updatedAt: true });
+
+export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotificationPreference = z.infer<
+  typeof insertNotificationPreferenceSchema
+>;
+export type NotificationPreference =
+  typeof notificationPreferences.$inferSelect;
