@@ -44,7 +44,9 @@ export default function PlayerInternationalRecords({ playerId, playerName }: Pla
   const { data: records = [], isLoading } = useQuery<PlayerInternationalRecord[]>({
     queryKey: ["/api/players", playerId, "international-records"],
     queryFn: async () => {
-      const res = await fetch(`/api/players/${playerId}/international-records`);
+      const res = await fetch(`/api/players/${playerId}/international-records`, {
+        credentials: "include",
+      });
       if (!res.ok) throw new Error("Failed to fetch international records");
       return res.json();
     },

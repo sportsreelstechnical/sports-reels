@@ -71,7 +71,9 @@ export default function TeamSheets() {
 
   const { data: competitions } = useQuery<{ name: string; type: string }[]>({
     queryKey: ["/api/competitions", selectedCountry],
-    queryFn: () => fetch(`/api/competitions?country=${selectedCountry}`).then(r => r.json()),
+    queryFn: () => fetch(`/api/competitions?country=${selectedCountry}`, {
+      credentials: "include",
+    }).then(r => r.json()),
   });
 
   const createSheetMutation = useMutation({

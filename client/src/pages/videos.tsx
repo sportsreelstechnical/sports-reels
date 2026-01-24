@@ -68,7 +68,9 @@ export default function Videos() {
     enabled: !!selectedVideo?.id,
     queryFn: async () => {
       if (!selectedVideo?.id) return [];
-      const res = await fetch(`/api/videos/${selectedVideo.id}/player-tags`);
+      const res = await fetch(`/api/videos/${selectedVideo.id}/player-tags`, {
+        credentials: "include",
+      });
       return res.json();
     },
   });

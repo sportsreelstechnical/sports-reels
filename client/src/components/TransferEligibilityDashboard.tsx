@@ -156,7 +156,9 @@ export default function TransferEligibilityDashboard({ playerId }: TransferEligi
   const { data, isLoading, error } = useQuery<TransferEligibilityData>({
     queryKey: ["/api/players", playerId, "transfer-eligibility"],
     queryFn: async () => {
-      const res = await fetch(`/api/players/${playerId}/transfer-eligibility`);
+      const res = await fetch(`/api/players/${playerId}/transfer-eligibility`, {
+        credentials: "include",
+      });
       if (!res.ok) throw new Error("Failed to fetch eligibility data");
       return res.json();
     },

@@ -34,7 +34,9 @@ function DocumentDetailsDialog({ document, playerId, isOpen, onOpenChange, getDo
   const { data: versions = [], isLoading: versionsLoading } = useQuery<DocumentVersion[]>({
     queryKey: ['/api/players', playerId, 'documents', document.id, 'versions'],
     queryFn: async () => {
-      const res = await fetch(`/api/players/${playerId}/documents/${document.id}/versions`);
+      const res = await fetch(`/api/players/${playerId}/documents/${document.id}/versions`, {
+        credentials: "include",
+      });
       if (!res.ok) throw new Error('Failed to fetch versions');
       return res.json();
     },
@@ -44,7 +46,9 @@ function DocumentDetailsDialog({ document, playerId, isOpen, onOpenChange, getDo
   const { data: auditLogs = [], isLoading: auditLoading } = useQuery<DocumentAuditLog[]>({
     queryKey: ['/api/players', playerId, 'documents', document.id, 'audit-logs'],
     queryFn: async () => {
-      const res = await fetch(`/api/players/${playerId}/documents/${document.id}/audit-logs`);
+      const res = await fetch(`/api/players/${playerId}/documents/${document.id}/audit-logs`, {
+        credentials: "include",
+      });
       if (!res.ok) throw new Error('Failed to fetch audit logs');
       return res.json();
     },
@@ -81,6 +85,7 @@ function DocumentDetailsDialog({ document, playerId, isOpen, onOpenChange, getDo
       const presignRes = await fetch("/api/object-storage/presign", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           filename: newVersionFile.name,
           contentType: newVersionFile.type,
@@ -442,6 +447,7 @@ export default function PlayerDocumentManager({ playerId, playerName }: PlayerDo
       const presignRes = await fetch("/api/object-storage/presign", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           filename: selectedFile.name,
           contentType: selectedFile.type,

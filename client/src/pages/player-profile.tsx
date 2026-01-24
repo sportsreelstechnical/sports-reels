@@ -56,7 +56,9 @@ export default function PlayerProfile({ params, isScoutView }: PlayerProfileProp
   }>({
     queryKey: ["/api/players", playerId],
     queryFn: async () => {
-      const res = await fetch(`/api/players/${playerId}`);
+      const res = await fetch(`/api/players/${playerId}`, {
+        credentials: "include",
+      });
       if (!res.ok) throw new Error("Failed to fetch player");
       return res.json();
     },
@@ -66,7 +68,9 @@ export default function PlayerProfile({ params, isScoutView }: PlayerProfileProp
   const { data: shareLinks = [] } = useQuery<PlayerShareLink[]>({
     queryKey: ["/api/players", playerId, "share-links"],
     queryFn: async () => {
-      const res = await fetch(`/api/players/${playerId}/share-links`);
+      const res = await fetch(`/api/players/${playerId}/share-links`, {
+        credentials: "include",
+      });
       if (!res.ok) return [];
       return res.json();
     },
@@ -76,7 +80,9 @@ export default function PlayerProfile({ params, isScoutView }: PlayerProfileProp
   const { data: issuedFederationLetters = [] } = useQuery<FederationLetterRequest[]>({
     queryKey: ["/api/players", playerId, "issued-federation-letters"],
     queryFn: async () => {
-      const res = await fetch(`/api/players/${playerId}/issued-federation-letters`);
+      const res = await fetch(`/api/players/${playerId}/issued-federation-letters`, {
+        credentials: "include",
+      });
       if (!res.ok) return [];
       return res.json();
     },
