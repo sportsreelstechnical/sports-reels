@@ -43,7 +43,9 @@ export class PresignedUploadService {
       const safeName = fileName.replace(/[^a-zA-Z0-9.-]/g, "_");
       const key = `originals/${folder}/${uniqueId}/${safeName}`;
 
-      const endpoint = "/api/r2/presigned-put-url";
+      const baseUrl = import.meta.env.VITE_BACKEND_URL;
+
+      const endpoint = `${baseUrl}/api/r2/presigned-put-url`;
       // Use baseUrl if specifically provided, otherwise fallback to getFullUrl logic
       const url = this.baseUrl
         ? `${this.baseUrl}${endpoint}`

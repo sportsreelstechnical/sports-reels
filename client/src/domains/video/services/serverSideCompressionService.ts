@@ -33,7 +33,7 @@ export interface ServerCompressionResult {
 }
 
 export class ServerSideCompressionService {
-  private readonly API_BASE_URL = import.meta.env.VITE_BACKEND_STORAGE_URL; // Default to local server
+  private readonly API_BASE_URL = import.meta.env.VITE_BACKEND_URL; // Default to local server
 
   async compressVideo(
     file: File,

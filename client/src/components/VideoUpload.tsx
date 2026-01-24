@@ -58,7 +58,8 @@ export default function VideoUpload({ players, onUpload, onIntegrationConnect, i
 
     // 1. Get Presigned PUT URL
     const key = `originals/videos/${Date.now()}-${Math.random().toString(36).substr(2, 9)}/${file.name}`;
-    const response = await fetch("/api/r2/presigned-put-url", {
+    const baseUrl = import.meta.env.VITE_BACKEND_URL;
+    const response = await fetch(`${baseUrl}/api/r2/presigned-put-url`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
