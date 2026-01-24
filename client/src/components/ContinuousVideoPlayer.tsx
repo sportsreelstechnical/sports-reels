@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { SignedVideoPlayer } from "@/components/SignedVideoPlayer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { 
-  Play, Pause, SkipForward, SkipBack, Volume2, VolumeX, 
+import {
+  Play, Pause, SkipForward, SkipBack, Volume2, VolumeX,
   Maximize2, Minimize2, List, Video, Calendar, Clock, Trophy
 } from "lucide-react";
 import type { Video as VideoType } from "@shared/schema";
@@ -16,10 +17,10 @@ interface ContinuousVideoPlayerProps {
   autoPlay?: boolean;
 }
 
-export default function ContinuousVideoPlayer({ 
-  videos, 
+export default function ContinuousVideoPlayer({
+  videos,
   title = "Video Reel",
-  autoPlay = true 
+  autoPlay = true
 }: ContinuousVideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -64,7 +65,7 @@ export default function ContinuousVideoPlayer({
 
   const toggleFullscreen = useCallback(() => {
     if (!containerRef.current) return;
-    
+
     if (!isFullscreen) {
       if (containerRef.current.requestFullscreen) {
         containerRef.current.requestFullscreen();
@@ -156,8 +157,8 @@ export default function ContinuousVideoPlayer({
                     {currentIndex + 1} / {playableVideos.length}
                   </Badge>
                   {!isFullscreen && (
-                    <Button 
-                      size="icon" 
+                    <Button
+                      size="icon"
                       variant="ghost"
                       onClick={() => setShowPlaylist(!showPlaylist)}
                       data-testid="button-toggle-playlist"
@@ -170,9 +171,9 @@ export default function ContinuousVideoPlayer({
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="relative aspect-video bg-black rounded-md overflow-hidden">
-                <video
+                <SignedVideoPlayer
                   ref={videoRef}
-                  src={currentVideo?.fileUrl || ""}
+                  videoKey={currentVideo?.fileUrl || ""}
                   className="w-full h-full object-contain"
                   onEnded={playNext}
                   onTimeUpdate={handleTimeUpdate}
@@ -181,52 +182,52 @@ export default function ContinuousVideoPlayer({
                   playsInline
                   data-testid="continuous-video-element"
                 />
-                
+
                 <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
                   <div className="space-y-2">
-                    <div 
+                    <div
                       className="h-1 bg-white/30 rounded-full cursor-pointer"
                       onClick={handleSeek}
                       data-testid="video-progress-bar"
                     >
-                      <div 
+                      <div
                         className="h-full bg-primary rounded-full transition-all"
                         style={{ width: `${duration > 0 ? (progress / duration) * 100 : 0}%` }}
                       />
                     </div>
-                    
+
                     <div className="flex items-center justify-between gap-4">
                       <div className="flex items-center gap-2">
-                        <Button 
-                          size="icon" 
-                          variant="ghost" 
+                        <Button
+                          size="icon"
+                          variant="ghost"
                           className="text-white"
                           onClick={playPrevious}
                           data-testid="button-previous"
                         >
                           <SkipBack className="h-4 w-4" />
                         </Button>
-                        <Button 
-                          size="icon" 
-                          variant="ghost" 
+                        <Button
+                          size="icon"
+                          variant="ghost"
                           className="text-white"
                           onClick={togglePlay}
                           data-testid="button-play-pause"
                         >
                           {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
                         </Button>
-                        <Button 
-                          size="icon" 
-                          variant="ghost" 
+                        <Button
+                          size="icon"
+                          variant="ghost"
                           className="text-white"
                           onClick={playNext}
                           data-testid="button-next"
                         >
                           <SkipForward className="h-4 w-4" />
                         </Button>
-                        <Button 
-                          size="icon" 
-                          variant="ghost" 
+                        <Button
+                          size="icon"
+                          variant="ghost"
                           className="text-white"
                           onClick={toggleMute}
                           data-testid="button-mute"
@@ -237,14 +238,14 @@ export default function ContinuousVideoPlayer({
                           {formatTime(progress)} / {formatTime(duration)}
                         </span>
                       </div>
-                      
+
                       <div className="flex items-center gap-2">
                         <span className="text-white text-sm font-medium truncate max-w-[200px]">
                           {currentVideo?.title}
                         </span>
-                        <Button 
-                          size="icon" 
-                          variant="ghost" 
+                        <Button
+                          size="icon"
+                          variant="ghost"
                           className="text-white"
                           onClick={toggleFullscreen}
                           data-testid="button-fullscreen"
@@ -256,7 +257,7 @@ export default function ContinuousVideoPlayer({
                   </div>
                 </div>
               </div>
-              
+
               {currentVideo && (
                 <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                   {currentVideo.matchDate && (
@@ -285,7 +286,7 @@ export default function ContinuousVideoPlayer({
             </CardContent>
           </Card>
         </div>
-        
+
         {showPlaylist && !isFullscreen && (
           <div className="lg:col-span-1">
             <Card className="h-full">
@@ -301,11 +302,10 @@ export default function ContinuousVideoPlayer({
                     {playableVideos.map((video, index) => (
                       <div
                         key={video.id}
-                        className={`flex items-center gap-3 p-2 rounded-md cursor-pointer transition-colors ${
-                          index === currentIndex 
-                            ? 'bg-primary/10 border border-primary/20' 
-                            : 'hover-elevate'
-                        }`}
+                        className={`flex items-center gap-3 p-2 rounded-md cursor-pointer transition-colors ${index === currentIndex
+                          ? 'bg-primary/10 border border-primary/20'
+                          : 'hover-elevate'
+                          }`}
                         onClick={() => selectVideo(index)}
                         data-testid={`playlist-item-${video.id}`}
                       >
@@ -318,9 +318,8 @@ export default function ContinuousVideoPlayer({
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className={`text-sm font-medium truncate ${
-                            index === currentIndex ? 'text-primary' : ''
-                          }`}>
+                          <p className={`text-sm font-medium truncate ${index === currentIndex ? 'text-primary' : ''
+                            }`}>
                             {video.title}
                           </p>
                           <p className="text-xs text-muted-foreground truncate">
