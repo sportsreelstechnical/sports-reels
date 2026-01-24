@@ -24,21 +24,21 @@ export function registerTokenRoutes(app: Express) {
           {
             name: "Starter Pack",
             tokens: 10,
-            priceUsd: 9.99,
+            priceUsd: 999, // cents
             description: "Perfect for getting started",
             isActive: true,
           },
           {
             name: "Scout Pack",
             tokens: 50,
-            priceUsd: 39.99,
+            priceUsd: 3999, // cents
             description: "Best value for active scouts",
             isActive: true,
           },
           {
             name: "Agency Pack",
             tokens: 100,
-            priceUsd: 69.99,
+            priceUsd: 6999, // cents
             description: "For serious professionals",
             isActive: true,
           },
