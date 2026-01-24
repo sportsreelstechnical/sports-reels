@@ -56,7 +56,7 @@ interface AdvancedFilters {
 const defaultFilters: AdvancedFilters = {
   nationality: "all",
   position: "all",
-  ageMin: 15,
+  ageMin: 0,
   ageMax: 45,
   eligibilityMin: 0,
   eligibilityMax: 100,
@@ -73,6 +73,7 @@ function calculateAge(dateOfBirth: string | Date | null | undefined): number | n
   if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
     age--;
   }
+  if (age < 0) return 0;
   return age;
 }
 
@@ -158,7 +159,7 @@ export default function ScoutDashboard() {
     let count = 0;
     if (advancedFilters.nationality !== "all") count++;
     if (advancedFilters.position !== "all") count++;
-    if (advancedFilters.ageMin !== 15 || advancedFilters.ageMax !== 45) count++;
+    if (advancedFilters.ageMin !== 0 || advancedFilters.ageMax !== 45) count++;
     if (advancedFilters.eligibilityMin !== 0 || advancedFilters.eligibilityMax !== 100) count++;
     if (advancedFilters.capsMin !== 0) count++;
     if (advancedFilters.complianceStatus !== "all") count++;
@@ -392,9 +393,9 @@ export default function ScoutDashboard() {
                           value={advancedFilters.ageMin}
                           onChange={(e) => setAdvancedFilters(prev => ({
                             ...prev,
-                            ageMin: Math.max(15, Math.min(parseInt(e.target.value) || 15, prev.ageMax))
+                            ageMin: Math.max(0, Math.min(parseInt(e.target.value) || 0, prev.ageMax))
                           }))}
-                          min={15}
+                          min={0}
                           max={45}
                           className="w-20"
                           data-testid="filter-age-min"
@@ -493,10 +494,10 @@ export default function ScoutDashboard() {
                   </button>
                 </Badge>
               )}
-              {(advancedFilters.ageMin !== 15 || advancedFilters.ageMax !== 45) && (
+              {(advancedFilters.ageMin !== 0 || advancedFilters.ageMax !== 45) && (
                 <Badge variant="secondary" className="gap-1">
                   Age: {advancedFilters.ageMin}-{advancedFilters.ageMax}
-                  <button onClick={() => setAdvancedFilters(prev => ({ ...prev, ageMin: 15, ageMax: 45 }))} className="ml-1">
+                  <button onClick={() => setAdvancedFilters(prev => ({ ...prev, ageMin: 0, ageMax: 45 }))} className="ml-1">
                     <X className="h-3 w-3" />
                   </button>
                 </Badge>
