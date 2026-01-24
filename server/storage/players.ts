@@ -19,6 +19,8 @@ import {
   medicalRecords,
   biometricData,
   playerInternationalRecords,
+  type EligibilityScore,
+  eligibilityScores,
 } from "@shared/schema";
 
 export const playersRepository = {
@@ -61,11 +63,26 @@ export const playersRepository = {
     return player;
   },
 
-  async getPublishedPlayers(): Promise<Player[]> {
-    return db
+  async getPublishedPlayers(): Promise<
+    Array<Player & { eligibilityScores: EligibilityScore[] }>
+  > {
+    const publishedPlayers = await db
       .select()
       .from(players)
-      .where(eq(players.isPublishedToScouts, true));
+      .where(eq(players.isPublishedToScouts, true))
+      .orderBy(desc(players.updatedAt));
+
+    const playersWithScores = await Promise.all(
+      publishedPlayers.map(async (player) => {
+        const scores = await db
+          .select()
+          .from(eligibilityScores)
+          .where(eq(eligibilityScores.playerId, player.id));
+        return { ...player, eligibilityScores: scores };
+      }),
+    );
+
+    return playersWithScores;
   },
 
   // Player Metrics
