@@ -119,6 +119,7 @@ interface EnhancedVideoUploadFormProps {
   teamId: string;
   onUploadComplete?: (videoId: string) => void;
   onCancel?: () => void;
+  initialTaggedPlayerIds?: string[];
 }
 
 const MAX_VIDEOS = 6;
@@ -127,7 +128,8 @@ const MAX_FILE_SIZE = 2 * 1024 * 1024 * 1024; // 2GB - prevents memory issues du
 const EnhancedVideoUploadForm: React.FC<EnhancedVideoUploadFormProps> = ({
   teamId,
   onUploadComplete,
-  onCancel
+  onCancel,
+  initialTaggedPlayerIds = []
 }) => {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -327,7 +329,7 @@ const EnhancedVideoUploadForm: React.FC<EnhancedVideoUploadFormProps> = ({
             title: file.name.replace(/\.[^/.]+$/, ''),
             description: '',
             videoType: 'match',
-            playerTags: [],
+            playerTags: initialTaggedPlayerIds,
             matchDetails: {
               opposingTeam: '',
               matchDate: '',
@@ -847,9 +849,9 @@ const EnhancedVideoUploadForm: React.FC<EnhancedVideoUploadFormProps> = ({
         </div>
         <div className="flex gap-2 w-full sm:w-auto">
           {onCancel && (
-            <Button 
-              variant="outline" 
-              onClick={onCancel} 
+            <Button
+              variant="outline"
+              onClick={onCancel}
               disabled={isUploading}
               className="flex-1 sm:flex-initial bg-[#1a1a1a] text-white/60 border-0 h-9 sm:h-10 text-xs sm:text-sm"
             >

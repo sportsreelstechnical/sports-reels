@@ -215,6 +215,17 @@ export default function PlayerProfile({ params, isScoutView }: PlayerProfileProp
                 )}
               </div>
             </div>
+
+            {!isScout && (
+              <Button
+                variant="outline"
+                className="gap-2"
+                onClick={() => navigate(`/videos?upload=true&playerId=${player.id}`)}
+              >
+                <Video className="h-4 w-4" />
+                Upload Video
+              </Button>
+            )}
           </div>
         </div>
       </div>

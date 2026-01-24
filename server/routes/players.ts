@@ -1,7 +1,11 @@
 import type { Express, Request, Response } from "express";
 import { storage } from "../storage";
 import { z } from "zod";
-import { requireAuth, requireTeamRole } from "../middleware/auth";
+import {
+  requireAuth,
+  requireTeamRole,
+  requireScoutRole,
+} from "../middleware/auth";
 import {
   insertPlayerSchema,
   insertPlayerInternationalRecordSchema,
@@ -47,6 +51,21 @@ export function registerPlayerRoutes(app: Express): void {
         }
 
         const players = await storage.getPlayersByIds(playerIds);
+        res.json(players);
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "An unknown error occurred";
+        res.status(500).json({ error: message });
+      }
+    },
+  );
+
+  app.get(
+    "/api/scout/players",
+    requireScoutRole,
+    async (req: Request, res: Response) => {
+      try {
+        const players = await storage.getPublishedPlayers();
         res.json(players);
       } catch (error) {
         const message =

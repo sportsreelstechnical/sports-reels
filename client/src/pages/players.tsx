@@ -412,7 +412,7 @@ function VideoUploadDialog({ player, isOpen, onClose }: VideoUploadDialogProps) 
           <div className="flex flex-col gap-3">
             <Button
               onClick={() => {
-                navigate('/videos');
+                navigate(`/videos?upload=true&playerId=${player.id}`);
                 onClose();
               }}
               className="w-full"

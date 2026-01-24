@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -77,6 +77,7 @@ type SortOption = 'newest' | 'oldest' | 'title_asc' | 'title_desc' | 'duration_a
 
 const EnhancedVideoManagement = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
 
   const [videos, setVideos] = useState<Video[]>([]);
@@ -92,6 +93,21 @@ const EnhancedVideoManagement = () => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [showTaggedPlayersModal, setShowTaggedPlayersModal] = useState(false);
   const [selectedVideoForPlayers, setSelectedVideoForPlayers] = useState<Video | null>(null);
+  const [initialPlayersToTag, setInitialPlayersToTag] = useState<string[]>([]);
+
+  // Check URL params for auto-upload trigger
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const upload = params.get('upload');
+    const playerId = params.get('playerId');
+
+    if (upload === 'true') {
+      setShowUploadForm(true);
+      if (playerId) {
+        setInitialPlayersToTag([playerId]);
+      }
+    }
+  }, [location.search]);
 
   // Edit form state
   const [editForm, setEditForm] = useState({
@@ -481,6 +497,7 @@ const EnhancedVideoManagement = () => {
           teamId={currentTeamId}
           onUploadComplete={() => handleUploadComplete()}
           onCancel={() => setShowUploadForm(false)}
+          initialTaggedPlayerIds={initialPlayersToTag}
         />
       </div>
     );
