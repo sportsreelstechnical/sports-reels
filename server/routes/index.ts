@@ -14,6 +14,7 @@ import { registerDashboardRoutes } from "./dashboard";
 import { registerEligibilityRoutes } from "./eligibility";
 import { registerComplianceRoutes } from "./compliance";
 import { registerScoutingRoutes } from "./scouting";
+import { registerFederationRoutes } from "./federation";
 
 export async function registerAllRoutes(
   httpServer: Server,
@@ -48,6 +49,7 @@ export async function registerAllRoutes(
   registerEligibilityRoutes(app);
   registerComplianceRoutes(app);
   registerScoutingRoutes(app);
+  registerFederationRoutes(app);
 
   return httpServer;
 }
