@@ -579,12 +579,7 @@ export default function Players() {
   const { data: apiPlayers, isLoading, error } = useQuery<SchemaPlayer[]>({
     queryKey: ["/api/players"],
     queryFn: async () => {
-      const response = await fetch("/api/players", {
-        credentials: "include",
-      });
-      if (!response.ok) {
-        throw new Error(`Failed to fetch players: ${response.status}`);
-      }
+      const response = await apiRequest("GET", "/api/players");
       const data = await response.json();
       console.log("Players API response:", data);
       return data;
