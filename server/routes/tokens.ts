@@ -178,7 +178,16 @@ export function registerTokenRoutes(app: Express) {
       if (!userId) return res.status(401).send("Unauthorized");
       const { action, cost: rawCost } = req.body;
 
-      const cost = Number(rawCost);
+      let cost = Number(rawCost);
+
+      // If cost is not provided or invalid, try to look it up based on action
+      if (isNaN(cost) && action) {
+        const actionCost = TOKEN_COSTS[action as keyof typeof TOKEN_COSTS];
+        if (typeof actionCost === "number") {
+          cost = actionCost;
+        }
+      }
+
       if (isNaN(cost) || cost < 0) {
         return res.status(400).json({ error: "Invalid cost" });
       }
