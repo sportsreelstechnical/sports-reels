@@ -392,12 +392,22 @@ const EnhancedVideoManagement = () => {
 
     try {
       setIsDeleting(true);
-      const { error } = await supabase
-        .from('videos')
-        .delete()
-        .eq('id', videoId);
+      setIsDeleting(true);
 
-      if (error) throw error;
+      // Use backend API to delete from R2 and DB
+      const response = await fetch(`/api/videos/${videoId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete video');
+      }
+
+      // Success
+      const error = null; // mimicking previous structure if needed, or just continue
 
       // Remove video from state
       setVideos(prev => prev.filter(v => v.id !== videoId));
@@ -699,25 +709,25 @@ const EnhancedVideoManagement = () => {
                             <div className="flex items-center gap-1 flex-shrink-0">
                               <Button
                                 size="sm"
-                                variant="ghost"
+                                variant="secondary"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleEditVideo(video);
                                 }}
-                                className="h-6 w-6 sm:h-7 sm:w-7 p-0 text-white/60 border-0"
+                                className="h-7 w-7 sm:h-8 sm:w-8 p-0 bg-white/10 hover:bg-white/20 text-white border-0"
                               >
-                                <Edit3 className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                                <Edit3 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                               </Button>
                               <Button
                                 size="sm"
-                                variant="ghost"
+                                variant="secondary"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setDeleteConfirmVideo(video);
                                 }}
-                                className="h-6 w-6 sm:h-7 sm:w-7 p-0 text-red-400 border-0"
+                                className="h-7 w-7 sm:h-8 sm:w-8 p-0 bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 border-0"
                               >
-                                <Trash2 className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                                <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                               </Button>
                             </div>
                           </div>
@@ -782,25 +792,25 @@ const EnhancedVideoManagement = () => {
                                 <div className="flex items-center gap-1">
                                   <Button
                                     size="sm"
-                                    variant="ghost"
+                                    variant="secondary"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       handleEditVideo(video);
                                     }}
-                                    className="h-6 w-6 sm:h-7 sm:w-7 p-0 text-white/60 border-0"
+                                    className="h-7 w-7 sm:h-8 sm:w-8 p-0 bg-white/10 hover:bg-white/20 text-white border-0"
                                   >
-                                    <Edit3 className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                                    <Edit3 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                                   </Button>
                                   <Button
                                     size="sm"
-                                    variant="ghost"
+                                    variant="secondary"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       setDeleteConfirmVideo(video);
                                     }}
-                                    className="h-6 w-6 sm:h-7 sm:w-7 p-0 text-red-400 border-0"
+                                    className="h-7 w-7 sm:h-8 sm:w-8 p-0 bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 border-0"
                                   >
-                                    <Trash2 className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                                    <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                                   </Button>
                                 </div>
                               </div>

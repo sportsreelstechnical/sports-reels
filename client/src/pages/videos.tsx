@@ -60,6 +60,8 @@ export default function Videos() {
     queryKey: ["/api/videos"],
   });
 
+  const [videoToDelete, setVideoToDelete] = useState<VideoWithInsights | null>(null);
+
   const { data: players = [] } = useQuery<Player[]>({
     queryKey: ["/api/players"],
   });
@@ -234,6 +236,27 @@ export default function Videos() {
       toast({
         title: "Batch Tagging Failed",
         description: error.message || "Failed to apply team sheet",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteVideoMutation = useMutation({
+    mutationFn: async (videoId: string) => {
+      await apiRequest("DELETE", `/api/videos/${videoId}`, {});
+    },
+    onSuccess: () => {
+      toast({
+        title: "Video Deleted",
+        description: "Video has been permanently deleted.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/videos"] });
+      setVideoToDelete(null);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Delete Failed",
+        description: error.message || "Failed to delete video",
         variant: "destructive",
       });
     },
@@ -481,6 +504,18 @@ export default function Videos() {
                               <Link2 className="h-3 w-3 mr-1" />
                               {video.source || "manual"}
                             </Badge>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10 -mr-2"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setVideoToDelete(video);
+                              }}
+                              title="Delete Video"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
                           </div>
                         </div>
                         <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
@@ -1045,6 +1080,32 @@ export default function Videos() {
                   Tag {teamSheetPlayers.length} Players
                 </>
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={!!videoToDelete} onOpenChange={(open) => !open && setVideoToDelete(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Video</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to permanently delete "{videoToDelete?.title}"? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setVideoToDelete(null)}
+              disabled={deleteVideoMutation.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => videoToDelete && deleteVideoMutation.mutate(videoToDelete.id)}
+              disabled={deleteVideoMutation.isPending}
+            >
+              {deleteVideoMutation.isPending ? <LoadingSpinner size="sm" /> : "Delete"}
             </Button>
           </DialogFooter>
         </DialogContent>

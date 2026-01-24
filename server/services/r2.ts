@@ -4,6 +4,7 @@ import {
   PutObjectCommand,
   HeadObjectCommand,
   CopyObjectCommand,
+  DeleteObjectCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
@@ -87,6 +88,20 @@ export const copyFile = async (sourceKey: string, destinationKey: string) => {
       `Error copying file from ${sourceKey} to ${destinationKey}:`,
       error,
     );
+    throw error;
+  }
+};
+
+export const deleteFile = async (key: string) => {
+  try {
+    const command = new DeleteObjectCommand({
+      Bucket: R2_BUCKET,
+      Key: key,
+    });
+    await r2Client.send(command);
+    return true;
+  } catch (error) {
+    console.error(`Error deleting file ${key}:`, error);
     throw error;
   }
 };

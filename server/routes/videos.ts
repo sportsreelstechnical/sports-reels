@@ -104,6 +104,29 @@ export function registerVideoRoutes(app: Express): void {
         if (!video) {
           return res.status(404).json({ error: "Video not found" });
         }
+
+        // Delete from R2 if it's an R2 file (simple check or always try)
+        if (video.fileUrl && !video.fileUrl.startsWith("/objects/")) {
+          // It's likely an R2 key
+          try {
+            // Dynamically import to avoid circular dependencies if any, or just standard import above
+            const { deleteFile } = await import("../services/r2");
+            await deleteFile(video.fileUrl);
+
+            // Also try to delete thumbnail if it exists and is not local
+            if (
+              video.thumbnailUrl &&
+              !video.thumbnailUrl.startsWith("/objects/")
+            ) {
+              await deleteFile(video.thumbnailUrl);
+            }
+          } catch (e) {
+            console.error("Failed to delete R2 file:", e);
+            // Continue to delete from DB even if R2 delete fails?
+            // Yes, to keep DB clean, but maybe warn
+          }
+        }
+
         await storage.deleteVideo(req.params.id);
         res.json({ success: true });
       } catch (error) {
