@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Play, X, Calendar, Clock, Trophy, Users, Video } from "lucide-react";
+import { useMediaUrls } from "@/hooks/useMediaUrls";
 import type { Video as VideoType } from "@shared/schema";
 
 interface VideoPlayerProps {
@@ -13,6 +14,15 @@ interface VideoPlayerProps {
 }
 
 export default function VideoPlayer({ video, isOpen, onClose }: VideoPlayerProps) {
+  const isR2Key = video?.fileUrl?.startsWith("sports-reels/");
+  const { videoUrl: signedVideoUrl, loading } = useMediaUrls(
+    isR2Key ? video?.fileUrl : undefined,
+    undefined,
+    7200
+  );
+
+  const videoSrc = isR2Key ? signedVideoUrl : video?.fileUrl;
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-4xl max-h-[90vh]">
@@ -26,25 +36,30 @@ export default function VideoPlayer({ video, isOpen, onClose }: VideoPlayerProps
               {video?.title}
             </DialogDescription>
           </div>
-          <Button 
-            size="icon" 
-            variant="ghost" 
+          <Button
+            size="icon"
+            variant="ghost"
             onClick={onClose}
             data-testid="button-close-video-player"
           >
             <X className="h-5 w-5" />
           </Button>
         </DialogHeader>
-        
+
         <ScrollArea className="max-h-[calc(90vh-140px)]">
           <div className="space-y-4 pr-4">
             <div className="aspect-video bg-muted rounded-md flex items-center justify-center overflow-hidden">
-              {video?.fileUrl ? (
-                <video 
-                  controls 
+              {loading ? (
+                <div className="flex flex-col items-center gap-2">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  <p className="text-sm text-muted-foreground">Loading video...</p>
+                </div>
+              ) : videoSrc ? (
+                <video
+                  controls
                   autoPlay
                   className="w-full h-full rounded-md"
-                  src={video.fileUrl}
+                  src={videoSrc}
                   data-testid="video-player-element"
                 >
                   Your browser does not support the video tag.
