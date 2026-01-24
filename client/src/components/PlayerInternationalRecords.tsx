@@ -337,13 +337,13 @@ export default function PlayerInternationalRecords({ playerId, playerName }: Pla
           <Button type="button" variant="outline" onClick={closeDialog}>
             Cancel
           </Button>
-          <Button 
-            type="submit" 
-            disabled={createMutation.isPending || updateMutation.isPending} 
+          <Button
+            type="submit"
+            disabled={createMutation.isPending || updateMutation.isPending}
             data-testid="button-submit-record"
           >
-            {createMutation.isPending || updateMutation.isPending 
-              ? "Saving..." 
+            {createMutation.isPending || updateMutation.isPending
+              ? "Saving..."
               : editingRecord ? "Update Record" : "Add Record"}
           </Button>
         </div>
@@ -372,7 +372,7 @@ export default function PlayerInternationalRecords({ playerId, playerName }: Pla
                 {editingRecord ? "Edit International Record" : "Add International Record"}
               </DialogTitle>
               <DialogDescription>
-                {editingRecord 
+                {editingRecord
                   ? `Update ${playerName}'s international record for ${editingRecord.nationalTeam}`
                   : `Add a new international record for ${playerName}`}
               </DialogDescription>
@@ -409,8 +409,8 @@ export default function PlayerInternationalRecords({ playerId, playerName }: Pla
 
             <div className="space-y-3">
               {records.map((record) => (
-                <div 
-                  key={record.id} 
+                <div
+                  key={record.id}
                   className="flex items-start justify-between gap-4 p-4 border rounded-md"
                   data-testid={`international-record-${record.id}`}
                 >
@@ -448,9 +448,9 @@ export default function PlayerInternationalRecords({ playerId, playerName }: Pla
                       </Badge>
                     )}
                     {record.documentUrl && (
-                      <a 
-                        href={record.documentUrl} 
-                        target="_blank" 
+                      <a
+                        href={record.documentUrl}
+                        target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center gap-1 text-xs text-primary hover:underline"
                       >
@@ -460,17 +460,17 @@ export default function PlayerInternationalRecords({ playerId, playerName }: Pla
                     )}
                   </div>
                   <div className="flex gap-1">
-                    <Button 
-                      size="icon" 
-                      variant="ghost" 
+                    <Button
+                      size="icon"
+                      variant="ghost"
                       onClick={() => handleEdit(record)}
                       data-testid={`button-edit-record-${record.id}`}
                     >
                       <Edit2 className="h-4 w-4" />
                     </Button>
-                    <Button 
-                      size="icon" 
-                      variant="ghost" 
+                    <Button
+                      size="icon"
+                      variant="ghost"
                       onClick={() => deleteMutation.mutate(record.id)}
                       data-testid={`button-delete-record-${record.id}`}
                     >

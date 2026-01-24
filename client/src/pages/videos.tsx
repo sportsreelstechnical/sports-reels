@@ -82,7 +82,7 @@ export default function Videos() {
       }
       return data;
     },
-     
+
     onSuccess: (data: any) => {
       toast({
         title: "Analysis Complete",
@@ -217,7 +217,7 @@ export default function Videos() {
       }
       return results;
     },
-     
+
     onSuccess: (data: any) => {
       toast({
         title: "Team Sheet Applied",
@@ -992,10 +992,10 @@ export default function Videos() {
                       <div
                         key={player.id}
                         className={`flex items-center gap-3 p-2 rounded-md ${isAlreadyTagged
-                            ? "bg-muted/50 opacity-50"
-                            : isSelected
-                              ? "bg-primary/10 border border-primary/30"
-                              : "hover-elevate"
+                          ? "bg-muted/50 opacity-50"
+                          : isSelected
+                            ? "bg-primary/10 border border-primary/30"
+                            : "hover-elevate"
                           }`}
                         data-testid={`team-sheet-player-${player.id}`}
                       >

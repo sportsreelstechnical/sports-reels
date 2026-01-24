@@ -69,7 +69,7 @@ function StatusBadge({ status }: { status: "green" | "yellow" | "red" }) {
     yellow: { label: "Conditional", variant: "secondary" as const, className: "bg-yellow-500 hover:bg-yellow-600 text-black" },
     red: { label: "Ineligible", variant: "destructive" as const, className: "bg-red-600 hover:bg-red-700 text-white" },
   };
-  
+
   const { label, className } = config[status];
   return <Badge className={className}>{label}</Badge>;
 }
@@ -110,7 +110,7 @@ function VisaCard({ name, visa, icon }: { name: string; visa: VisaScore; icon: R
             <span className="text-sm text-muted-foreground">/ 100</span>
           </div>
           <Progress value={visa.score} className="h-2" />
-          
+
           <div className="grid grid-cols-2 gap-2 text-xs">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Minutes</span>
@@ -229,8 +229,8 @@ export default function TransferEligibilityDashboard({ playerId }: TransferEligi
               <StatusBadge status={data.overallStatus} />
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     size="icon"
                     onClick={() => recalculateMutation.mutate()}
                     disabled={recalculateMutation.isPending}
@@ -256,13 +256,13 @@ export default function TransferEligibilityDashboard({ playerId }: TransferEligi
               </div>
               <Progress value={minutesPercentage} className="h-3" />
               <p className="text-xs text-muted-foreground">
-                {data.minutesBreakdown.needed > 0 
+                {data.minutesBreakdown.needed > 0
                   ? `${data.minutesBreakdown.needed} more minutes needed (min: ${data.minutesBreakdown.minimum})`
                   : "Minimum threshold met"
                 }
               </p>
             </div>
-            
+
             <div className="space-y-2">
               <p className="text-sm font-medium flex items-center gap-2">
                 <TrendingUp className="h-4 w-4" />
@@ -271,8 +271,8 @@ export default function TransferEligibilityDashboard({ playerId }: TransferEligi
               <div className="flex gap-2">
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <div 
-                      className="h-6 bg-blue-500 rounded" 
+                    <div
+                      className="h-6 bg-blue-500 rounded"
                       style={{ width: `${Math.max(5, (data.minutesBreakdown.club / Math.max(data.minutesBreakdown.total, 1)) * 100)}%` }}
                     />
                   </TooltipTrigger>
@@ -280,8 +280,8 @@ export default function TransferEligibilityDashboard({ playerId }: TransferEligi
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <div 
-                      className="h-6 bg-green-500 rounded" 
+                    <div
+                      className="h-6 bg-green-500 rounded"
                       style={{ width: `${Math.max(5, (data.minutesBreakdown.international / Math.max(data.minutesBreakdown.total, 1)) * 100)}%` }}
                     />
                   </TooltipTrigger>
@@ -289,8 +289,8 @@ export default function TransferEligibilityDashboard({ playerId }: TransferEligi
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <div 
-                      className="h-6 bg-purple-500 rounded" 
+                    <div
+                      className="h-6 bg-purple-500 rounded"
                       style={{ width: `${Math.max(5, (data.minutesBreakdown.video / Math.max(data.minutesBreakdown.total, 1)) * 100)}%` }}
                     />
                   </TooltipTrigger>
@@ -334,29 +334,29 @@ export default function TransferEligibilityDashboard({ playerId }: TransferEligi
 
         <TabsContent value="overview" className="space-y-4 mt-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <VisaCard 
-              name="Schengen" 
-              visa={data.visaScores.schengen} 
+            <VisaCard
+              name="Schengen"
+              visa={data.visaScores.schengen}
               icon={<Globe className="h-4 w-4 text-blue-500" />}
             />
-            <VisaCard 
-              name="O-1 (US)" 
-              visa={data.visaScores.o1} 
+            <VisaCard
+              name="O-1 (US)"
+              visa={data.visaScores.o1}
               icon={<Award className="h-4 w-4 text-yellow-600" />}
             />
-            <VisaCard 
-              name="P-1 (US)" 
-              visa={data.visaScores.p1} 
+            <VisaCard
+              name="P-1 (US)"
+              visa={data.visaScores.p1}
               icon={<TrendingUp className="h-4 w-4 text-green-600" />}
             />
-            <VisaCard 
-              name="UK GBE" 
-              visa={data.visaScores.ukGbe} 
+            <VisaCard
+              name="UK GBE"
+              visa={data.visaScores.ukGbe}
               icon={<Globe className="h-4 w-4 text-indigo-500" />}
             />
-            <VisaCard 
-              name="ESC (UK)" 
-              visa={data.visaScores.esc} 
+            <VisaCard
+              name="ESC (UK)"
+              visa={data.visaScores.esc}
               icon={<Award className="h-4 w-4 text-purple-500" />}
             />
           </div>

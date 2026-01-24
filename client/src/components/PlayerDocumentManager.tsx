@@ -163,7 +163,7 @@ function DocumentDetailsDialog({ document, playerId, isOpen, onOpenChange, getDo
             {getDocumentTypeLabel(document.documentType)}
           </DialogTitle>
         </DialogHeader>
-        
+
         <Tabs defaultValue="versions" className="mt-4">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="versions" className="flex items-center gap-2" data-testid="tab-versions">
@@ -175,7 +175,7 @@ function DocumentDetailsDialog({ document, playerId, isOpen, onOpenChange, getDo
               Audit Trail
             </TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="versions" className="mt-4">
             <div className="flex items-center justify-between gap-4 mb-4">
               <p className="text-sm text-muted-foreground">
@@ -236,8 +236,8 @@ function DocumentDetailsDialog({ document, playerId, isOpen, onOpenChange, getDo
                       <Button variant="outline" onClick={() => setIsNewVersionOpen(false)}>
                         Cancel
                       </Button>
-                      <Button 
-                        onClick={handleNewVersionUpload} 
+                      <Button
+                        onClick={handleNewVersionUpload}
                         disabled={uploading || !newVersionFile || !changeReason}
                         data-testid="button-submit-new-version"
                       >
@@ -248,7 +248,7 @@ function DocumentDetailsDialog({ document, playerId, isOpen, onOpenChange, getDo
                 </DialogContent>
               </Dialog>
             </div>
-            
+
             <ScrollArea className="h-[300px]">
               <div className="space-y-2">
                 {versions.map((version) => (
@@ -296,7 +296,7 @@ function DocumentDetailsDialog({ document, playerId, isOpen, onOpenChange, getDo
               </div>
             </ScrollArea>
           </TabsContent>
-          
+
           <TabsContent value="audit" className="mt-4">
             <p className="text-sm text-muted-foreground mb-4">
               {auditLoading ? "Loading..." : "Complete history of all actions taken on this document"}
@@ -304,8 +304,8 @@ function DocumentDetailsDialog({ document, playerId, isOpen, onOpenChange, getDo
             <ScrollArea className="h-[300px]">
               <div className="space-y-2">
                 {auditLogs.map((log) => (
-                  <div 
-                    key={log.id} 
+                  <div
+                    key={log.id}
                     className="flex items-start gap-3 p-3 rounded-md bg-muted/50"
                     data-testid={`audit-log-${log.id}`}
                   >
