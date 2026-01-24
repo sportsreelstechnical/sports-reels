@@ -2,7 +2,38 @@ import { type Express } from "express";
 import { tokensRepository } from "../storage/tokens";
 import { requireAuth } from "../middleware/auth";
 
+// Define token costs
+const TOKEN_COSTS = {
+  shortlist: 1,
+  share_profile: 4,
+  view_contact: 2,
+  download_report: 5,
+  embassy_request: 10,
+  message: 1,
+  watch_video: 1, // Added video cost
+};
+
 export function registerTokenRoutes(app: Express) {
+  app.get("/api/tokens/packs", requireAuth, async (req, res) => {
+    try {
+      const packs = await tokensRepository.getTokenPacks();
+      res.json(packs);
+    } catch (error) {
+      console.error("Error fetching token packs:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.get("/api/tokens/costs", requireAuth, async (req, res) => {
+    try {
+      // In future, this could come from DB
+      res.json(TOKEN_COSTS);
+    } catch (error) {
+      console.error("Error fetching token costs:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   app.get("/api/tokens/balance", requireAuth, async (req, res) => {
     try {
       const userId = req.session.userId;
