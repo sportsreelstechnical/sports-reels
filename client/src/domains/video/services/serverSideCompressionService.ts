@@ -1,13 +1,3 @@
-/**
- * Server-Side Video Compression Service
- *
- * Flow:
- * 1. Upload original video to R2 originals/ bucket
- * 2. Trigger FFmpeg worker to compress video
- * 3. Worker uploads compressed version to R2 compressed/ bucket
- * 4. App retrieves compressed version for playback
- */
-
 export interface ServerCompressionOptions {
   onProgress?: (progress: number) => void;
   onStatusChange?: (status: string) => void;
@@ -26,14 +16,14 @@ export interface ServerCompressionResult {
   qualityScore: number;
   audioPreserved: boolean;
   smoothPlayback: boolean;
-  originalKey: string; // R2 key for original file
+  originalKey: string;
   compressedKey: string; // R2 key for compressed file
   compressedUrl?: string; // Presigned URL for compressed file
   thumbnailBlob?: Blob;
 }
 
 export class ServerSideCompressionService {
-  private readonly API_BASE_URL = import.meta.env.VITE_BACKEND_URL; // Default to local server
+  private readonly API_BASE_URL = import.meta.env.VITE_BACKEND_URL;
 
   async compressVideo(
     file: File,
@@ -106,7 +96,7 @@ export class ServerSideCompressionService {
         thumbnailBlob,
       };
     } catch (error) {
-      console.error("❌ Server-side compression failed:", error);
+      console.error("Server-side compression failed:", error);
       throw new Error(`Server-side compression failed: ${error}`);
     }
   }
@@ -208,7 +198,7 @@ export class ServerSideCompressionService {
     jobId: string,
     options: ServerCompressionOptions,
   ): Promise<string> {
-    const pollInterval = 2000; // 2 seconds for more responsive updates
+    const pollInterval = 2000;
     let lastProgress = 0;
     let consecutiveErrors = 0;
     const maxConsecutiveErrors = 5;
@@ -223,7 +213,7 @@ export class ServerSideCompressionService {
               Accept: "application/json",
             },
             // Add timeout to prevent hanging
-            signal: AbortSignal.timeout(10000), // 10 second timeout
+            signal: AbortSignal.timeout(10000),
           },
         );
 
