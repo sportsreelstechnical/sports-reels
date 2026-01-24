@@ -6,20 +6,17 @@ const BASE_URL = import.meta.env.VITE_BACKEND_URL || "";
 export const getFullUrl = (url: string) => {
   if (url.startsWith("http")) return url;
 
-  // If we are on a production domain but BASE_URL is localhost, use relative path
-  const isLocalBackend =
-    BASE_URL.includes("localhost") || BASE_URL.includes("127.0.0.1");
-  const isLocalFrontend =
+  const isDevelopment =
     window.location.hostname === "localhost" ||
     window.location.hostname === "127.0.0.1";
 
-  if (
-    url.startsWith("/api") &&
-    BASE_URL &&
-    (isLocalFrontend || !isLocalBackend)
-  ) {
-    return `${BASE_URL}${url}`;
+  // In development, default to port 5001 if no BASE_URL set
+  const backendUrl = BASE_URL || (isDevelopment ? "http://localhost:5001" : "");
+
+  if (url.startsWith("/api") && backendUrl) {
+    return `${backendUrl}${url}`;
   }
+
   return url;
 };
 
