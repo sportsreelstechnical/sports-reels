@@ -12,7 +12,8 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Users, FileCheck, AlertTriangle, TrendingUp, Search, Plus, Bell } from "lucide-react";
 import { mockPlayers, mockDashboardStats, mockEmbassyVerifications, mockScoutingInquiries } from "@/lib/mock-data";
-import type { DashboardStats } from "@/lib/types";
+import type { DashboardStats, Player as DomainPlayer, LeagueBand } from "@/lib/types";
+import type { Player as SchemaPlayer } from "@shared/schema";
 
 interface MapData {
   playerOrigins: Array<{
@@ -51,16 +52,71 @@ export default function Dashboard() {
     queryKey: ["/api/dashboard/map-data"],
   });
 
+  // Transform API player data to view model
+  function transformPlayerToViewModel(player: SchemaPlayer): DomainPlayer {
+    return {
+      id: player.id,
+      firstName: player.firstName,
+      lastName: player.lastName,
+      nationality: player.nationality,
+      dateOfBirth: player.dateOfBirth || "",
+      position: player.position,
+      currentClub: player.currentClubName || player.currentClubId || "Unknown Club",
+      currentLeague: "Unknown League",
+      leagueBand: 5 as LeagueBand,
+      leaguePosition: 0,
+      nationalTeamCaps: player.nationalTeamCaps || 0,
+      internationalCaps: player.internationalCaps || 0,
+      continentalGames: player.continentalGames || 0,
+      currentSeasonMinutes: 0,
+      totalCareerMinutes: 0,
+      height: player.height ?? undefined,
+      weight: player.weight ?? undefined,
+      preferredFoot: player.preferredFoot ?? undefined,
+      medicalDataAvailable: false,
+      gpsDataAvailable: false,
+      schengenScore: 50,
+      ukGbeScore: 50,
+      usP1Score: 50,
+      usO1Score: 50,
+      middleEastScore: 50,
+      asiaScore: 50,
+      fifaTransferScore: 50,
+      overallEligibilityScore: 50,
+      lastUpdated: player.updatedAt ? new Date(player.updatedAt).toISOString() : new Date().toISOString(),
+      isPublishedToScouts: player.isPublishedToScouts || false,
+      publishExpiresAt: player.publishExpiresAt ? new Date(player.publishExpiresAt).toISOString() : undefined,
+    };
+  }
+
+  const { data: apiPlayers, isLoading: playersLoading } = useQuery<SchemaPlayer[]>({
+    queryKey: ["/api/players"],
+    queryFn: async () => {
+      const response = await fetch("/api/players", {
+        credentials: "include",
+      });
+      if (!response.ok) {
+        throw new Error("Failed to fetch players");
+      }
+      return response.json();
+    },
+  });
+
   const stats = statsData || mockDashboardStats;
-  const recentPlayers = mockPlayers.slice(0, 4);
+
+  // Transform players and take recent 4
+  const allPlayers = apiPlayers?.map(transformPlayerToViewModel) || [];
+  const recentPlayers = allPlayers.slice(0, 4);
+
   const recentVerifications = verificationsData?.slice(0, 3) || mockEmbassyVerifications.slice(0, 3);
   const recentInquiries = inquiriesData?.slice(0, 2) || mockScoutingInquiries.slice(0, 2);
 
-  const filteredPlayers = recentPlayers.filter(
+  const filteredPlayers = allPlayers.length > 0 ? allPlayers.filter(
     (p) =>
       p.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       p.lastName.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  ).slice(0, 4) : []; // Show filtered results from real data, limited to 4 for dashboard view
+
 
   return (
     <div className="p-6 space-y-6" data-testid="page-dashboard">
@@ -144,7 +200,13 @@ export default function Dashboard() {
               </Button>
             </CardHeader>
             <CardContent>
-              {filteredPlayers.length === 0 ? (
+              {playersLoading ? (
+                <div className="space-y-4">
+                  <Skeleton className="h-16 w-full" />
+                  <Skeleton className="h-16 w-full" />
+                  <Skeleton className="h-16 w-full" />
+                </div>
+              ) : filteredPlayers.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p>No players found</p>
@@ -258,7 +320,7 @@ export default function Dashboard() {
                 </div>
               ) : (
                 recentInquiries.map((inquiry) => {
-                  const player = mockPlayers.find((p) => p.id === inquiry.playerId);
+                  const player = allPlayers.find((p) => p.id === inquiry.playerId) || mockPlayers.find((p) => p.id === inquiry.playerId);
                   return (
                     <ScoutingInquiryCard
                       key={inquiry.id}
