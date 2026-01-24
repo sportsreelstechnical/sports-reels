@@ -3,6 +3,68 @@ import { storage } from "../storage";
 import { requireAuth } from "../middleware/auth";
 
 export function registerFederationRoutes(app: Express): void {
+  // ==========================================
+  // Team Portal Routes
+  // ==========================================
+
+  // Get Team's Federation Letter Requests
+  app.get(
+    "/api/federation-letter-requests",
+    requireAuth,
+    async (req: Request, res: Response) => {
+      try {
+        const teamId = req.session.teamId;
+        // If no team ID (e.g. admin or player), return empty or appropriate response
+        if (!teamId) {
+          // For now, let's return all if it's a demo or just empty
+          // But adhering to the requested route availability:
+          // If this is for the "Federation Letters" page in Team Portal, it needs data.
+          // Let's fallback to "demo-team" if that's the convention, or return empty.
+          // Checking invitation-letters.ts: const teamId = req.session.teamId || "demo-team";
+          // I ll use the same convention.
+          const demoTeamId = "demo-team";
+          const requests =
+            await storage.getFederationLetterRequests(demoTeamId);
+          return res.json(requests);
+        }
+
+        const requests = await storage.getFederationLetterRequests(teamId);
+        res.json(requests);
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "An unknown error occurred";
+        res.status(500).json({ error: message });
+      }
+    },
+  );
+
+  // Get Team's Request Summary
+  app.get(
+    "/api/federation-letter-requests/summary",
+    requireAuth,
+    async (req: Request, res: Response) => {
+      try {
+        const teamId = req.session.teamId || "demo-team";
+        const requests = await storage.getFederationLetterRequests(teamId);
+
+        const summary = {
+          total: requests.length,
+          pending: requests.filter(
+            (r) => r.status === "processing" || r.status === "submitted",
+          ).length,
+          issued: requests.filter((r) => r.status === "issued").length,
+          rejected: requests.filter((r) => r.status === "rejected").length,
+        };
+
+        res.json(summary);
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "An unknown error occurred";
+        res.status(500).json({ error: message });
+      }
+    },
+  );
+
   // Federation Admin - Dashboard Stats
   app.get(
     "/api/federation-admin/dashboard-stats",

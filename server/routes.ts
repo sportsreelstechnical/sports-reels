@@ -23,6 +23,7 @@ import { registerEmbassyRoutes } from "./routes/embassy";
 import { registerTokenRoutes } from "./routes/tokens";
 import { registerNotificationRoutes } from "./routes/notifications";
 import { registerInvitationLetterRoutes } from "./routes/invitation-letters";
+import { registerFederationRoutes } from "./routes/federation";
 import { requireAuth } from "./middleware/auth";
 
 export async function registerRoutes(
@@ -52,6 +53,7 @@ export async function registerRoutes(
   registerTokenRoutes(app);
   registerNotificationRoutes(app);
   registerInvitationLetterRoutes(app);
+  registerFederationRoutes(app);
 
   // Object storage upload URL endpoint
   app.get("/api/object-storage/upload-url", requireAuth, async (req, res) => {
