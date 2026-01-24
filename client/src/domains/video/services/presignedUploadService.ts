@@ -1,3 +1,5 @@
+import { getFullUrl } from "@/lib/queryClient";
+
 export interface PresignedUploadResult {
   success: boolean;
   url?: string;
@@ -17,7 +19,9 @@ export interface PresignedUrlResponse {
 export class PresignedUploadService {
   private baseUrl: string;
 
-  constructor(baseUrl: string = import.meta.env.VITE_BACKEND_STORAGE_URL) {
+  constructor(
+    baseUrl: string = import.meta.env.VITE_BACKEND_STORAGE_URL || "",
+  ) {
     this.baseUrl = baseUrl;
   }
 
@@ -39,7 +43,13 @@ export class PresignedUploadService {
       const safeName = fileName.replace(/[^a-zA-Z0-9.-]/g, "_");
       const key = `originals/${folder}/${uniqueId}/${safeName}`;
 
-      const response = await fetch(`${this.baseUrl}/api/r2/presigned-put-url`, {
+      const endpoint = "/api/r2/presigned-put-url";
+      // Use baseUrl if specifically provided, otherwise fallback to getFullUrl logic
+      const url = this.baseUrl
+        ? `${this.baseUrl}${endpoint}`
+        : getFullUrl(endpoint);
+
+      const response = await fetch(url, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
