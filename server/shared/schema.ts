@@ -175,7 +175,7 @@ export const videos = pgTable("videos", {
   source: text("source").notNull().default("manual"),
   uploadDate: timestamp("upload_date").defaultNow(),
   duration: text("duration"),
-  fileUrl: text("video_url"),
+  fileUrl: text("file_url"),
   thumbnailUrl: text("thumbnail_url"),
   matchDate: text("match_date"),
   competition: text("competition"),
