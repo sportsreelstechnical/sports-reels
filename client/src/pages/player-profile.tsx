@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import PlayerInternationalRecords from "@/components/PlayerInternationalRecords";
 import PlayerProfileEditor from "@/components/PlayerProfileEditor";
@@ -26,8 +26,11 @@ interface PlayerProfileProps {
 export default function PlayerProfile({ params, isScoutView }: PlayerProfileProps) {
   const location = useLocation();
   const navigate = useNavigate();
+  const urlParams = useParams<{ id: string }>();
   const setLocation = (path: string) => navigate(path);
-  const playerId = params?.id || "";
+
+  // Get player ID from URL params first, then fall back to props
+  const playerId = urlParams.id || params?.id || "";
 
   // Detect if we're in scout view based on the current path
   const isScout = isScoutView || location.pathname.startsWith("/dashboard/scout/");
