@@ -104,6 +104,74 @@ export function registerTokenRoutes(app: Express) {
     }
   });
 
+  app.post("/api/tokens/purchase", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId;
+      if (!userId) return res.status(401).send("Unauthorized");
+      const { packId } = req.body;
+
+      if (!packId) {
+        return res.status(400).json({ error: "Pack ID is required" });
+      }
+
+      const pack = await tokensRepository.getTokenPack(packId);
+      if (!pack) {
+        return res.status(404).json({ error: "Token pack not found" });
+      }
+
+      // Get current balance
+      let balance = await tokensRepository.getTokenBalance(userId);
+      if (!balance) {
+        balance = await tokensRepository.createTokenBalance({
+          userId,
+          balance: 0,
+          lifetimePurchased: 0,
+          lifetimeSpent: 0,
+        });
+      }
+
+      // Update balance
+      const newBalanceVal = (balance.balance || 0) + pack.tokens;
+      const newLifetimePurchased =
+        (balance.lifetimePurchased || 0) + pack.tokens;
+
+      await tokensRepository.updateTokenBalance(
+        userId,
+        newBalanceVal,
+        newLifetimePurchased,
+        undefined,
+      );
+
+      // Record purchase
+      const purchase = await tokensRepository.createTokenPurchase({
+        userId,
+        packId: packId, // Mapped
+        amountPaid: pack.priceUsd, // Mapped
+        tokens: pack.tokens, // Mapped
+        status: "completed", // Mapped
+        paymentMethod: "mock",
+        paymentReference: `mock_${Date.now()}`,
+        expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year expiry
+      });
+
+      // Record transaction ledger
+      await tokensRepository.createTokenTransaction({
+        userId,
+        amount: pack.tokens,
+        type: "credit", // fixed type to credit for purchase
+        action: "purchase", // fixed action
+        balanceAfter: newBalanceVal,
+        description: `Purchased ${pack.name}`,
+        packId: packId, // Use packId instead of referenceId
+      });
+
+      res.json({ success: true, newBalance: newBalanceVal, purchase });
+    } catch (error) {
+      console.error("Error purchasing tokens:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   app.post("/api/tokens/spend", requireAuth, async (req, res) => {
     try {
       const userId = req.session.userId;
