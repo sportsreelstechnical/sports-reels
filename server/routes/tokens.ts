@@ -16,7 +16,41 @@ const TOKEN_COSTS = {
 export function registerTokenRoutes(app: Express) {
   app.get("/api/tokens/packs", requireAuth, async (req, res) => {
     try {
-      const packs = await tokensRepository.getTokenPacks();
+      let packs = await tokensRepository.getTokenPacks();
+
+      if (packs.length === 0) {
+        // Seed default packs
+        const defaultPacks = [
+          {
+            name: "Starter Pack",
+            tokens: 10,
+            priceUsd: 9.99,
+            description: "Perfect for getting started",
+            isActive: true,
+          },
+          {
+            name: "Scout Pack",
+            tokens: 50,
+            priceUsd: 39.99,
+            description: "Best value for active scouts",
+            isActive: true,
+          },
+          {
+            name: "Agency Pack",
+            tokens: 100,
+            priceUsd: 69.99,
+            description: "For serious professionals",
+            isActive: true,
+          },
+        ];
+
+        for (const pack of defaultPacks) {
+          await tokensRepository.createTokenPack(pack);
+        }
+
+        packs = await tokensRepository.getTokenPacks();
+      }
+
       res.json(packs);
     } catch (error) {
       console.error("Error fetching token packs:", error);
