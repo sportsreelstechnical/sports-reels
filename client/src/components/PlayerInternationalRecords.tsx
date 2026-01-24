@@ -12,7 +12,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Globe, Trophy, Calendar, Edit2, Trash2, Flag, Clock, FileText } from "lucide-react";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest, queryClient, getFullUrl } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { PlayerInternationalRecord } from "@shared/schema";
 
@@ -44,7 +44,7 @@ export default function PlayerInternationalRecords({ playerId, playerName }: Pla
   const { data: records = [], isLoading } = useQuery<PlayerInternationalRecord[]>({
     queryKey: ["/api/players", playerId, "international-records"],
     queryFn: async () => {
-      const res = await fetch(`/api/players/${playerId}/international-records`, {
+      const res = await fetch(getFullUrl(`/api/players/${playerId}/international-records`), {
         credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to fetch international records");

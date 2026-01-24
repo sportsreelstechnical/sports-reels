@@ -7,7 +7,7 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { RefreshCw, Clock, Globe, Award, TrendingUp, AlertTriangle, CheckCircle, XCircle, Info } from "lucide-react";
-import { queryClient, apiRequest } from "@/lib/queryClient";
+import { queryClient, apiRequest, getFullUrl } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 interface VisaScore {
@@ -156,7 +156,7 @@ export default function TransferEligibilityDashboard({ playerId }: TransferEligi
   const { data, isLoading, error } = useQuery<TransferEligibilityData>({
     queryKey: ["/api/players", playerId, "transfer-eligibility"],
     queryFn: async () => {
-      const res = await fetch(`/api/players/${playerId}/transfer-eligibility`, {
+      const res = await fetch(getFullUrl(`/api/players/${playerId}/transfer-eligibility`), {
         credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to fetch eligibility data");

@@ -12,7 +12,7 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { queryClient, apiRequest } from "@/lib/queryClient";
+import { queryClient, apiRequest, getFullUrl } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { LoadingSpinner } from "@/components/LoadingScreen";
 import {
@@ -68,7 +68,7 @@ export default function Videos() {
     enabled: !!selectedVideo?.id,
     queryFn: async () => {
       if (!selectedVideo?.id) return [];
-      const res = await fetch(`/api/videos/${selectedVideo.id}/player-tags`, {
+      const res = await fetch(getFullUrl(`/api/videos/${selectedVideo.id}/player-tags`), {
         credentials: "include",
       });
       return res.json();

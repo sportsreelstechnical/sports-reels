@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 
-import { queryClient, apiRequest } from "@/lib/queryClient";
+import { queryClient, apiRequest, getFullUrl } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -71,7 +71,7 @@ export default function TeamSheets() {
 
   const { data: competitions } = useQuery<{ name: string; type: string }[]>({
     queryKey: ["/api/competitions", selectedCountry],
-    queryFn: () => fetch(`/api/competitions?country=${selectedCountry}`, {
+    queryFn: () => fetch(getFullUrl(`/api/competitions?country=${selectedCountry}`), {
       credentials: "include",
     }).then(r => r.json()),
   });

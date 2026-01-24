@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { queryClient, apiRequest } from "@/lib/queryClient";
+import { queryClient, apiRequest, getFullUrl } from "@/lib/queryClient";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -34,7 +34,7 @@ function DocumentDetailsDialog({ document, playerId, isOpen, onOpenChange, getDo
   const { data: versions = [], isLoading: versionsLoading } = useQuery<DocumentVersion[]>({
     queryKey: ['/api/players', playerId, 'documents', document.id, 'versions'],
     queryFn: async () => {
-      const res = await fetch(`/api/players/${playerId}/documents/${document.id}/versions`, {
+      const res = await fetch(getFullUrl(`/api/players/${playerId}/documents/${document.id}/versions`), {
         credentials: "include",
       });
       if (!res.ok) throw new Error('Failed to fetch versions');
@@ -46,7 +46,7 @@ function DocumentDetailsDialog({ document, playerId, isOpen, onOpenChange, getDo
   const { data: auditLogs = [], isLoading: auditLoading } = useQuery<DocumentAuditLog[]>({
     queryKey: ['/api/players', playerId, 'documents', document.id, 'audit-logs'],
     queryFn: async () => {
-      const res = await fetch(`/api/players/${playerId}/documents/${document.id}/audit-logs`, {
+      const res = await fetch(getFullUrl(`/api/players/${playerId}/documents/${document.id}/audit-logs`), {
         credentials: "include",
       });
       if (!res.ok) throw new Error('Failed to fetch audit logs');

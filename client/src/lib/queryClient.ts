@@ -3,7 +3,7 @@ import { QueryClient, QueryFunction } from "@tanstack/react-query";
 const BASE_URL = import.meta.env.VITE_BACKEND_URL || "";
 
 // Helper to ensure URL handles both relative and absolute paths correctly
-const getFullUrl = (url: string) => {
+export const getFullUrl = (url: string) => {
   if (url.startsWith("http")) return url;
 
   // If we are on a production domain but BASE_URL is localhost, use relative path

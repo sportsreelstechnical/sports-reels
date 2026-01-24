@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { ArrowLeft, User, Globe, Clock, Activity, Ruler, Weight, Flag, CheckCircle, FileText, Video, Play, Calendar, Share2, Eye, Coins, Link2, Copy, ExternalLink, Download, Award } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { queryClient, apiRequest, getFullUrl } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useCheckTokens } from "@/hooks/use-tokens";
 import type { Player, Video as VideoType, PlayerShareLink, FederationLetterRequest } from "@shared/schema";
@@ -56,7 +56,7 @@ export default function PlayerProfile({ params, isScoutView }: PlayerProfileProp
   }>({
     queryKey: ["/api/players", playerId],
     queryFn: async () => {
-      const res = await fetch(`/api/players/${playerId}`, {
+      const res = await fetch(getFullUrl(`/api/players/${playerId}`), {
         credentials: "include",
       });
       if (!res.ok) throw new Error("Failed to fetch player");
@@ -68,7 +68,7 @@ export default function PlayerProfile({ params, isScoutView }: PlayerProfileProp
   const { data: shareLinks = [] } = useQuery<PlayerShareLink[]>({
     queryKey: ["/api/players", playerId, "share-links"],
     queryFn: async () => {
-      const res = await fetch(`/api/players/${playerId}/share-links`, {
+      const res = await fetch(getFullUrl(`/api/players/${playerId}/share-links`), {
         credentials: "include",
       });
       if (!res.ok) return [];
@@ -80,7 +80,7 @@ export default function PlayerProfile({ params, isScoutView }: PlayerProfileProp
   const { data: issuedFederationLetters = [] } = useQuery<FederationLetterRequest[]>({
     queryKey: ["/api/players", playerId, "issued-federation-letters"],
     queryFn: async () => {
-      const res = await fetch(`/api/players/${playerId}/issued-federation-letters`, {
+      const res = await fetch(getFullUrl(`/api/players/${playerId}/issued-federation-letters`), {
         credentials: "include",
       });
       if (!res.ok) return [];
