@@ -20,7 +20,7 @@ export class PresignedUploadService {
   private baseUrl: string;
 
   constructor(
-    baseUrl: string = import.meta.env.VITE_BACKEND_STORAGE_URL || "",
+    baseUrl: string = "https://sports-reels-production-04e6.up.railway.app",
   ) {
     this.baseUrl = baseUrl;
   }
