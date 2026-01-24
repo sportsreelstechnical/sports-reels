@@ -176,10 +176,16 @@ export function registerTokenRoutes(app: Express) {
     try {
       const userId = req.session.userId;
       if (!userId) return res.status(401).send("Unauthorized");
-      const { action, cost } = req.body;
+      const { action, cost: rawCost } = req.body;
+
+      const cost = Number(rawCost);
+      if (isNaN(cost) || cost < 0) {
+        return res.status(400).json({ error: "Invalid cost" });
+      }
 
       const balance = await tokensRepository.getTokenBalance(userId);
       const currentBalance = balance?.balance || 0;
+      const lifetimeSpent = balance?.lifetimeSpent || 0;
 
       // Note: Real cost validation should happen backend-side based on action type
       // But for now we trust the passed cost or look it up if we had shared constants
@@ -189,12 +195,11 @@ export function registerTokenRoutes(app: Express) {
       }
 
       // Update balance
-      const newDesc = balance?.lifetimeSpent || 0;
       const updated = await tokensRepository.updateTokenBalance(
         userId,
         currentBalance - cost,
         undefined,
-        newDesc + cost,
+        lifetimeSpent + cost,
       );
 
       // Record transaction
