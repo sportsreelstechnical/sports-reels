@@ -12,6 +12,7 @@ import { registerCompressionRoutes } from "./routes/compression";
 import { registerPlayerRoutes } from "./routes/players";
 import { registerVideoRoutes } from "./routes/videos";
 import { registerMessagingRoutes } from "./routes/messaging";
+import { registerReportRoutes } from "./routes/reports";
 import { registerDashboardRoutes } from "./routes/dashboard";
 import { registerTeamRoutes } from "./routes/teams";
 import { registerEligibilityRoutes } from "./routes/eligibility";
@@ -38,6 +39,7 @@ export async function registerRoutes(
   registerPlayerRoutes(app);
   registerVideoRoutes(app);
   registerMessagingRoutes(app);
+  registerReportRoutes(app);
 
   registerDashboardRoutes(app);
   registerTeamRoutes(app);
