@@ -1,4 +1,5 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -91,20 +92,72 @@ export default function TokenBank() {
     queryKey: ["/api/tokens/costs"],
   });
 
+  const [isVerifying, setIsVerifying] = useState(false);
+
+  const verifyPayment = useCallback(
+    async (reference: string) => {
+      setIsVerifying(true);
+      try {
+        const result = await apiRequest(
+          "GET",
+          `/api/tokens/purchase/verify/${reference}`,
+        );
+        const data = await result.json();
+
+        if (data.success) {
+          queryClient.invalidateQueries({ queryKey: ["/api/tokens/balance"] });
+          queryClient.invalidateQueries({
+            queryKey: ["/api/tokens/transactions"],
+          });
+          toast({
+            title: "Payment Successful",
+            description: "Your tokens have been added to your account.",
+          });
+        } else {
+          throw new Error(data.error || "Verification failed");
+        }
+      } catch (error: any) {
+        toast({
+          title: "Verification Failed",
+          description: error.message,
+          variant: "destructive",
+        });
+      } finally {
+        setIsVerifying(false);
+        // Clean up URL
+        window.history.replaceState(
+          {},
+          document.title,
+          window.location.pathname,
+        );
+      }
+    },
+    [toast],
+  );
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const reference = params.get("reference");
+    const status = params.get("status");
+
+    if (reference && status === "verify") {
+      verifyPayment(reference);
+    }
+  }, [verifyPayment]);
+
   const purchaseMutation = useMutation({
     mutationFn: async (packId: string) => {
-      const result = await apiRequest("POST", "/api/tokens/purchase", { packId });
+      const result = await apiRequest("POST", "/api/tokens/purchase/initialize", { packId });
       return result.json();
     },
-    onSuccess: async (data) => {
-      if (data.simulatedCheckout) {
-        const confirmResult = await apiRequest("POST", `/api/tokens/purchase/${data.purchase.id}/confirm`, {});
-        const confirmed = await confirmResult.json();
-        queryClient.invalidateQueries({ queryKey: ["/api/tokens/balance"] });
-        queryClient.invalidateQueries({ queryKey: ["/api/tokens/transactions"] });
+    onSuccess: (data) => {
+      if (data.status && data.data.authorization_url) {
+        window.location.href = data.data.authorization_url;
+      } else {
         toast({
-          title: "Tokens Added",
-          description: `${confirmed.tokensAdded} tokens have been added to your account.`,
+          title: "Initialization Failed",
+          description: "Could not start payment process",
+          variant: "destructive",
         });
       }
     },
@@ -128,10 +181,12 @@ export default function TokenBank() {
   const spendingBreakdown = getSpendingBreakdown();
   const totalSpent = Object.values(spendingBreakdown).reduce((a, b) => a + b, 0);
 
-  if (loadingBalance) {
+  if (loadingBalance || isVerifying) {
     return (
       <div className="flex items-center justify-center h-full">
-        <div className="animate-pulse text-muted-foreground">Loading token balance...</div>
+        <div className="animate-pulse text-muted-foreground">
+          {isVerifying ? "Verifying your payment..." : "Loading token balance..."}
+        </div>
       </div>
     );
   }
