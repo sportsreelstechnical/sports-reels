@@ -18,48 +18,72 @@ const TOKEN_COSTS = {
 export function registerTokenRoutes(app: Express) {
   app.get("/api/tokens/packs", requireAuth, async (req, res) => {
     try {
-      let packs = await tokensRepository.getTokenPacks();
+      const defaultPacks = [
+        {
+          name: "Starter Pack",
+          tokens: 50,
+          priceUsd: 999, // cents
+          description: "Perfect for getting started",
+          isActive: true,
+        },
+        {
+          name: "Standard Pack",
+          tokens: 100,
+          priceUsd: 1799, // cents
+          description: "Best value for regular users",
+          isActive: true,
+        },
+        {
+          name: "Pro Pack",
+          tokens: 150,
+          priceUsd: 2499, // cents
+          description: "For power users",
+          isActive: true,
+        },
+        {
+          name: "Enterprise Pack",
+          tokens: 200,
+          priceUsd: 2999, // cents
+          description: "Maximum value",
+          isActive: true,
+        },
+      ];
 
-      if (packs.length === 0) {
-        // Seed default packs
-        const defaultPacks = [
-          {
-            name: "Starter Pack",
-            tokens: 50,
-            priceUsd: 999, // cents
-            description: "Perfect for getting started",
-            isActive: true,
-          },
-          {
-            name: "Standard Pack",
-            tokens: 100,
-            priceUsd: 1799, // cents
-            description: "Best value for regular users",
-            isActive: true,
-          },
-          {
-            name: "Pro Pack",
-            tokens: 150,
-            priceUsd: 2499, // cents
-            description: "For power users",
-            isActive: true,
-          },
-          {
-            name: "Enterprise Pack",
-            tokens: 200,
-            priceUsd: 2999, // cents
-            description: "Maximum value",
-            isActive: true,
-          },
-        ];
-
-        for (const pack of defaultPacks) {
-          await tokensRepository.createTokenPack(pack);
+      // Sync packs: Ensure all default packs exist and have correct values
+      for (const packDef of defaultPacks) {
+        const existingPack = await tokensRepository.getTokenPackByName(
+          packDef.name,
+        );
+        if (existingPack) {
+          // Update if changed
+          if (
+            existingPack.tokens !== packDef.tokens ||
+            existingPack.priceUsd !== packDef.priceUsd
+          ) {
+            await tokensRepository.updateTokenPack(existingPack.id, {
+              tokens: packDef.tokens,
+              priceUsd: packDef.priceUsd,
+              description: packDef.description,
+              isActive: packDef.isActive,
+            });
+          }
+        } else {
+          // Create if missing
+          await tokensRepository.createTokenPack(packDef);
         }
-
-        packs = await tokensRepository.getTokenPacks();
       }
 
+      // Hide old packs that are not in the current list
+      const allPacks = await tokensRepository.getTokenPacks();
+      const currentPackNames = defaultPacks.map((p) => p.name);
+
+      for (const p of allPacks) {
+        if (!currentPackNames.includes(p.name)) {
+          await tokensRepository.updateTokenPack(p.id, { isActive: false });
+        }
+      }
+
+      const packs = await tokensRepository.getTokenPacks();
       res.json(packs);
     } catch (error) {
       console.error("Error fetching token packs:", error);

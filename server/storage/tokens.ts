@@ -37,7 +37,7 @@ export const tokensRepository = {
     userId: string,
     balance: number,
     lifetimePurchased?: number,
-    lifetimeSpent?: number
+    lifetimeSpent?: number,
   ): Promise<TokenBalance | undefined> {
     const updates: Partial<InsertTokenBalance> = { balance };
     if (lifetimePurchased !== undefined)
@@ -54,7 +54,7 @@ export const tokensRepository = {
   // Token Transactions
   async getTokenTransactions(
     userId: string,
-    limit = 50
+    limit = 50,
   ): Promise<TokenTransaction[]> {
     return db
       .select()
@@ -65,7 +65,7 @@ export const tokensRepository = {
   },
 
   async createTokenTransaction(
-    transaction: InsertTokenTransaction
+    transaction: InsertTokenTransaction,
   ): Promise<TokenTransaction> {
     const [newTransaction] = await db
       .insert(tokenTransactions)
@@ -92,6 +92,26 @@ export const tokensRepository = {
     return newPack;
   },
 
+  async getTokenPackByName(name: string): Promise<TokenPack | undefined> {
+    const [pack] = await db
+      .select()
+      .from(tokenPacks)
+      .where(eq(tokenPacks.name, name));
+    return pack;
+  },
+
+  async updateTokenPack(
+    id: string,
+    updates: Partial<InsertTokenPack>,
+  ): Promise<TokenPack | undefined> {
+    const [pack] = await db
+      .update(tokenPacks)
+      .set(updates)
+      .where(eq(tokenPacks.id, id))
+      .returning();
+    return pack;
+  },
+
   // Token Purchases
   async getTokenPurchases(userId: string): Promise<TokenPurchase[]> {
     return db
@@ -102,7 +122,7 @@ export const tokensRepository = {
   },
 
   async createTokenPurchase(
-    purchase: InsertTokenPurchase
+    purchase: InsertTokenPurchase,
   ): Promise<TokenPurchase> {
     const [newPurchase] = await db
       .insert(tokenPurchases)
@@ -113,7 +133,7 @@ export const tokensRepository = {
 
   async updateTokenPurchase(
     id: string,
-    updates: Partial<InsertTokenPurchase>
+    updates: Partial<InsertTokenPurchase>,
   ): Promise<TokenPurchase | undefined> {
     const [purchase] = await db
       .update(tokenPurchases)
