@@ -55,14 +55,16 @@ export default function VideoUpload({ players, onUpload, onIntegrationConnect, i
 
   const uploadFileToStorage = async (file: File): Promise<string> => {
     setUploadProgress(10);
-    
-    const response = await fetch("/api/uploads/request-url", {
+
+    // 1. Get Presigned PUT URL
+    const key = `originals/videos/${Date.now()}-${Math.random().toString(36).substr(2, 9)}/${file.name}`;
+    const response = await fetch("/api/r2/presigned-put-url", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        name: file.name,
-        size: file.size,
+        key,
         contentType: file.type || "video/mp4",
+        expiresIn: 3600,
       }),
     });
 
@@ -70,21 +72,37 @@ export default function VideoUpload({ players, onUpload, onIntegrationConnect, i
       throw new Error("Failed to get upload URL");
     }
 
-    const { uploadURL, objectPath } = await response.json();
+    const { presignedUrl } = await response.json();
     setUploadProgress(30);
 
-    const uploadResponse = await fetch(uploadURL, {
-      method: "PUT",
-      body: file,
-      headers: { "Content-Type": file.type || "video/mp4" },
+    // 2. Upload to R2
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+
+      xhr.upload.addEventListener("progress", (event) => {
+        if (event.lengthComputable) {
+          const progress = (event.loaded / event.total) * 100;
+          // Scale progress from 30 to 100
+          setUploadProgress(30 + (progress * 0.7));
+        }
+      });
+
+      xhr.addEventListener("load", () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve(key);
+        } else {
+          reject(new Error(`Failed to upload file: ${xhr.statusText}`));
+        }
+      });
+
+      xhr.addEventListener("error", () => {
+        reject(new Error("Upload failed - network error"));
+      });
+
+      xhr.open("PUT", presignedUrl);
+      xhr.setRequestHeader("Content-Type", file.type || "video/mp4");
+      xhr.send(file);
     });
-
-    if (!uploadResponse.ok) {
-      throw new Error("Failed to upload file");
-    }
-
-    setUploadProgress(100);
-    return objectPath;
   };
 
   const handleSubmit = async () => {
@@ -146,9 +164,8 @@ export default function VideoUpload({ players, onUpload, onIntegrationConnect, i
       <CardContent className="space-y-4">
         <div
           {...getRootProps()}
-          className={`border-2 border-dashed rounded-md p-6 text-center cursor-pointer transition-colors ${
-            isDragActive ? "border-primary bg-primary/5" : "border-muted-foreground/25 hover:border-primary/50"
-          }`}
+          className={`border-2 border-dashed rounded-md p-6 text-center cursor-pointer transition-colors ${isDragActive ? "border-primary bg-primary/5" : "border-muted-foreground/25 hover:border-primary/50"
+            }`}
           data-testid="dropzone-video"
         >
           <input {...getInputProps()} data-testid="input-video-file" />
@@ -156,9 +173,9 @@ export default function VideoUpload({ players, onUpload, onIntegrationConnect, i
             <div className="flex items-center justify-center gap-2">
               <Video className="h-6 w-6 text-primary" />
               <span className="font-medium text-sm truncate max-w-[200px]">{uploadedFile.name}</span>
-              <Button 
-                size="icon" 
-                variant="ghost" 
+              <Button
+                size="icon"
+                variant="ghost"
                 onClick={(e) => { e.stopPropagation(); setUploadedFile(null); }}
               >
                 <X className="h-4 w-4" />
@@ -191,9 +208,9 @@ export default function VideoUpload({ players, onUpload, onIntegrationConnect, i
 
         <div className="space-y-2">
           <Label htmlFor="video-url">Video URL</Label>
-          <Input 
-            id="video-url" 
-            value={fileUrl} 
+          <Input
+            id="video-url"
+            value={fileUrl}
             onChange={(e) => setFileUrl(e.target.value)}
             placeholder="https://example.com/video.mp4"
             data-testid="input-video-url"
@@ -207,9 +224,9 @@ export default function VideoUpload({ players, onUpload, onIntegrationConnect, i
         <div className="space-y-3">
           <div className="space-y-2">
             <Label htmlFor="video-title">Title *</Label>
-            <Input 
-              id="video-title" 
-              value={title} 
+            <Input
+              id="video-title"
+              value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Match title or description"
               data-testid="input-video-title"
@@ -235,9 +252,9 @@ export default function VideoUpload({ players, onUpload, onIntegrationConnect, i
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label htmlFor="competition">Competition</Label>
-              <Input 
-                id="competition" 
-                value={competition} 
+              <Input
+                id="competition"
+                value={competition}
                 onChange={(e) => setCompetition(e.target.value)}
                 placeholder="e.g. Premier League"
                 data-testid="input-competition"
@@ -245,9 +262,9 @@ export default function VideoUpload({ players, onUpload, onIntegrationConnect, i
             </div>
             <div className="space-y-2">
               <Label htmlFor="opponent">Opponent</Label>
-              <Input 
-                id="opponent" 
-                value={opponent} 
+              <Input
+                id="opponent"
+                value={opponent}
                 onChange={(e) => setOpponent(e.target.value)}
                 placeholder="e.g. Manchester United"
                 data-testid="input-opponent"
@@ -258,19 +275,19 @@ export default function VideoUpload({ players, onUpload, onIntegrationConnect, i
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label htmlFor="match-date">Match Date</Label>
-              <Input 
-                id="match-date" 
-                type="date" 
-                value={matchDate} 
+              <Input
+                id="match-date"
+                type="date"
+                value={matchDate}
                 onChange={(e) => setMatchDate(e.target.value)}
                 data-testid="input-match-date"
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="duration">Duration</Label>
-              <Input 
-                id="duration" 
-                value={duration} 
+              <Input
+                id="duration"
+                value={duration}
                 onChange={(e) => setDuration(e.target.value)}
                 placeholder="e.g. 90 min"
                 data-testid="input-duration"
@@ -278,9 +295,9 @@ export default function VideoUpload({ players, onUpload, onIntegrationConnect, i
             </div>
           </div>
 
-          <Button 
-            className="w-full" 
-            onClick={handleSubmit} 
+          <Button
+            className="w-full"
+            onClick={handleSubmit}
             disabled={!title || !playerId || isSubmitting}
             data-testid="button-save-video"
           >

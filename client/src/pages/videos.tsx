@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import VideoUpload from "@/components/VideoUpload";
+import { SignedVideoPlayer } from "@/components/SignedVideoPlayer";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -875,15 +876,15 @@ export default function Videos() {
             <div className="space-y-4 pr-4">
               <div className="aspect-video bg-muted rounded-md flex items-center justify-center">
                 {selectedVideo?.fileUrl ? (
-                  <video
+                  <SignedVideoPlayer
                     controls
                     autoPlay
                     className="w-full h-full rounded-md"
-                    src={selectedVideo.fileUrl}
+                    videoKey={selectedVideo.fileUrl}
                     data-testid="video-player"
                   >
                     Your browser does not support the video tag.
-                  </video>
+                  </SignedVideoPlayer>
                 ) : (
                   <div className="text-center text-muted-foreground">
                     <Video className="h-16 w-16 mx-auto mb-4 opacity-50" />

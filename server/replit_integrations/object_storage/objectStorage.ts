@@ -52,16 +52,12 @@ export class ObjectStorageService {
         return;
       }
 
-      const stats = fs.statSync(file.path);
-
-      res.set({
-        "Content-Type": "application/octet-stream",
-        "Content-Length": stats.size.toString(),
-        "Cache-Control": `public, max-age=${cacheTtlSec}`,
+      res.sendFile(file.path, {
+        maxAge: cacheTtlSec * 1000,
+        headers: {
+          "Content-Type": "application/octet-stream",
+        },
       });
-
-      const stream = fs.createReadStream(file.path);
-      stream.pipe(res);
     } catch (error) {
       console.error("Error downloading file:", error);
       if (!res.headersSent) {

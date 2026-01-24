@@ -7,6 +7,8 @@ import {
 
 // Import modular routes
 import { registerAuthRoutes } from "./routes/auth";
+import { registerR2Routes } from "./routes/r2";
+import { registerCompressionRoutes } from "./routes/compression";
 import { registerPlayerRoutes } from "./routes/players";
 import { registerVideoRoutes } from "./routes/videos";
 import { registerMessagingRoutes } from "./routes/messaging";
@@ -30,6 +32,8 @@ export async function registerRoutes(
   const objectStorageService = new ObjectStorageService();
 
   // Register all domain-specific routes
+  registerR2Routes(app);
+  registerCompressionRoutes(app);
   registerAuthRoutes(app);
   registerPlayerRoutes(app);
   registerVideoRoutes(app);

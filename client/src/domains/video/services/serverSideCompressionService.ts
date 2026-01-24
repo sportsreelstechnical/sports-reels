@@ -115,12 +115,28 @@ export class ServerSideCompressionService {
     file: File,
     options: ServerCompressionOptions,
   ): Promise<string> {
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("bucket", "originals");
-    formData.append("path", `videos/${this.generateUniqueId()}`);
+    // 1. Get Presigned PUT URL
+    const key = `originals/videos/${this.generateUniqueId()}/${file.name}`;
+    const presignedResponse = await fetch(
+      `${this.API_BASE_URL}/api/r2/presigned-put-url`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          key,
+          contentType: file.type,
+          expiresIn: 3600,
+        }),
+      },
+    );
 
-    // Create XMLHttpRequest for upload progress tracking
+    if (!presignedResponse.ok) {
+      throw new Error("Failed to get upload URL");
+    }
+
+    const { presignedUrl } = await presignedResponse.json();
+
+    // 2. Upload to R2 using XHR for progress
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
 
@@ -129,44 +145,31 @@ export class ServerSideCompressionService {
           const progress = (event.loaded / event.total) * 100;
           options.onProgress?.(progress);
           options.onStatusChange?.(
-            `Phase 1 processing... ${Math.round(progress)}%`,
+            `Uploading to R2... ${Math.round(progress)}%`,
           );
         }
       });
 
       xhr.addEventListener("load", () => {
-        clearTimeout(uploadTimeout);
         if (xhr.status >= 200 && xhr.status < 300) {
-          try {
-            const result = JSON.parse(xhr.responseText);
-            resolve(result.key);
-          } catch (error) {
-            reject(new Error("Failed to parse upload response"));
-          }
+          resolve(key);
         } else {
-          reject(new Error(`Failed to upload original: ${xhr.statusText}`));
+          reject(new Error(`Failed to upload to R2: ${xhr.statusText}`));
         }
       });
 
       xhr.addEventListener("error", () => {
-        clearTimeout(uploadTimeout);
         reject(new Error("Upload failed - network error"));
       });
 
       xhr.addEventListener("timeout", () => {
-        clearTimeout(uploadTimeout);
         reject(new Error("Upload failed - timeout"));
       });
 
-      xhr.open("POST", `${this.API_BASE_URL}/upload-original`);
-      xhr.timeout = 300000; // 5 minute timeout for upload
-      xhr.send(formData);
-
-      // Additional timeout as backup
-      const uploadTimeout = setTimeout(() => {
-        xhr.abort();
-        reject(new Error("Upload failed - timeout"));
-      }, 300000); // 5 minutes
+      xhr.open("PUT", presignedUrl);
+      xhr.timeout = 300000; // 5 minute timeout
+      xhr.setRequestHeader("Content-Type", file.type);
+      xhr.send(file);
     });
   }
 
