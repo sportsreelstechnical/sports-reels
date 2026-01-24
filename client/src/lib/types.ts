@@ -52,6 +52,9 @@ export interface Player {
   fifaTransferScore: number;
   overallEligibilityScore: number;
   lastUpdated: string;
+  // Scout network visibility
+  isPublishedToScouts?: boolean;
+  publishExpiresAt?: string;
 }
 
 export interface PhysicalData {
