@@ -10,7 +10,9 @@ export function registerVideoRoutes(app: Express): void {
   app.get("/api/videos", requireAuth, async (req: Request, res: Response) => {
     try {
       const { playerId } = req.query;
-      const videos = await storage.getVideos(playerId as string | undefined);
+      const videos = playerId
+        ? await storage.getProfileVideos(playerId as string)
+        : await storage.getVideos();
       res.json(videos);
     } catch (error) {
       if (error instanceof Error) {

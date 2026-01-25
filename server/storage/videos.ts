@@ -28,6 +28,39 @@ export const videosRepository = {
     return db.select().from(videos).orderBy(desc(videos.uploadDate));
   },
 
+  async getProfileVideos(playerId: string): Promise<Video[]> {
+    // Get videos owned by player
+    const ownedVideos = await db
+      .select()
+      .from(videos)
+      .where(eq(videos.playerId, playerId));
+
+    // Get videos where player is tagged
+    const taggedVideosResult = await db
+      .select({ video: videos })
+      .from(videoPlayerTags)
+      .innerJoin(videos, eq(videos.id, videoPlayerTags.videoId))
+      .where(eq(videoPlayerTags.playerId, playerId));
+
+    const taggedVideos = taggedVideosResult.map((r) => r.video);
+
+    // Combine and deduplicate
+    const allVideos = [...ownedVideos, ...taggedVideos];
+    const uniqueVideosMap = new Map();
+    allVideos.forEach((v) => {
+      if (v) uniqueVideosMap.set(v.id, v);
+    });
+
+    const uniqueVideos = Array.from(uniqueVideosMap.values()) as Video[];
+
+    // Sort by uploadDate descending
+    return uniqueVideos.sort((a, b) => {
+      const dateA = a.uploadDate ? new Date(a.uploadDate).getTime() : 0;
+      const dateB = b.uploadDate ? new Date(b.uploadDate).getTime() : 0;
+      return dateB - dateA;
+    });
+  },
+
   async getVideosByTitle(title: string, teamId?: string): Promise<Video[]> {
     const conditions = [eq(videos.title, title)];
 
@@ -146,11 +179,22 @@ export const videosRepository = {
   },
 
   async getPlayerVideoMinutes(playerId: string): Promise<number> {
-    const result = await db
+    const ownedResult = await db
       .select({ total: sql<number>`COALESCE(SUM(${videos.minutesPlayed}), 0)` })
       .from(videos)
       .where(eq(videos.playerId, playerId));
-    return Number(result[0]?.total) || 0;
+
+    const taggedResult = await db
+      .select({
+        total: sql<number>`COALESCE(SUM(${videoPlayerTags.minutesPlayed}), 0)`,
+      })
+      .from(videoPlayerTags)
+      .where(eq(videoPlayerTags.playerId, playerId));
+
+    return (
+      (Number(ownedResult[0]?.total) || 0) +
+      (Number(taggedResult[0]?.total) || 0)
+    );
   },
 
   // Shared Videos

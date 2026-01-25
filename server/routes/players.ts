@@ -89,7 +89,7 @@ export function registerPlayerRoutes(app: Express): void {
         const eligibilityScores = await storage.getEligibilityScores(player.id);
         const medicalRecords = await storage.getMedicalRecords(player.id);
         const biometricData = await storage.getBiometricData(player.id);
-        const videos = await storage.getVideos(player.id);
+        const videos = await storage.getProfileVideos(player.id);
 
         res.json({
           player,
@@ -664,7 +664,7 @@ export function registerPlayerRoutes(app: Express): void {
         shareLink.playerId,
       );
       const metrics = await storage.getPlayerMetrics(shareLink.playerId);
-      const videos = await storage.getVideos(shareLink.playerId);
+      const videos = await storage.getProfileVideos(shareLink.playerId);
 
       const videoPreview = videos.map((v) => ({
         id: v.id,
