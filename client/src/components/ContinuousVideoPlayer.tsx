@@ -241,7 +241,9 @@ export default function ContinuousVideoPlayer({
 
                       <div className="flex items-center gap-2">
                         <span className="text-white text-sm font-medium truncate max-w-[200px]">
-                          {((currentVideo?.title || "").replace(/\.[^/.]+$/, "").replace(/[-_]/g, " "))}
+                          {((currentVideo?.title || "").replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ")).length > 30
+                            ? ((currentVideo?.title || "").replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ")).substring(0, 30) + "..."
+                            : ((currentVideo?.title || "").replace(/\.[^/.]+$/, "").replace(/[-_]/g, " "))}
                         </span>
                         <Button
                           size="icon"
@@ -320,7 +322,9 @@ export default function ContinuousVideoPlayer({
                         <div className="flex-1 min-w-0">
                           <p className={`text-sm font-medium truncate ${index === currentIndex ? 'text-primary' : ''
                             }`}>
-                            {((video.title || "").replace(/\.[^/.]+$/, "").replace(/[-_]/g, " "))}
+                            {((video.title || "").replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ")).length > 20
+                              ? ((video.title || "").replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ")).substring(0, 20) + "..."
+                              : ((video.title || "").replace(/\.[^/.]+$/, "").replace(/[-_]/g, " "))}
                           </p>
                           <p className="text-xs text-muted-foreground truncate">
                             {video.competition || video.source || "Video"}

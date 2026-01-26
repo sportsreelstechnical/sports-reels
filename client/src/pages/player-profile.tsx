@@ -17,7 +17,7 @@ import { queryClient, apiRequest, getFullUrl } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useCheckTokens } from "@/hooks/use-tokens";
 import type { Player, Video as VideoType, PlayerShareLink, FederationLetterRequest } from "@shared/schema";
-import { supabase } from "@/integrations/supabase/client";
+
 
 interface PlayerProfileProps {
   params?: { id?: string };
@@ -89,45 +89,6 @@ export default function PlayerProfile({ params, isScoutView }: PlayerProfileProp
     enabled: !!playerId && !isScout,
   });
 
-  // Fetch videos from Supabase directly to ensure we see latest uploads
-  const { data: supabaseVideos = [] } = useQuery({
-    queryKey: ["supabase", "videos", playerId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('videos')
-        .select('*')
-        .contains('tagged_players', [playerId]) // Check if player ID is in tags
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error("Error fetching videos from Supabase:", error);
-        return [];
-      }
-
-      // Map Supabase video structure to our VideoType
-      return (data || []).map((v: any) => ({
-        id: v.id,
-        title: v.title,
-        fileUrl: v.video_url, // Map video_url to fileUrl
-        thumbnailUrl: v.thumbnail_url,
-        duration: v.duration?.toString(),
-        uploadDate: v.created_at,
-        source: "Supabase",
-        description: v.description,
-        videoType: v.video_type,
-        matchDate: v.match_date,
-        competition: v.league, // Mapping league to competition
-        opponent: v.opposing_team,
-        minutesPlayed: v.minutes_played,
-        processed: v.processed || false,
-        playerId: playerId,
-        teamId: v.team_id || null,
-        teamSheetId: v.team_sheet_id || null,
-      }));
-    },
-    enabled: !!playerId
-  });
-
   const publishMutation = useMutation({
     mutationFn: async (publish: boolean) => {
       const res = await apiRequest("POST", `/api/players/${playerId}/publish`, { publish });
@@ -172,7 +133,8 @@ export default function PlayerProfile({ params, isScoutView }: PlayerProfileProp
     },
   });
 
-  const videos = supabaseVideos.length > 0 ? supabaseVideos : (playerData?.videos || []);
+  const videos = playerData?.videos || [];
+  console.log("PlayerProfile videos:", videos);
 
   if (!playerId) {
     return (
@@ -489,6 +451,11 @@ export default function PlayerProfile({ params, isScoutView }: PlayerProfileProp
                       </div>
                       {video.processed && (
                         <Badge variant="secondary" className="text-xs">Analyzed</Badge>
+                      )}
+                      {player && video.playerId !== player.id && (
+                        <Badge variant="outline" className="text-xs border-blue-500 text-blue-500 bg-blue-500/10">
+                          Tagged
+                        </Badge>
                       )}
                     </div>
 

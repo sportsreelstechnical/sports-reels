@@ -11,6 +11,7 @@ import {
   insertPlayerInternationalRecordSchema,
   insertPlayerPhotoSchema,
 } from "@shared/schema";
+import { generatePresignedGetUrl } from "../services/r2";
 
 export function registerPlayerRoutes(app: Express): void {
   app.get("/api/players", requireAuth, async (req: Request, res: Response) => {
@@ -89,7 +90,41 @@ export function registerPlayerRoutes(app: Express): void {
         const eligibilityScores = await storage.getEligibilityScores(player.id);
         const medicalRecords = await storage.getMedicalRecords(player.id);
         const biometricData = await storage.getBiometricData(player.id);
-        const videos = await storage.getProfileVideos(player.id);
+        const rawVideos = await storage.getProfileVideos(player.id);
+        const videos = await Promise.all(
+          rawVideos.map(async (v) => {
+            let fileUrl = v.fileUrl;
+            let thumbnailUrl = v.thumbnailUrl;
+
+            // Sign video URL if it's a storage key (doesn't start with http/https)
+            if (
+              fileUrl &&
+              !fileUrl.startsWith("http") &&
+              !fileUrl.startsWith("/")
+            ) {
+              try {
+                fileUrl = await generatePresignedGetUrl(fileUrl);
+              } catch (e) {
+                console.error(`Failed to sign video URL for ${v.id}:`, e);
+              }
+            }
+
+            // Sign thumbnail URL if it's a storage key
+            if (
+              thumbnailUrl &&
+              !thumbnailUrl.startsWith("http") &&
+              !thumbnailUrl.startsWith("/")
+            ) {
+              try {
+                thumbnailUrl = await generatePresignedGetUrl(thumbnailUrl);
+              } catch (e) {
+                console.error(`Failed to sign thumbnail URL for ${v.id}:`, e);
+              }
+            }
+
+            return { ...v, fileUrl, thumbnailUrl };
+          }),
+        );
 
         res.json({
           player,
