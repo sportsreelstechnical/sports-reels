@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useDropzone } from "react-dropzone";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,8 +18,8 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useTokenBalance, useCheckTokens } from "@/hooks/use-tokens";
 import { LoadingSpinner } from "@/components/LoadingScreen";
-import { 
-  FileText, Upload, Plus, Calendar, Globe, Building2, User, CheckCircle, Clock, 
+import {
+  FileText, Upload, Plus, Calendar, Globe, Building2, User, CheckCircle, Clock,
   AlertCircle, Download, Eye, Trash2, CreditCard, Send, FileCheck, X,
   RefreshCw, Filter, Search, DollarSign, Receipt, MessageCircle, History, ArrowRight, Loader2, Coins
 } from "lucide-react";
@@ -57,27 +57,27 @@ const TRANSFER_TYPES = [
 ];
 
 const COUNTRIES = [
-  "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Argentina", "Armenia", "Australia", 
-  "Austria", "Azerbaijan", "Bahrain", "Bangladesh", "Belarus", "Belgium", "Benin", "Bolivia", 
+  "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Argentina", "Armenia", "Australia",
+  "Austria", "Azerbaijan", "Bahrain", "Bangladesh", "Belarus", "Belgium", "Benin", "Bolivia",
   "Bosnia and Herzegovina", "Botswana", "Brazil", "Brunei", "Bulgaria", "Burkina Faso", "Burundi",
-  "Cambodia", "Cameroon", "Canada", "Cape Verde", "Central African Republic", "Chad", "Chile", 
+  "Cambodia", "Cameroon", "Canada", "Cape Verde", "Central African Republic", "Chad", "Chile",
   "China", "Colombia", "Comoros", "Congo", "Costa Rica", "Croatia", "Cuba", "Cyprus", "Czech Republic",
-  "Denmark", "Djibouti", "Dominican Republic", "DR Congo", "Ecuador", "Egypt", "El Salvador", 
-  "England", "Equatorial Guinea", "Eritrea", "Estonia", "Eswatini", "Ethiopia", "Fiji", "Finland", 
-  "France", "Gabon", "Gambia", "Georgia", "Germany", "Ghana", "Greece", "Guatemala", "Guinea", 
-  "Guinea-Bissau", "Haiti", "Honduras", "Hungary", "Iceland", "India", "Indonesia", "Iran", "Iraq", 
-  "Ireland", "Israel", "Italy", "Ivory Coast", "Jamaica", "Japan", "Jordan", "Kazakhstan", "Kenya", 
-  "Kosovo", "Kuwait", "Kyrgyzstan", "Laos", "Latvia", "Lebanon", "Lesotho", "Liberia", "Libya", 
-  "Liechtenstein", "Lithuania", "Luxembourg", "Madagascar", "Malawi", "Malaysia", "Maldives", "Mali", 
-  "Malta", "Mauritania", "Mauritius", "Mexico", "Moldova", "Monaco", "Mongolia", "Montenegro", 
-  "Morocco", "Mozambique", "Myanmar", "Namibia", "Nepal", "Netherlands", "New Zealand", "Nicaragua", 
-  "Niger", "Nigeria", "North Korea", "North Macedonia", "Northern Ireland", "Norway", "Oman", 
-  "Pakistan", "Palestine", "Panama", "Papua New Guinea", "Paraguay", "Peru", "Philippines", "Poland", 
-  "Portugal", "Qatar", "Romania", "Russia", "Rwanda", "San Marino", "Saudi Arabia", "Scotland", 
-  "Senegal", "Serbia", "Sierra Leone", "Singapore", "Slovakia", "Slovenia", "Somalia", "South Africa", 
-  "South Korea", "South Sudan", "Spain", "Sri Lanka", "Sudan", "Sweden", "Switzerland", "Syria", 
-  "Taiwan", "Tajikistan", "Tanzania", "Thailand", "Togo", "Trinidad and Tobago", "Tunisia", "Turkey", 
-  "Turkmenistan", "Uganda", "Ukraine", "United Arab Emirates", "United States", "Uruguay", "Uzbekistan", 
+  "Denmark", "Djibouti", "Dominican Republic", "DR Congo", "Ecuador", "Egypt", "El Salvador",
+  "England", "Equatorial Guinea", "Eritrea", "Estonia", "Eswatini", "Ethiopia", "Fiji", "Finland",
+  "France", "Gabon", "Gambia", "Georgia", "Germany", "Ghana", "Greece", "Guatemala", "Guinea",
+  "Guinea-Bissau", "Haiti", "Honduras", "Hungary", "Iceland", "India", "Indonesia", "Iran", "Iraq",
+  "Ireland", "Israel", "Italy", "Ivory Coast", "Jamaica", "Japan", "Jordan", "Kazakhstan", "Kenya",
+  "Kosovo", "Kuwait", "Kyrgyzstan", "Laos", "Latvia", "Lebanon", "Lesotho", "Liberia", "Libya",
+  "Liechtenstein", "Lithuania", "Luxembourg", "Madagascar", "Malawi", "Malaysia", "Maldives", "Mali",
+  "Malta", "Mauritania", "Mauritius", "Mexico", "Moldova", "Monaco", "Mongolia", "Montenegro",
+  "Morocco", "Mozambique", "Myanmar", "Namibia", "Nepal", "Netherlands", "New Zealand", "Nicaragua",
+  "Niger", "Nigeria", "North Korea", "North Macedonia", "Northern Ireland", "Norway", "Oman",
+  "Pakistan", "Palestine", "Panama", "Papua New Guinea", "Paraguay", "Peru", "Philippines", "Poland",
+  "Portugal", "Qatar", "Romania", "Russia", "Rwanda", "San Marino", "Saudi Arabia", "Scotland",
+  "Senegal", "Serbia", "Sierra Leone", "Singapore", "Slovakia", "Slovenia", "Somalia", "South Africa",
+  "South Korea", "South Sudan", "Spain", "Sri Lanka", "Sudan", "Sweden", "Switzerland", "Syria",
+  "Taiwan", "Tajikistan", "Tanzania", "Thailand", "Togo", "Trinidad and Tobago", "Tunisia", "Turkey",
+  "Turkmenistan", "Uganda", "Ukraine", "United Arab Emirates", "United States", "Uruguay", "Uzbekistan",
   "Vatican City", "Venezuela", "Vietnam", "Wales", "Yemen", "Zambia", "Zimbabwe"
 ];
 
@@ -102,9 +102,65 @@ export default function FederationLettersPage() {
   const [viewTab, setViewTab] = useState<string>("details");
   const [newMessage, setNewMessage] = useState("");
   const [isUploadingInvitation, setIsUploadingInvitation] = useState(false);
+  const [activeTab, setActiveTab] = useState("player");
+
+  const handleNext = async () => {
+    if (activeTab === "player") {
+      const valid = await form.trigger(["playerId", "athleteFullName", "athleteNationality"]);
+      if (valid) setActiveTab("transfer");
+    } else if (activeTab === "transfer") {
+      const valid = await form.trigger(["targetClubName", "targetClubCountry", "transferType"]);
+      if (valid) setActiveTab("documents");
+    }
+  };
+
+  const handleBack = () => {
+    if (activeTab === "transfer") setActiveTab("player");
+    else if (activeTab === "documents") setActiveTab("transfer");
+  };
   const { toast } = useToast();
-  
+
   const { data: tokenBalance } = useTokenBalance();
+  // Paystack Verification Logic
+  const verifyPaymentMutation = useMutation({
+    mutationFn: async ({ reference, requestId }: { reference: string; requestId: string }) => {
+      const response = await apiRequest("GET", `/api/federation-letter-requests/pay/verify/${reference}`);
+      return await response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Payment Successful",
+        description: "Your payment has been verified successfully.",
+      });
+      // Clear URL params
+      window.history.replaceState({}, document.title, window.location.pathname);
+      // Open Success Dialog or refresh
+      setIsPaymentDialogOpen(false);
+      if (data.requestId) {
+        // Optionally open the view dialog or just refresh list
+      }
+      queryClient.invalidateQueries({ queryKey: ["/api/federation-letter-requests"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Payment Verification Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const status = searchParams.get("status");
+    const reference = searchParams.get("reference") || searchParams.get("trxref"); // Paystack sends trxref or reference
+    const requestId = searchParams.get("requestId");
+
+    if (status === "verify" && reference && requestId) {
+      verifyPaymentMutation.mutate({ reference, requestId });
+    }
+  }, []);
+
   const { canAfford, getCost } = useCheckTokens("team");
   const federationLetterCost = getCost("federation_letter_request");
 
@@ -122,7 +178,7 @@ export default function FederationLettersPage() {
 
   const { getRootProps: getInvitationRootProps, getInputProps: getInvitationInputProps, isDragActive: isInvitationDragActive } = useDropzone({
     onDrop: onDropInvitation,
-    accept: { 
+    accept: {
       "application/pdf": [".pdf"],
       "image/*": [".jpg", ".jpeg", ".png"]
     },
@@ -131,7 +187,7 @@ export default function FederationLettersPage() {
 
   const { getRootProps: getPassportRootProps, getInputProps: getPassportInputProps, isDragActive: isPassportDragActive } = useDropzone({
     onDrop: onDropPassport,
-    accept: { 
+    accept: {
       "application/pdf": [".pdf"],
       "image/*": [".jpg", ".jpeg", ".png"]
     },
@@ -144,7 +200,7 @@ export default function FederationLettersPage() {
 
   const { data: requests = [], isLoading: requestsLoading } = useQuery<FederationRequestWithPlayer[]>({
     queryKey: ["/api/federation-letter-requests"],
-    refetchInterval: 5000,
+
   });
 
   const { data: summary } = useQuery<{
@@ -156,7 +212,7 @@ export default function FederationLettersPage() {
     rejected: number;
   }>({
     queryKey: ["/api/federation-letter-requests/summary"],
-    refetchInterval: 5000,
+
   });
 
   const form = useForm<FederationLetterFormData>({
@@ -243,20 +299,20 @@ export default function FederationLettersPage() {
       let invitationStorageKey: string | undefined;
       let invitationObjectPath: string | undefined;
       let invitationOriginalName: string | undefined;
-      
+
       // Upload passport if provided
       if (uploadedPassport && selectedPlayerId) {
         setIsUploadingPassport(true);
         try {
           const uploadUrlRes = await apiRequest("GET", "/api/object-storage/upload-url?folder=.private&contentType=" + encodeURIComponent(uploadedPassport.type));
           const { signedUrl, key, objectPath } = await uploadUrlRes.json();
-          
+
           await fetch(signedUrl, {
             method: "PUT",
             headers: { "Content-Type": uploadedPassport.type },
             body: uploadedPassport,
           });
-          
+
           const docRes = await apiRequest("POST", `/api/players/${selectedPlayerId}/documents`, {
             documentType: "passport",
             originalName: uploadedPassport.name,
@@ -271,20 +327,20 @@ export default function FederationLettersPage() {
           setIsUploadingPassport(false);
         }
       }
-      
+
       // Upload invitation letter (required)
       if (uploadedInvitationLetter) {
         setIsUploadingInvitation(true);
         try {
           const uploadUrlRes = await apiRequest("GET", "/api/object-storage/upload-url?folder=.private&contentType=" + encodeURIComponent(uploadedInvitationLetter.type));
           const { signedUrl, key, objectPath } = await uploadUrlRes.json();
-          
+
           await fetch(signedUrl, {
             method: "PUT",
             headers: { "Content-Type": uploadedInvitationLetter.type },
             body: uploadedInvitationLetter,
           });
-          
+
           invitationStorageKey = key;
           invitationObjectPath = objectPath;
           invitationOriginalName = uploadedInvitationLetter.name;
@@ -292,7 +348,7 @@ export default function FederationLettersPage() {
           setIsUploadingInvitation(false);
         }
       }
-      
+
       // Spend tokens for creating federation letter request
       const tokenResponse = await apiRequest("POST", "/api/tokens/spend", {
         action: "federation_letter_request",
@@ -302,7 +358,7 @@ export default function FederationLettersPage() {
         const error = await tokenResponse.json();
         throw new Error(error.error || "Failed to spend tokens");
       }
-      
+
       const response = await apiRequest("POST", "/api/federation-letter-requests", {
         ...data,
         passportDocumentId: passportDocId,
@@ -337,19 +393,23 @@ export default function FederationLettersPage() {
 
   const paymentMutation = useMutation({
     mutationFn: async (requestId: string) => {
-      const paymentId = `PAY-${Date.now().toString(36).toUpperCase()}`;
-      const response = await apiRequest("POST", `/api/federation-letter-requests/${requestId}/confirm-payment`, {
-        paymentId,
-      });
+      const response = await apiRequest("POST", `/api/federation-letter-requests/${requestId}/pay/initialize`, {});
       return await response.json();
     },
-    onSuccess: () => {
-      toast({
-        title: "Payment Confirmed",
-        description: "Your payment has been processed. The request will now be submitted for processing.",
-      });
-      setIsPaymentDialogOpen(false);
-      queryClient.invalidateQueries({ queryKey: ["/api/federation-letter-requests"] });
+    onSuccess: (data) => {
+      if (data.data?.authorization_url) {
+        toast({
+          title: "Redirecting to Payment",
+          description: "You are being redirected to Paystack to complete your payment...",
+        });
+        window.location.href = data.data.authorization_url;
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to get payment URL",
+          variant: "destructive",
+        });
+      }
     },
     onError: (error: Error) => {
       toast({
@@ -413,7 +473,7 @@ export default function FederationLettersPage() {
       });
       return;
     }
-    
+
     // Validate invitation letter is uploaded
     if (!uploadedInvitationLetter) {
       toast({
@@ -423,7 +483,7 @@ export default function FederationLettersPage() {
       });
       return;
     }
-    
+
     // Check token balance
     if (!canAfford("federation_letter_request")) {
       toast({
@@ -433,7 +493,7 @@ export default function FederationLettersPage() {
       });
       return;
     }
-    
+
     createMutation.mutate(data);
   };
 
@@ -452,9 +512,9 @@ export default function FederationLettersPage() {
     const matchesStatus = statusFilter === "all" || req.status === statusFilter;
     const matchesSearch =
       !searchQuery ||
-      req.athleteFullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      req.requestNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      req.targetClubName.toLowerCase().includes(searchQuery.toLowerCase());
+      (req.athleteFullName || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (req.requestNumber || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (req.targetClubName || "").toLowerCase().includes(searchQuery.toLowerCase());
     return matchesStatus && matchesSearch;
   });
 
@@ -705,7 +765,10 @@ export default function FederationLettersPage() {
           </CardContent>
         </Card>
 
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <Dialog open={isDialogOpen} onOpenChange={(open) => {
+          setIsDialogOpen(open);
+          if (!open) setActiveTab("player"); // Reset tab on close
+        }}>
           <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
@@ -713,19 +776,22 @@ export default function FederationLettersPage() {
                 New Federation Letter Request
               </DialogTitle>
               <DialogDescription>
-                Submit a request for an official federation clearance letter for player transfer or registration
+                Step {activeTab === "player" ? "1" : activeTab === "transfer" ? "2" : "3"} of 3:
+                {activeTab === "player" ? " Select Player Details" : activeTab === "transfer" ? " Transfer Information" : " Upload Documents"}
               </DialogDescription>
             </DialogHeader>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                <Tabs defaultValue="player" className="w-full">
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                   <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="player">Player</TabsTrigger>
-                    <TabsTrigger value="transfer">Transfer Details</TabsTrigger>
-                    <TabsTrigger value="documents">Documents</TabsTrigger>
+                    <TabsTrigger value="player">1. Player</TabsTrigger>
+                    <TabsTrigger value="transfer">2. Transfer Details</TabsTrigger>
+                    <TabsTrigger value="documents">3. Documents</TabsTrigger>
                   </TabsList>
 
+                  {/* TabsContent blocks remain the same but ensure they match value */}
                   <TabsContent value="player" className="space-y-4 mt-4">
+                    {/* ... Player content ... */}
                     <FormField
                       control={form.control}
                       name="playerId"
@@ -820,6 +886,7 @@ export default function FederationLettersPage() {
                   </TabsContent>
 
                   <TabsContent value="transfer" className="space-y-4 mt-4">
+                    {/* ... Transfer content ... */}
                     <div className="grid grid-cols-2 gap-4">
                       <FormField
                         control={form.control}
@@ -946,19 +1013,20 @@ export default function FederationLettersPage() {
                   </TabsContent>
 
                   <TabsContent value="documents" className="space-y-4 mt-4">
+                    {/* ... Documents content ... */}
                     <FormField
                       control={form.control}
                       name="passportDocumentId"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Select Existing Passport (or upload below) <span className="text-destructive">*</span></FormLabel>
-                          <Select 
+                          <Select
                             onValueChange={(value) => {
                               field.onChange(value);
                               if (value && value !== "none") {
                                 setUploadedPassport(null);
                               }
-                            }} 
+                            }}
                             value={uploadedPassport ? "" : field.value}
                             disabled={!!uploadedPassport}
                           >
@@ -1001,11 +1069,10 @@ export default function FederationLettersPage() {
                       <FormLabel>Upload New Passport</FormLabel>
                       <div
                         {...getPassportRootProps()}
-                        className={`border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors ${
-                          isPassportDragActive
-                            ? "border-primary bg-primary/5"
-                            : "border-muted-foreground/25 hover:border-primary/50"
-                        }`}
+                        className={`border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors ${isPassportDragActive
+                          ? "border-primary bg-primary/5"
+                          : "border-muted-foreground/25 hover:border-primary/50"
+                          }`}
                       >
                         <input {...getPassportInputProps()} data-testid="input-passport-upload" />
                         <Upload className="h-6 w-6 mx-auto text-muted-foreground mb-2" />
@@ -1039,11 +1106,10 @@ export default function FederationLettersPage() {
                       <FormLabel>Invitation Letter <span className="text-destructive">*</span></FormLabel>
                       <div
                         {...getInvitationRootProps()}
-                        className={`border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors ${
-                          isInvitationDragActive
-                            ? "border-primary bg-primary/5"
-                            : "border-muted-foreground/25 hover:border-primary/50"
-                        }`}
+                        className={`border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors ${isInvitationDragActive
+                          ? "border-primary bg-primary/5"
+                          : "border-muted-foreground/25 hover:border-primary/50"
+                          }`}
                       >
                         <input {...getInvitationInputProps()} data-testid="input-invitation-letter" />
                         <Upload className="h-6 w-6 mx-auto text-muted-foreground mb-2" />
@@ -1125,23 +1191,40 @@ export default function FederationLettersPage() {
                   </TabsContent>
                 </Tabs>
 
-                <DialogFooter>
-                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button type="submit" disabled={createMutation.isPending || isUploadingPassport || isUploadingInvitation} data-testid="button-create-request">
-                    {createMutation.isPending || isUploadingPassport || isUploadingInvitation ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        {isUploadingPassport ? "Uploading Passport..." : isUploadingInvitation ? "Uploading Invitation..." : "Creating..."}
-                      </>
+                <DialogFooter className="flex justify-between sm:justify-between w-full">
+                  {activeTab === "player" ? (
+                    <div /> // Spacer
+                  ) : (
+                    <Button type="button" variant="outline" onClick={handleBack}>
+                      <ArrowRight className="h-4 w-4 mr-2 rotate-180" /> Back
+                    </Button>
+                  )}
+
+                  <div className="flex gap-2">
+                    <Button type="button" variant="ghost" onClick={() => setIsDialogOpen(false)}>
+                      Cancel
+                    </Button>
+
+                    {activeTab !== "documents" ? (
+                      <Button type="button" onClick={handleNext}>
+                        Next <ArrowRight className="h-4 w-4 ml-2" />
+                      </Button>
                     ) : (
-                      <>
-                        <Coins className="h-4 w-4 mr-2" />
-                        Create Request ({federationLetterCost} tokens)
-                      </>
+                      <Button type="submit" disabled={createMutation.isPending || isUploadingPassport || isUploadingInvitation} data-testid="button-create-request">
+                        {createMutation.isPending || isUploadingPassport || isUploadingInvitation ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            {isUploadingPassport ? "Uploading Passport..." : isUploadingInvitation ? "Uploading Invitation..." : "Creating..."}
+                          </>
+                        ) : (
+                          <>
+                            <Coins className="h-4 w-4 mr-2" />
+                            Create Request ({federationLetterCost} tokens)
+                          </>
+                        )}
+                      </Button>
                     )}
-                  </Button>
+                  </div>
                 </DialogFooter>
               </form>
             </Form>
@@ -1308,13 +1391,12 @@ export default function FederationLettersPage() {
                     ) : (
                       <div className="space-y-3">
                         {requestMessages.slice().reverse().map((message) => (
-                          <div 
-                            key={message.id} 
-                            className={`p-3 rounded-lg ${
-                              message.senderPortal === 'team' 
-                                ? 'bg-primary/10 ml-8' 
-                                : 'bg-muted mr-8'
-                            }`}
+                          <div
+                            key={message.id}
+                            className={`p-3 rounded-lg ${message.senderPortal === 'team'
+                              ? 'bg-primary/10 ml-8'
+                              : 'bg-muted mr-8'
+                              }`}
                           >
                             <div className="flex items-center justify-between gap-2 mb-1">
                               <span className="font-medium text-sm">{message.senderName}</span>
@@ -1341,7 +1423,7 @@ export default function FederationLettersPage() {
                       data-testid="input-message"
                     />
                   </div>
-                  <Button 
+                  <Button
                     onClick={() => sendMessageMutation.mutate(newMessage)}
                     disabled={!newMessage.trim() || sendMessageMutation.isPending}
                     className="w-full"
@@ -1393,9 +1475,9 @@ export default function FederationLettersPage() {
                                   </p>
                                 )}
                                 <div className="flex flex-col gap-1">
-                                  <Button 
-                                    size="sm" 
-                                    variant="default" 
+                                  <Button
+                                    size="sm"
+                                    variant="default"
                                     data-testid={`button-download-certificate-${doc.id}`}
                                     onClick={() => {
                                       window.open(`/api/federation-requests/${selectedRequest?.id}/issued-documents/${doc.id}/download-file`, '_blank');
@@ -1408,9 +1490,9 @@ export default function FederationLettersPage() {
                                     <FileCheck className="h-4 w-4 mr-1" />
                                     Certificate
                                   </Button>
-                                  <Button 
-                                    size="sm" 
-                                    variant="outline" 
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
                                     data-testid={`button-download-original-${doc.id}`}
                                     onClick={() => {
                                       window.open(`/api/federation-requests/${selectedRequest?.id}/issued-documents/${doc.id}/download-original`, '_blank');

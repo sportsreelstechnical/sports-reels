@@ -404,6 +404,21 @@ export function registerPlayerRoutes(app: Express): void {
     },
   );
 
+  app.get(
+    "/api/players/:id/metrics",
+    requireAuth,
+    async (req: Request, res: Response) => {
+      try {
+        const metrics = await storage.getPlayerMetrics(req.params.id);
+        res.json(metrics || {});
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "An unknown error occurred";
+        res.status(500).json({ error: message });
+      }
+    },
+  );
+
   app.post(
     "/api/players/:id/metrics",
     requireAuth,

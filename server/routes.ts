@@ -59,14 +59,26 @@ export async function registerRoutes(
   app.get("/api/object-storage/upload-url", requireAuth, async (req, res) => {
     try {
       const signedUrl = await objectStorageService.getObjectEntityUploadURL();
-      const url = new URL(signedUrl);
-      const pathParts = url.pathname.split("/");
-      const objectName = pathParts.slice(2).join("/");
+
+      // Determine if it is a relative URL or absolute
+      const isRelative = signedUrl.startsWith("/");
+
+      let objectName: string;
+
+      if (isRelative) {
+        // signedUrl is like /api/uploads/UUID
+        const parts = signedUrl.split("/");
+        objectName = parts.pop() || "unknown"; // UUID
+      } else {
+        const url = new URL(signedUrl);
+        const pathParts = url.pathname.split("/");
+        objectName = pathParts.slice(2).join("/");
+      }
 
       res.json({
         signedUrl,
-        key: `${pathParts[1]}/${objectName}`,
-        objectPath: `/objects/uploads/${objectName.split("/").pop()}`,
+        key: `uploads/${objectName}`,
+        objectPath: `/objects/uploads/${objectName}`,
       });
     } catch (error: unknown) {
       const errorMessage =

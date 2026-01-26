@@ -2,6 +2,7 @@ import type { Express, Request, Response } from "express";
 import { storage } from "../storage";
 import { requireAuth } from "../middleware/auth";
 import { insertFederationLetterRequestSchema } from "@shared/schema";
+import axios from "axios";
 
 /**
  * Standard error handler helper
@@ -49,10 +50,12 @@ export function registerFederationRoutes(app: Express): void {
     requireAuth,
     async (req: Request, res: Response) => {
       try {
-        const teamId = req.session.teamId;
-        if (!teamId) return res.json([]);
+        const { teamId, userId } = req.session;
+        if (!teamId && !userId) return res.json([]); // Ensure at least one identifier is present
 
-        const requests = await storage.getFederationLetterRequests(teamId);
+        const requests = await storage.getFederationLetterRequests(
+          (teamId || userId) as string,
+        );
         res.json(requests);
       } catch (error) {
         handleError(res, error);
@@ -68,17 +71,17 @@ export function registerFederationRoutes(app: Express): void {
       try {
         const { teamId, userId } = req.session;
 
-        if (!teamId || !userId) {
+        if (!userId) {
           return res
             .status(401)
-            .json({ error: "Unauthorized: Team and user session required" });
+            .json({ error: "Unauthorized: User session required" });
         }
 
         const requestNumber = `REQ-${Date.now().toString().slice(-6)}`;
         const requestData = insertFederationLetterRequestSchema.parse({
           ...req.body,
           requestNumber,
-          teamId,
+          teamId: (teamId || userId) as string, // Use teamId if available, otherwise userId
           status: "pending",
           paymentStatus: "unpaid",
           // Default fees could be fetched from a centralized config or DB in future
@@ -109,26 +112,118 @@ export function registerFederationRoutes(app: Express): void {
     },
   );
 
-  // Confirm Payment
+  // Paystack: Initialize Payment for Federation Request
   app.post(
-    "/api/federation-letter-requests/:id/confirm-payment",
+    "/api/federation-letter-requests/:id/pay/initialize",
     requireAuth,
     async (req: Request, res: Response) => {
       try {
         const { id } = req.params;
+        const { userId } = req.session;
+
         const request = await storage.getFederationLetterRequest(id);
         if (!request)
           return res.status(404).json({ error: "Request not found" });
 
-        const updatedRequest = await storage.updateFederationLetterRequest(id, {
-          paymentStatus: "paid",
-          paymentId: req.body.paymentId,
-          paymentConfirmedAt: new Date(),
-        });
+        const user = await storage.getUser(userId || "");
+        if (!user) return res.status(404).json({ error: "User not found" });
 
-        res.json(updatedRequest);
-      } catch (error) {
-        handleError(res, error);
+        const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
+        const PAYSTACK_CURRENCY = process.env.PAYSTACK_CURRENCY || "USD";
+
+        if (
+          !PAYSTACK_SECRET_KEY ||
+          PAYSTACK_SECRET_KEY === "sk_test_placeholder"
+        ) {
+          return res.status(400).json({
+            error: "Paystack API key is not configured.",
+          });
+        }
+
+        const amountInCents = Math.round((request.totalAmount || 0) * 100);
+
+        const response = await axios.post(
+          "https://api.paystack.co/transaction/initialize",
+          {
+            email: user.email || `${user.username}@sportsreels.ai`,
+            amount: amountInCents,
+            currency: PAYSTACK_CURRENCY,
+            callback_url: `${process.env.FRONTEND_URL}/federation-letters?status=verify&requestId=${id}`,
+            metadata: {
+              requestId: id,
+              userId: userId,
+              type: "federation_letter_request",
+            },
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
+              "Content-Type": "application/json",
+            },
+          },
+        );
+
+        res.json(response.data);
+      } catch (error: any) {
+        const message = error.response?.data?.message || error.message;
+        console.error("Paystack init error:", message);
+        res
+          .status(500)
+          .json({ error: "Failed to initialize payment", details: message });
+      }
+    },
+  );
+
+  // Paystack: Verify Payment
+  app.get(
+    "/api/federation-letter-requests/pay/verify/:reference",
+    requireAuth,
+    async (req: Request, res: Response) => {
+      try {
+        const { reference } = req.params;
+        const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
+
+        const response = await axios.get(
+          `https://api.paystack.co/transaction/verify/${reference}`,
+          {
+            headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}` },
+          },
+        );
+
+        const data = response.data.data;
+
+        if (data.status === "success") {
+          const requestId = data.metadata.requestId;
+
+          await storage.updateFederationLetterRequest(requestId, {
+            paymentStatus: "paid",
+            paymentId: reference,
+            paymentConfirmedAt: new Date(),
+          });
+
+          await logActivity(
+            requestId,
+            "status_change",
+            "Payment confirmed via Paystack",
+            {
+              userId: req.session.userId,
+              name: "System",
+              role: "system",
+            },
+          );
+
+          res.json({ success: true, requestId });
+        } else {
+          res.status(400).json({
+            error: "Payment verification failed",
+            status: data.status,
+          });
+        }
+      } catch (error: any) {
+        const message = error.response?.data?.message || error.message;
+        res
+          .status(500)
+          .json({ error: "Failed to verify payment", details: message });
       }
     },
   );
