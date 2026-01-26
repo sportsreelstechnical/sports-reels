@@ -113,6 +113,12 @@ export const federationRepository = {
     return request;
   },
 
+  async deleteFederationLetterRequest(id: string): Promise<void> {
+    await db
+      .delete(federationLetterRequests)
+      .where(eq(federationLetterRequests.id, id));
+  },
+
   // Fee Schedules
   async getFederationFeeSchedules(
     federationId: string,

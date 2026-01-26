@@ -1,6 +1,42 @@
 import type { Express, Request, Response } from "express";
 import { storage } from "../storage";
 import { requireAuth } from "../middleware/auth";
+import { insertFederationLetterRequestSchema } from "@shared/schema";
+
+/**
+ * Standard error handler helper
+ */
+const handleError = (res: Response, error: unknown, status = 500) => {
+  const message =
+    error instanceof Error ? error.message : "An unknown error occurred";
+  res.status(status).json({ error: message });
+};
+
+/**
+ * Helper to log federation activities
+ */
+const logActivity = async (
+  requestId: string,
+  activityType: string,
+  description: string,
+  sessionInfo: { userId?: string; role?: string; name?: string },
+  metadata?: any,
+) => {
+  try {
+    const { userId, role = "team_admin", name = "Team User" } = sessionInfo;
+    await storage.createFederationRequestActivity({
+      requestId,
+      activityType,
+      description,
+      actorId: userId,
+      actorName: name,
+      actorRole: role,
+      ...metadata,
+    });
+  } catch (err) {
+    console.error(`Failed to log activity for request ${requestId}:`, err);
+  }
+};
 
 export function registerFederationRoutes(app: Express): void {
   // ==========================================
@@ -14,43 +50,185 @@ export function registerFederationRoutes(app: Express): void {
     async (req: Request, res: Response) => {
       try {
         const teamId = req.session.teamId;
-        // If no team ID (e.g. admin or player), return empty or appropriate response
-        if (!teamId) {
-          // For now, let's return all if it's a demo or just empty
-          // But adhering to the requested route availability:
-          // If this is for the "Federation Letters" page in Team Portal, it needs data.
-          // Let's fallback to "demo-team" if that's the convention, or return empty.
-          // Checking invitation-letters.ts: const teamId = req.session.teamId || "demo-team";
-          // I ll use the same convention.
-          const demoTeamId = "demo-team";
-          const requests =
-            await storage.getFederationLetterRequests(demoTeamId);
-          return res.json(requests);
-        }
+        if (!teamId) return res.json([]);
 
         const requests = await storage.getFederationLetterRequests(teamId);
         res.json(requests);
       } catch (error) {
-        const message =
-          error instanceof Error ? error.message : "An unknown error occurred";
-        res.status(500).json({ error: message });
+        handleError(res, error);
       }
     },
   );
 
-  // Get Team's Request Summary
+  // Create Federation Letter Request
+  app.post(
+    "/api/federation-letter-requests",
+    requireAuth,
+    async (req: Request, res: Response) => {
+      try {
+        const { teamId, userId } = req.session;
+
+        if (!teamId || !userId) {
+          return res
+            .status(401)
+            .json({ error: "Unauthorized: Team and user session required" });
+        }
+
+        const requestNumber = `REQ-${Date.now().toString().slice(-6)}`;
+        const requestData = insertFederationLetterRequestSchema.parse({
+          ...req.body,
+          requestNumber,
+          teamId,
+          status: "pending",
+          paymentStatus: "unpaid",
+          // Default fees could be fetched from a centralized config or DB in future
+          feeAmount: 1000,
+          serviceCharge: 150,
+          totalAmount: 1150,
+        });
+
+        const request =
+          await storage.createFederationLetterRequest(requestData);
+
+        await logActivity(
+          request.id,
+          "status_change",
+          "Request created (Draft)",
+          {
+            userId,
+            name: "Team User",
+            role: "team_admin",
+          },
+          { newStatus: "pending" },
+        );
+
+        res.status(201).json(request);
+      } catch (error) {
+        handleError(res, error, 400);
+      }
+    },
+  );
+
+  // Confirm Payment
+  app.post(
+    "/api/federation-letter-requests/:id/confirm-payment",
+    requireAuth,
+    async (req: Request, res: Response) => {
+      try {
+        const { id } = req.params;
+        const request = await storage.getFederationLetterRequest(id);
+        if (!request)
+          return res.status(404).json({ error: "Request not found" });
+
+        const updatedRequest = await storage.updateFederationLetterRequest(id, {
+          paymentStatus: "paid",
+          paymentId: req.body.paymentId,
+          paymentConfirmedAt: new Date(),
+        });
+
+        res.json(updatedRequest);
+      } catch (error) {
+        handleError(res, error);
+      }
+    },
+  );
+
+  // Submit Request
+  app.post(
+    "/api/federation-letter-requests/:id/submit",
+    requireAuth,
+    async (req: Request, res: Response) => {
+      try {
+        const { id } = req.params;
+        const { userId } = req.session;
+        const request = await storage.getFederationLetterRequest(id);
+
+        if (!request)
+          return res.status(404).json({ error: "Request not found" });
+        if (request.paymentStatus !== "paid") {
+          return res
+            .status(400)
+            .json({ error: "Payment required before submission" });
+        }
+
+        const updatedRequest = await storage.updateFederationLetterRequest(id, {
+          status: "submitted",
+          submittedAt: new Date(),
+        });
+
+        await logActivity(
+          id,
+          "status_change",
+          "Request submitted for processing",
+          {
+            userId,
+            name: "Team User",
+            role: "team_admin",
+          },
+          { previousStatus: "pending", newStatus: "submitted" },
+        );
+
+        // Auto-create initial message
+        await storage.createFederationRequestMessage({
+          requestId: id,
+          senderId: userId || "system",
+          senderName: "System",
+          senderPortal: "team",
+          senderRole: "system",
+          recipientPortal: "federation",
+          content: `New request submitted for ${request.athleteFullName} to ${request.targetClubName}.`,
+          isRead: false,
+        });
+
+        res.json(updatedRequest);
+      } catch (error) {
+        handleError(res, error);
+      }
+    },
+  );
+
+  // Delete Request
+  app.delete(
+    "/api/federation-letter-requests/:id",
+    requireAuth,
+    async (req: Request, res: Response) => {
+      try {
+        const { id } = req.params;
+        const { teamId } = req.session;
+
+        if (!teamId) return res.status(401).json({ error: "Unauthorized" });
+
+        const request = await storage.getFederationLetterRequest(id);
+        if (!request)
+          return res.status(404).json({ error: "Request not found" });
+
+        if (request.teamId !== teamId) {
+          return res.status(403).json({ error: "Access denied" });
+        }
+
+        await storage.deleteFederationLetterRequest(id);
+        res.json({ success: true });
+      } catch (error) {
+        handleError(res, error);
+      }
+    },
+  );
+
+  // Summary Stats
   app.get(
     "/api/federation-letter-requests/summary",
     requireAuth,
     async (req: Request, res: Response) => {
       try {
-        const teamId = req.session.teamId || "demo-team";
-        const requests = await storage.getFederationLetterRequests(teamId);
+        const teamId = req.session.teamId;
+        if (!teamId)
+          return res.json({ total: 0, pending: 0, issued: 0, rejected: 0 });
 
+        const requests = await storage.getFederationLetterRequests(teamId);
         const summary = {
           total: requests.length,
-          pending: requests.filter(
-            (r) => r.status === "processing" || r.status === "submitted",
+          pending: requests.filter((r) =>
+            ["processing", "submitted"].includes(r.status),
           ).length,
           issued: requests.filter((r) => r.status === "issued").length,
           rejected: requests.filter((r) => r.status === "rejected").length,
@@ -58,26 +236,26 @@ export function registerFederationRoutes(app: Express): void {
 
         res.json(summary);
       } catch (error) {
-        const message =
-          error instanceof Error ? error.message : "An unknown error occurred";
-        res.status(500).json({ error: message });
+        handleError(res, error);
       }
     },
   );
 
-  // Federation Admin - Dashboard Stats
+  // ==========================================
+  // Federation Admin Portal Routes
+  // ==========================================
+
+  // Dashboard Stats
   app.get(
     "/api/federation-admin/dashboard-stats",
-    requireAuth, // Add requireFederationAdmin later if needed
+    requireAuth,
     async (req: Request, res: Response) => {
       try {
         const requests = await storage.getFederationLetterRequests();
         const processed = requests.filter((r) => r.status === "issued").length;
-        const pending = requests.filter(
-          (r) => r.status === "submitted" || r.status === "processing",
+        const pending = requests.filter((r) =>
+          ["submitted", "processing"].includes(r.status),
         ).length;
-
-        // Calculate revenue
         const totalRevenue = requests.reduce(
           (sum, r) => sum + (r.totalAmount || 0),
           0,
@@ -90,35 +268,31 @@ export function registerFederationRoutes(app: Express): void {
           totalRevenue,
         });
       } catch (error) {
-        const message =
-          error instanceof Error ? error.message : "An unknown error occurred";
-        res.status(500).json({ error: message });
+        handleError(res, error);
       }
     },
   );
 
-  // Federation Admin - Get All Requests
+  // Get All Requests (Admin)
   app.get(
     "/api/federation-admin/requests",
     requireAuth,
     async (req: Request, res: Response) => {
       try {
         const requests = await storage.getFederationLetterRequests();
-        // Filter by status if query param exists
         const status = req.query.status as string;
+
         if (status && status !== "all") {
           return res.json(requests.filter((r) => r.status === status));
         }
         res.json(requests);
       } catch (error) {
-        const message =
-          error instanceof Error ? error.message : "An unknown error occurred";
-        res.status(500).json({ error: message });
+        handleError(res, error);
       }
     },
   );
 
-  // Federation Admin - Fee Schedules
+  // Fee Schedules
   app.get(
     "/api/federation-admin/fee-schedules",
     requireAuth,
@@ -127,9 +301,7 @@ export function registerFederationRoutes(app: Express): void {
         const schedules = await storage.getAllFederationFeeSchedules();
         res.json(schedules);
       } catch (error) {
-        const message =
-          error instanceof Error ? error.message : "An unknown error occurred";
-        res.status(500).json({ error: message });
+        handleError(res, error);
       }
     },
   );
@@ -141,20 +313,17 @@ export function registerFederationRoutes(app: Express): void {
       try {
         const schedule = await storage.createFederationFeeSchedule({
           ...req.body,
-          federationId: req.session.userId || "demo-federation", // Fallback for demo
-          platformServiceCharge: 25, // Default platform charge
+          federationId: req.session.userId || "demo-federation",
+          platformServiceCharge: 25,
           isActive: true,
         });
         res.json(schedule);
       } catch (error) {
-        const message =
-          error instanceof Error ? error.message : "An unknown error occurred";
-        res.status(500).json({ error: message });
+        handleError(res, error);
       }
     },
   );
 
-  // Fee Schedule Delete
   app.delete(
     "/api/federation-admin/fee-schedules/:id",
     requireAuth,
@@ -165,9 +334,7 @@ export function registerFederationRoutes(app: Express): void {
         });
         res.json({ success: true });
       } catch (error) {
-        const message =
-          error instanceof Error ? error.message : "An unknown error occurred";
-        res.status(500).json({ error: message });
+        handleError(res, error);
       }
     },
   );
@@ -178,27 +345,25 @@ export function registerFederationRoutes(app: Express): void {
     requireAuth,
     async (req: Request, res: Response) => {
       try {
-        const request = await storage.updateFederationLetterRequest(
-          req.params.id,
+        const { id } = req.params;
+        const request = await storage.updateFederationLetterRequest(id, {
+          status: "processing",
+        });
+
+        await logActivity(
+          id,
+          "status_change",
+          "Request accepted and moved to processing",
           {
-            status: "processing",
+            userId: req.session.userId,
+            name: "Federation Admin",
+            role: "federation_admin",
           },
         );
 
-        await storage.createFederationRequestActivity({
-          requestId: req.params.id,
-          activityType: "status_change",
-          description: "Request accepted and moved to processing",
-          actorId: req.session.userId,
-          actorName: "Federation Admin",
-          actorRole: "federation_admin",
-        });
-
         res.json(request);
       } catch (error) {
-        const message =
-          error instanceof Error ? error.message : "An unknown error occurred";
-        res.status(500).json({ error: message });
+        handleError(res, error);
       }
     },
   );
@@ -209,39 +374,38 @@ export function registerFederationRoutes(app: Express): void {
     requireAuth,
     async (req: Request, res: Response) => {
       try {
+        const { id } = req.params;
         const { rejectionReason } = req.body;
-        const request = await storage.updateFederationLetterRequest(
-          req.params.id,
+        const request = await storage.updateFederationLetterRequest(id, {
+          status: "rejected",
+          rejectionReason,
+        });
+
+        await logActivity(
+          id,
+          "rejected",
+          `Request rejected: ${rejectionReason}`,
           {
-            status: "rejected",
-            rejectionReason,
+            userId: req.session.userId,
+            name: "Federation Admin",
+            role: "federation_admin",
           },
         );
 
-        await storage.createFederationRequestActivity({
-          requestId: req.params.id,
-          activityType: "rejected",
-          description: `Request rejected: ${rejectionReason}`,
-          actorId: req.session.userId,
-          actorName: "Federation Admin",
-          actorRole: "federation_admin",
-        });
-
         res.json(request);
       } catch (error) {
-        const message =
-          error instanceof Error ? error.message : "An unknown error occurred";
-        res.status(500).json({ error: message });
+        handleError(res, error);
       }
     },
   );
 
-  // Issue Document (Complete Request)
+  // Issue Document
   app.post(
     "/api/federation-admin/requests/:id/issue",
     requireAuth,
     async (req: Request, res: Response) => {
       try {
+        const { id } = req.params;
         const {
           issuedDocumentStorageKey,
           issuedDocumentObjectPath,
@@ -250,18 +414,14 @@ export function registerFederationRoutes(app: Express): void {
           fileSize,
         } = req.body;
 
-        // Update request status
-        const request = await storage.updateFederationLetterRequest(
-          req.params.id,
-          {
-            status: "issued",
-            issuedDocumentObjectPath: issuedDocumentObjectPath, // Correct field
-            issuedAt: new Date(),
-          },
-        );
-        // Create issued document record
+        const request = await storage.updateFederationLetterRequest(id, {
+          status: "issued",
+          issuedDocumentObjectPath,
+          issuedAt: new Date(),
+        });
+
         await storage.createFederationIssuedDocument({
-          requestId: req.params.id,
+          requestId: id,
           documentType: "invitation_letter",
           storageKey: issuedDocumentStorageKey,
           objectPath: issuedDocumentObjectPath,
@@ -271,20 +431,15 @@ export function registerFederationRoutes(app: Express): void {
           issuedBy: req.session.userId!,
         });
 
-        await storage.createFederationRequestActivity({
-          requestId: req.params.id,
-          activityType: "document_issued",
-          description: "Federation letter issued",
-          actorId: req.session.userId,
-          actorName: "Federation Admin",
-          actorRole: "federation_admin",
+        await logActivity(id, "document_issued", "Federation letter issued", {
+          userId: req.session.userId,
+          name: "Federation Admin",
+          role: "federation_admin",
         });
 
         res.json(request);
       } catch (error) {
-        const message =
-          error instanceof Error ? error.message : "An unknown error occurred";
-        res.status(500).json({ error: message });
+        handleError(res, error);
       }
     },
   );
@@ -300,9 +455,7 @@ export function registerFederationRoutes(app: Express): void {
         );
         res.json(messages);
       } catch (error) {
-        const message =
-          error instanceof Error ? error.message : "An unknown error occurred";
-        res.status(500).json({ error: message });
+        handleError(res, error);
       }
     },
   );
@@ -312,31 +465,29 @@ export function registerFederationRoutes(app: Express): void {
     requireAuth,
     async (req: Request, res: Response) => {
       try {
+        const { id } = req.params;
+        const { userId } = req.session;
+
         const message = await storage.createFederationRequestMessage({
-          requestId: req.params.id,
-          senderId: req.session.userId!,
+          requestId: id,
+          senderId: userId!,
           senderName: req.body.senderName || "User",
           senderPortal: req.body.senderPortal || "federation",
-          senderRole: "federation_admin",
+          senderRole: "federation_admin", // This might need to be dynamic depending on who hits this endpoint
           recipientPortal: "team",
           content: req.body.content,
           isRead: false,
         });
 
-        await storage.createFederationRequestActivity({
-          requestId: req.params.id,
-          activityType: "message_sent",
-          description: "New message sent",
-          actorId: req.session.userId,
-          actorName: "Federation Admin",
-          actorRole: "federation_admin",
+        await logActivity(id, "message_sent", "New message sent", {
+          userId,
+          name: "Federation Admin",
+          role: "federation_admin",
         });
 
         res.json(message);
       } catch (error) {
-        const message =
-          error instanceof Error ? error.message : "An unknown error occurred";
-        res.status(500).json({ error: message });
+        handleError(res, error);
       }
     },
   );
