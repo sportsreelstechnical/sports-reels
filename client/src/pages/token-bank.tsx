@@ -93,6 +93,7 @@ export default function TokenBank() {
   });
 
   const [isVerifying, setIsVerifying] = useState(false);
+  const [activePackId, setActivePackId] = useState<string | null>(null);
 
   const verifyPayment = useCallback(
     async (reference: string) => {
@@ -151,9 +152,11 @@ export default function TokenBank() {
       return result.json();
     },
     onSuccess: (data) => {
+      // Don't reset activePackId here, as we are redirecting away to Paystack
       if (data.status && data.data.authorization_url) {
         window.location.href = data.data.authorization_url;
       } else {
+        setActivePackId(null);
         toast({
           title: "Initialization Failed",
           description: "Could not start payment process",
@@ -162,6 +165,7 @@ export default function TokenBank() {
       }
     },
     onError: (error: Error) => {
+      setActivePackId(null);
       toast({
         title: "Purchase Failed",
         description: error.message,
@@ -288,12 +292,17 @@ export default function TokenBank() {
                         </div>
                         <Button
                           className="w-full"
-                          onClick={() => purchaseMutation.mutate(pack.id)}
-                          disabled={purchaseMutation.isPending}
+                          onClick={() => {
+                            setActivePackId(pack.id);
+                            purchaseMutation.mutate(pack.id);
+                          }}
+                          disabled={purchaseMutation.isPending && activePackId === pack.id}
                           data-testid={`button-buy-pack-${pack.tokens}`}
                         >
                           <CreditCard className="w-4 h-4 mr-2" />
-                          {purchaseMutation.isPending ? "Processing..." : "Buy Now"}
+                          {purchaseMutation.isPending && activePackId === pack.id
+                            ? "Processing..."
+                            : "Buy Now"}
                         </Button>
                       </CardContent>
                     </Card>
