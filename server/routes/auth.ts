@@ -98,11 +98,11 @@ export function registerAuthRoutes(app: Express): void {
       // Restrict restricted roles to specific email domains or addresses
       if (data.role === "federation_admin" || data.role === "embassy") {
         const allowedEmails = [
-          "admin@sportsreels.com",
-          "embassy@sportsreels.com",
+          "onyewuenyiugochinyere@gmail.com",
           "sportsreelstechnical@gmail.com",
-        ]; // Example allowlist
-        const allowedDomains = ["sportsreels.ai"]; // Example domain allowlist
+          "federationservicenigeria@gmail.com",
+        ];
+        const allowedDomains = ["sportsreels.ai", "sportsreels.org"];
 
         const emailDomain = data.email.split("@")[1];
         const isAllowed =

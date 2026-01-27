@@ -8,22 +8,25 @@ async function main() {
   const email = "admin@sportsreels.ai"; // Using allowed domain
 
   // Check if user exists
-  const existingUser = await storage.getUserByUsername(username);
+  let existingUser = await storage.getUserByUsername(username);
   if (existingUser) {
     console.log("Federation Admin already exists.");
-    return;
+    console.log("Federation Admin already exists.");
+  } else {
+    existingUser = await storage.createUser({
+      username,
+      password,
+      email,
+      firstName: "Federation",
+      lastName: "Admin",
+      role: "federation_admin",
+    });
+    console.log(
+      `Created Federation Admin: ${existingUser.username} (${existingUser.email})`,
+    );
   }
 
-  const user = await storage.createUser({
-    username,
-    password,
-    email,
-    firstName: "Federation",
-    lastName: "Admin",
-    role: "federation_admin",
-  });
-
-  console.log(`Created Federation Admin: ${user.username} (${user.email})`);
+  const user = existingUser;
 
   // Create default fee schedule
   console.log("Creating default fee schedule...");
