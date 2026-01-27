@@ -1302,7 +1302,7 @@ export default function FederationLettersPage() {
                     </div>
                     <div>
                       <span className="text-muted-foreground">Total Amount:</span>
-                      <p className="font-medium">${selectedRequest.totalAmount}</p>
+                      <p className="font-medium">₦{selectedRequest.totalAmount}</p>
                     </div>
                     {selectedRequest.federationName && (
                       <div>

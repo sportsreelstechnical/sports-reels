@@ -949,7 +949,7 @@ export default function FederationAdminPage() {
                 />
               </div>
               <div>
-                <Label htmlFor="fee-amount">Base Fee (USD)</Label>
+                <Label htmlFor="fee-amount">Base Fee (NGN)</Label>
                 <Input
                   id="fee-amount"
                   type="number"
@@ -960,7 +960,7 @@ export default function FederationAdminPage() {
                   data-testid="input-fee-amount"
                 />
                 <p className="text-sm text-muted-foreground mt-1">
-                  Total fee will be ${newFee.baseFee + PLATFORM_SERVICE_CHARGE} (includes ${PLATFORM_SERVICE_CHARGE} platform charge)
+                  Total fee will be ₦{newFee.baseFee + PLATFORM_SERVICE_CHARGE} (includes ₦{PLATFORM_SERVICE_CHARGE} platform charge)
                 </p>
               </div>
             </div>
@@ -972,7 +972,7 @@ export default function FederationAdminPage() {
                 onClick={() => {
                   toast({ title: "Fee rule added", description: `New fee rule for ${newFee.country} created` });
                   setIsFeeDialogOpen(false);
-                  setNewFee({ country: "", baseFee: 0, currency: "USD" });
+                  setNewFee({ country: "", baseFee: 0, currency: "NGN" });
                 }}
                 disabled={!newFee.country || newFee.baseFee < 0}
                 data-testid="button-save-fee"
