@@ -704,7 +704,7 @@ export default function FederationLettersPage() {
                                 data-testid={`button-pay-${request.id}`}
                               >
                                 <CreditCard className="h-4 w-4 mr-1" />
-                                Pay ${request.totalAmount}
+                                Pay ₦{request.totalAmount}
                               </Button>
                             )}
                             {request.status === "pending" && request.paymentStatus === "paid" && (
@@ -1536,16 +1536,16 @@ export default function FederationLettersPage() {
                   <CardContent className="p-4 space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Federation Fee</span>
-                      <span>${selectedRequest.feeAmount}</span>
+                      <span>₦{selectedRequest.feeAmount}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Service Charge</span>
-                      <span>${selectedRequest.serviceCharge}</span>
+                      <span>₦{selectedRequest.serviceCharge}</span>
                     </div>
                     <Separator />
                     <div className="flex justify-between font-semibold">
                       <span>Total</span>
-                      <span>${selectedRequest.totalAmount}</span>
+                      <span>₦{selectedRequest.totalAmount}</span>
                     </div>
                   </CardContent>
                 </Card>
@@ -1566,7 +1566,7 @@ export default function FederationLettersPage() {
                     ) : (
                       <>
                         <CreditCard className="h-4 w-4 mr-2" />
-                        Pay ${selectedRequest.totalAmount}
+                        Pay ₦{selectedRequest.totalAmount}
                       </>
                     )}
                   </Button>

@@ -95,6 +95,28 @@ export function registerAuthRoutes(app: Express): void {
 
       let teamId: string | undefined;
 
+      // Restrict restricted roles to specific email domains or addresses
+      if (data.role === "federation_admin" || data.role === "embassy") {
+        const allowedEmails = [
+          "admin@sportsreels.com",
+          "embassy@sportsreels.com",
+          "sportsreelstechnical@gmail.com",
+        ]; // Example allowlist
+        const allowedDomains = ["sportsreels.ai"]; // Example domain allowlist
+
+        const emailDomain = data.email.split("@")[1];
+        const isAllowed =
+          allowedEmails.includes(data.email) ||
+          allowedDomains.includes(emailDomain);
+
+        if (!isAllowed) {
+          return res.status(403).json({
+            error:
+              "Signup for this role is restricted to authorized personnel only.",
+          });
+        }
+      }
+
       if (data.role === "embassy") {
         const user = await storage.createUser({
           username: data.username,
