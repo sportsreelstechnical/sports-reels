@@ -13,8 +13,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LoadingSpinner } from "@/components/LoadingScreen";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  FileText, CheckCircle, Clock, AlertCircle, Search, Filter, 
+import {
+  FileText, CheckCircle, Clock, AlertCircle, Search, Filter,
   RefreshCw, Eye, FileCheck, Download, X, DollarSign,
   Globe, Building2, Calendar, Send, TrendingUp, Users, BarChart3,
   Settings, Plus, Trash2, MessageCircle, History, ArrowRight, Upload
@@ -50,13 +50,14 @@ export default function FederationAdminPage() {
   const { data: stats } = useQuery<{ totalRequests: number; processed: number; pending: number; totalRevenue: number }>({
     queryKey: ["/api/federation-admin/dashboard-stats"],
   });
-
+  const backendUrl = import.meta.env.VITE_BACKEND_URL;
   const { data: requests = [], isLoading } = useQuery<FederationLetterRequest[]>({
-    queryKey: ["/api/federation-admin/requests", statusFilter],
+
+    queryKey: [`${backendUrl}/api/federation-admin/requests`, statusFilter],
     queryFn: async () => {
-      const url = statusFilter && statusFilter !== "all" 
-        ? `/api/federation-admin/requests?status=${statusFilter}` 
-        : "/api/federation-admin/requests";
+      const url = statusFilter && statusFilter !== "all"
+        ? `${backendUrl}/api/federation-admin/requests?status=${statusFilter}`
+        : `${backendUrl}/api/federation-admin/requests`;
       const res = await fetch(url, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch requests");
       return res.json();
@@ -64,12 +65,12 @@ export default function FederationAdminPage() {
   });
 
   const { data: feeSchedules = [] } = useQuery<FederationFeeSchedule[]>({
-    queryKey: ["/api/federation-admin/fee-schedules"],
+    queryKey: [`${backendUrl}/api/federation-admin/fee-schedules`],
     enabled: activeTab === "fees",
   });
 
   const { data: requestActivities = [] } = useQuery<FederationRequestActivity[]>({
-    queryKey: ["/api/federation-requests", selectedRequest?.id, "activities"],
+    queryKey: [`${backendUrl}/api/federation-requests`, selectedRequest?.id, "activities"],
     enabled: !!selectedRequest?.id && isDetailDialogOpen,
   });
 
@@ -88,13 +89,13 @@ export default function FederationAdminPage() {
   }
 
   const { data: requestDocuments = [], isLoading: isLoadingDocuments } = useQuery<RequestDocument[]>({
-    queryKey: ["/api/federation-admin/requests", selectedRequest?.id, "documents"],
+    queryKey: [`${backendUrl}/api/federation-admin/requests`, selectedRequest?.id, "documents"],
     enabled: !!selectedRequest?.id && isDetailDialogOpen && detailTab === "documents",
   });
 
   const sendMessageMutation = useMutation({
     mutationFn: async (content: string) => {
-      return apiRequest("POST", `/api/federation-requests/${selectedRequest?.id}/messages`, {
+      return apiRequest("POST", `${backendUrl}/api/federation-requests/${selectedRequest?.id}/messages`, {
         content,
         senderName: "Federation Admin",
         recipientPortal: "team",
@@ -113,7 +114,7 @@ export default function FederationAdminPage() {
 
   const acceptMutation = useMutation({
     mutationFn: async (id: string) => {
-      return apiRequest("POST", `/api/federation-admin/requests/${id}/accept`);
+      return apiRequest("POST", `${backendUrl}/api/federation-admin/requests/${id}/accept`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/federation-admin/requests"] });
@@ -133,15 +134,15 @@ export default function FederationAdminPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           name: file.name,
           size: file.size,
-          contentType: file.type 
+          contentType: file.type
         }),
       });
       if (!urlResponse.ok) throw new Error("Failed to get upload URL");
       const { uploadURL, objectPath } = await urlResponse.json();
-      
+
       // Step 2: Upload file directly to storage
       const uploadResponse = await fetch(uploadURL, {
         method: "PUT",
@@ -149,7 +150,7 @@ export default function FederationAdminPage() {
         body: file,
       });
       if (!uploadResponse.ok) throw new Error("Failed to upload file");
-      
+
       // Step 3: Issue the letter with the uploaded file info
       return apiRequest("POST", `/api/federation-admin/requests/${id}/issue`, {
         issuedDocumentStorageKey: `issued-${id}-${Date.now()}`,
@@ -463,7 +464,7 @@ export default function FederationAdminPage() {
                       <Badge>Active</Badge>
                     </div>
                   </div>
-                  
+
                   {feeSchedules.length === 0 ? (
                     <div className="text-center py-8">
                       <DollarSign className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
@@ -833,13 +834,12 @@ export default function FederationAdminPage() {
                     ) : (
                       <div className="space-y-3">
                         {requestMessages.slice().reverse().map((message) => (
-                          <div 
-                            key={message.id} 
-                            className={`p-3 rounded-lg ${
-                              message.senderPortal === 'federation' 
-                                ? 'bg-primary/10 ml-8' 
-                                : 'bg-muted mr-8'
-                            }`}
+                          <div
+                            key={message.id}
+                            className={`p-3 rounded-lg ${message.senderPortal === 'federation'
+                              ? 'bg-primary/10 ml-8'
+                              : 'bg-muted mr-8'
+                              }`}
                           >
                             <div className="flex items-center justify-between gap-2 mb-1">
                               <span className="font-medium text-sm">{message.senderName}</span>
@@ -866,7 +866,7 @@ export default function FederationAdminPage() {
                       data-testid="input-admin-message"
                     />
                   </div>
-                  <Button 
+                  <Button
                     onClick={() => sendMessageMutation.mutate(newMessage)}
                     disabled={!newMessage.trim() || sendMessageMutation.isPending}
                     className="w-full"
@@ -996,10 +996,9 @@ export default function FederationAdminPage() {
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
-              <div 
-                className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
-                  uploadedDocument ? "border-green-500 bg-green-50 dark:bg-green-900/20" : "border-muted-foreground/30 hover:border-primary"
-                }`}
+              <div
+                className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${uploadedDocument ? "border-green-500 bg-green-50 dark:bg-green-900/20" : "border-muted-foreground/30 hover:border-primary"
+                  }`}
                 onClick={() => document.getElementById("issue-file-input")?.click()}
               >
                 <input
@@ -1036,9 +1035,9 @@ export default function FederationAdminPage() {
                 )}
               </div>
               {uploadedDocument && (
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => setUploadedDocument(null)}
                   className="w-full"
                 >

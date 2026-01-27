@@ -13,7 +13,7 @@ const TOKEN_COSTS = {
   embassy_request: 10,
   message: 1,
   watch_video: 1,
-  federation_letter_request: 10, // Added federation letter request cost
+  federation_letter_request: 10,
 };
 
 export function registerTokenRoutes(app: Express) {
