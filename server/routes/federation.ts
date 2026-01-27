@@ -413,7 +413,7 @@ export function registerFederationRoutes(app: Express): void {
         const schedule = await storage.createFederationFeeSchedule({
           ...req.body,
           federationId: req.session.userId || "demo-federation",
-          platformServiceCharge: 25,
+          platformServiceCharge: 37500,
           isActive: true,
         });
         res.json(schedule);

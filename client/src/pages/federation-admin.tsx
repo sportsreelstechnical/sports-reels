@@ -22,7 +22,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import type { FederationLetterRequest, FederationFeeSchedule, FederationRequestActivity, FederationRequestMessage } from "@shared/schema";
 
-const PLATFORM_SERVICE_CHARGE = 25;
+const PLATFORM_SERVICE_CHARGE = 37500;
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: typeof Clock }> = {
   submitted: { label: "New Submissions", color: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200", icon: Send },
@@ -41,7 +41,7 @@ export default function FederationAdminPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("queue");
-  const [newFee, setNewFee] = useState({ country: "", baseFee: 0, currency: "USD" });
+  const [newFee, setNewFee] = useState({ country: "", baseFee: 0, currency: "NGN" });
   const [detailTab, setDetailTab] = useState("details");
   const [newMessage, setNewMessage] = useState("");
   const [isIssueDialogOpen, setIsIssueDialogOpen] = useState(false);
@@ -267,7 +267,7 @@ export default function FederationAdminPage() {
               <div className="flex items-center justify-between gap-2">
                 <div className="min-w-0">
                   <p className="text-xs text-muted-foreground">Total Revenue</p>
-                  <p className="text-2xl font-bold">${stats?.totalRevenue || 0}</p>
+                  <p className="text-2xl font-bold">₦{stats?.totalRevenue || 0}</p>
                 </div>
                 <TrendingUp className="h-6 w-6 text-green-500 flex-shrink-0" />
               </div>
@@ -364,7 +364,7 @@ export default function FederationAdminPage() {
                                 <div className="flex items-center gap-4 text-sm flex-wrap">
                                   <span>
                                     <span className="text-muted-foreground">Fee: </span>
-                                    <span className="font-medium">${request.totalAmount}</span>
+                                    <span className="font-medium">₦{request.totalAmount}</span>
                                   </span>
                                   <span>
                                     <span className="text-muted-foreground">Type: </span>
@@ -442,7 +442,7 @@ export default function FederationAdminPage() {
                   <div>
                     <CardTitle>Fee Schedule</CardTitle>
                     <CardDescription>
-                      Set base fees by destination country. Platform service charge of ${PLATFORM_SERVICE_CHARGE} is automatically added.
+                      Set base fees by destination country. Platform service charge of ₦{PLATFORM_SERVICE_CHARGE} is automatically added.
                     </CardDescription>
                   </div>
                   <Button onClick={() => setIsFeeDialogOpen(true)} data-testid="button-add-fee">
@@ -458,7 +458,7 @@ export default function FederationAdminPage() {
                       <div>
                         <p className="font-medium">Default Fee Structure</p>
                         <p className="text-sm text-muted-foreground">
-                          Base fee per request + ${PLATFORM_SERVICE_CHARGE} platform service charge
+                          Base fee per request + ₦{PLATFORM_SERVICE_CHARGE} platform service charge
                         </p>
                       </div>
                       <Badge>Active</Badge>
@@ -486,7 +486,7 @@ export default function FederationAdminPage() {
                             <div>
                               <p className="font-medium">{schedule.country}</p>
                               <p className="text-sm text-muted-foreground">
-                                Base: ${schedule.baseFee} + ${schedule.platformServiceCharge} platform = ${(schedule.baseFee || 0) + (schedule.platformServiceCharge || 0)} total
+                                Base: ₦{schedule.baseFee} + ₦{schedule.platformServiceCharge} platform = ₦{(schedule.baseFee || 0) + (schedule.platformServiceCharge || 0)} total
                               </p>
                             </div>
                           </div>
@@ -520,16 +520,16 @@ export default function FederationAdminPage() {
                   <div className="space-y-4">
                     <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
                       <span className="text-muted-foreground">Total Revenue (All Time)</span>
-                      <span className="text-xl font-bold">${stats?.totalRevenue || 0}</span>
+                      <span className="text-xl font-bold">₦{stats?.totalRevenue || 0}</span>
                     </div>
                     <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
                       <span className="text-muted-foreground">Platform Fees Collected</span>
-                      <span className="text-xl font-bold">${(stats?.processed || 0) * PLATFORM_SERVICE_CHARGE}</span>
+                      <span className="text-xl font-bold">₦{(stats?.processed || 0) * PLATFORM_SERVICE_CHARGE}</span>
                     </div>
                     <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
                       <span className="text-muted-foreground">Federation Share</span>
                       <span className="text-xl font-bold">
-                        ${(stats?.totalRevenue || 0) - (stats?.processed || 0) * PLATFORM_SERVICE_CHARGE}
+                        ₦{(stats?.totalRevenue || 0) - (stats?.processed || 0) * PLATFORM_SERVICE_CHARGE}
                       </span>
                     </div>
                   </div>
@@ -633,7 +633,7 @@ export default function FederationAdminPage() {
                     </div>
                     <div>
                       <span className="text-muted-foreground">Total Fee:</span>
-                      <p className="font-medium">${selectedRequest.totalAmount}</p>
+                      <p className="font-medium">₦{selectedRequest.totalAmount}</p>
                     </div>
                   </div>
 
