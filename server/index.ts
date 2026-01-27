@@ -4,6 +4,8 @@ import cors from "cors";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
+import connectPgSimple from "connect-pg-simple";
+import { pool } from "./db";
 import passport from "passport";
 import { setupAuth } from "./auth";
 
@@ -57,6 +59,10 @@ app.use(express.urlencoded({ extended: false }));
 
 app.use(
   session({
+    store: new (connectPgSimple(session))({
+      pool,
+      createTableIfMissing: true,
+    }),
     secret: process.env.SESSION_SECRET || "sports-reels-secret-key",
     proxy: true,
     resave: false,
