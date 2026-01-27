@@ -23,28 +23,28 @@ export function registerTokenRoutes(app: Express) {
         {
           name: "Starter Pack",
           tokens: 50,
-          priceUsd: 999, // cents
+          priceUsd: 1750000, // kobo (NGN 17,500)
           description: "Perfect for getting started",
           isActive: true,
         },
         {
           name: "Standard Pack",
           tokens: 100,
-          priceUsd: 1799, // cents
+          priceUsd: 2900000, // kobo (NGN 29,000)
           description: "Best value for regular users",
           isActive: true,
         },
         {
           name: "Pro Pack",
           tokens: 150,
-          priceUsd: 2499, // cents
+          priceUsd: 3850000, // kobo (NGN 38,500)
           description: "For power users",
           isActive: true,
         },
         {
           name: "Enterprise Pack",
           tokens: 200,
-          priceUsd: 2999, // cents
+          priceUsd: 4750000, // kobo (NGN 47,500)
           description: "Maximum value",
           isActive: true,
         },
@@ -158,7 +158,7 @@ export function registerTokenRoutes(app: Express) {
       if (!user) return res.status(404).json({ error: "User not found" });
 
       const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
-      const PAYSTACK_CURRENCY = process.env.PAYSTACK_CURRENCY || "USD";
+      const PAYSTACK_CURRENCY = process.env.PAYSTACK_CURRENCY || "NGN";
 
       if (
         !PAYSTACK_SECRET_KEY ||

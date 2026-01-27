@@ -85,9 +85,9 @@ export function registerFederationRoutes(app: Express): void {
           status: "pending",
           paymentStatus: "unpaid",
           // Default fees could be fetched from a centralized config or DB in future
-          feeAmount: 1000,
-          serviceCharge: 150,
-          totalAmount: 1150,
+          feeAmount: 225000, // NGN 225,000
+          serviceCharge: 37500, // NGN 37,500
+          totalAmount: 262500, // NGN 262,500
         });
 
         const request =
@@ -129,7 +129,7 @@ export function registerFederationRoutes(app: Express): void {
         if (!user) return res.status(404).json({ error: "User not found" });
 
         const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
-        const PAYSTACK_CURRENCY = process.env.PAYSTACK_CURRENCY || "USD";
+        const PAYSTACK_CURRENCY = process.env.PAYSTACK_CURRENCY || "NGN";
 
         if (
           !PAYSTACK_SECRET_KEY ||
@@ -148,6 +148,10 @@ export function registerFederationRoutes(app: Express): void {
             email: user.email || `${user.username}@sportsreels.ai`,
             amount: amountInCents,
             currency: PAYSTACK_CURRENCY,
+            // TODO: Add subaccount/split code here for automatic splitting
+            // subaccount: "ACCT_xxxx",
+            // transaction_charge: 3750000, // charge in kobo
+            // bearer: "subaccount",
             callback_url: `${process.env.FRONTEND_URL}/federation-letters?status=verify&requestId=${id}`,
             metadata: {
               requestId: id,
@@ -352,7 +356,7 @@ export function registerFederationRoutes(app: Express): void {
           ["submitted", "processing"].includes(r.status),
         ).length;
         const totalRevenue = requests.reduce(
-          (sum, r) => sum + (r.totalAmount || 0),
+          (sum, r) => sum + (r.feeAmount || 0), // Only count federation fee portion
           0,
         );
 
