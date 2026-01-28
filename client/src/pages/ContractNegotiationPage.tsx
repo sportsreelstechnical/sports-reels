@@ -11,6 +11,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { DocumentPreview } from '@/components/DocumentPreview';
 import {
   MessageSquare,
   FileText,
@@ -150,6 +151,9 @@ const ContractNegotiationPage: React.FC = () => {
   const [actionDetails, setActionDetails] = useState('');
   const [uploadingDocument, setUploadingDocument] = useState(false);
   const [userRole, setUserRole] = useState<'team' | 'agent' | null>(null);
+  const [selectedDocumentUrl, setSelectedDocumentUrl] = useState<string | null>(null);
+  const [selectedDocumentName, setSelectedDocumentName] = useState<string>("");
+  const [isDocumentModalOpen, setIsDocumentModalOpen] = useState(false);
   const [counterOfferTerms, setCounterOfferTerms] = useState({
     contractValue: 0,
     salary: 0,
@@ -1926,7 +1930,11 @@ const ContractNegotiationPage: React.FC = () => {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => window.open(contract.document_url, '_blank')}
+                            onClick={() => {
+                              setSelectedDocumentUrl(contract.document_url);
+                              setSelectedDocumentName(`Contract_${contract.contract_number || contract.id}.pdf`);
+                              setIsDocumentModalOpen(true);
+                            }}
                             className="font-poppins"
                           >
                             <FileText className="h-4 w-4 mr-2" />
@@ -2235,6 +2243,20 @@ const ContractNegotiationPage: React.FC = () => {
           />
         </DialogContent>
       </Dialog>
+
+      {selectedDocumentUrl && (
+        <DocumentPreview
+          fileUrl={selectedDocumentUrl}
+          fileName={selectedDocumentName}
+          fileType="application/pdf"
+          isOpen={isDocumentModalOpen}
+          onClose={() => {
+            setIsDocumentModalOpen(false);
+            setSelectedDocumentUrl(null);
+            setSelectedDocumentName("");
+          }}
+        />
+      )}
     </Layout>
   );
 };

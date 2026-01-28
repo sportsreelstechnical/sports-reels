@@ -2,15 +2,15 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { Link } from "react-router-dom";
-import { FileText, User, Shield, Download, Clock, AlertTriangle, CheckCircle2, FileCheck, FileWarning, Eye, Building2 } from "lucide-react";
+import { FileText, User, Shield, Download, Clock, AlertTriangle, CheckCircle2, FileCheck, FileWarning, Eye } from "lucide-react";
 import { LoadingSpinner } from "@/components/LoadingScreen";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest, queryClient, getFullUrl } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { jsPDF } from "jspdf";
 import logoImage from "@assets/logo.jpeg";
+import { DocumentPreview } from "@/components/DocumentPreview";
+import { useState } from "react";
 
 interface DocumentVerification {
   verificationStatus: string;
@@ -107,6 +107,8 @@ function VerificationBadge({ verification, label }: { verification: DocumentVeri
 
 export default function EmbassyDashboard() {
   const { toast } = useToast();
+  const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
+  const [isDocumentModalOpen, setIsDocumentModalOpen] = useState(false);
 
   const { data: authData } = useQuery<{ user: unknown; embassyProfile: { country?: string } }>({
     queryKey: ["/api/auth/me"],
@@ -116,6 +118,12 @@ export default function EmbassyDashboard() {
     queryKey: ["/api/embassy/documents"],
   });
 
+  const { data: selectedDocData } = useQuery<{
+    document: { storageKey?: string; objectPath?: string; originalName?: string; mimeType?: string };
+  }>({
+    queryKey: [`/api/embassy/documents/${selectedDocId}`],
+    enabled: !!selectedDocId && isDocumentModalOpen,
+  });
 
   const verifyMutation = useMutation({
     mutationFn: async ({ documentType, documentId }: { documentType: string; documentId: string }) => {
@@ -657,18 +665,37 @@ export default function EmbassyDashboard() {
                       <Shield className="h-4 w-4" />
                       <span>All access is logged and timestamped</span>
                     </div>
-                    <Link to={`/dashboard/embassy/document/${doc.id}`}>
-                      <Button variant="outline" size="sm" data-testid={`button-view-legacy-${doc.id}`}>
-                        <Eye className="mr-2 h-4 w-4" />
-                        View Document
-                      </Button>
-                    </Link>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      data-testid={`button-view-legacy-${doc.id}`}
+                      onClick={() => {
+                        setSelectedDocId(doc.id);
+                        setIsDocumentModalOpen(true);
+                      }}
+                    >
+                      <Eye className="mr-2 h-4 w-4" />
+                      View Document
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
             ))}
           </div>
         </div>
+      )}
+
+      {selectedDocData?.document && (
+        <DocumentPreview
+          fileUrl={getFullUrl(`/api/object-storage/download/${selectedDocData.document.storageKey || selectedDocData.document.objectPath}`)}
+          fileName={selectedDocData.document.originalName || "Document"}
+          fileType={selectedDocData.document.mimeType || "application/pdf"}
+          isOpen={isDocumentModalOpen}
+          onClose={() => {
+            setIsDocumentModalOpen(false);
+            setSelectedDocId(null);
+          }}
+        />
       )}
     </div>
   );

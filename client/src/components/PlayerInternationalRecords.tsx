@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Plus, Globe, Trophy, Calendar, Edit2, Trash2, Flag, Clock, FileText } from "lucide-react";
 import { apiRequest, queryClient, getFullUrl } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { DocumentPreview } from "@/components/DocumentPreview";
 import type { PlayerInternationalRecord } from "@shared/schema";
 
 const internationalRecordSchema = z.object({
@@ -39,6 +40,9 @@ interface PlayerInternationalRecordsProps {
 export default function PlayerInternationalRecords({ playerId, playerName }: PlayerInternationalRecordsProps) {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<PlayerInternationalRecord | null>(null);
+  const [selectedDocumentUrl, setSelectedDocumentUrl] = useState<string | null>(null);
+  const [selectedDocumentName, setSelectedDocumentName] = useState<string>("");
+  const [isDocumentModalOpen, setIsDocumentModalOpen] = useState(false);
   const { toast } = useToast();
 
   const { data: records = [], isLoading } = useQuery<PlayerInternationalRecord[]>({
@@ -450,15 +454,19 @@ export default function PlayerInternationalRecords({ playerId, playerName }: Pla
                       </Badge>
                     )}
                     {record.documentUrl && (
-                      <a
-                        href={record.documentUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1 text-xs text-primary hover:underline"
+                      <Button
+                        variant="link"
+                        size="sm"
+                        className="flex items-center gap-1 text-xs text-primary hover:underline p-0 h-auto"
+                        onClick={() => {
+                          setSelectedDocumentUrl(record.documentUrl!);
+                          setSelectedDocumentName(`International_Record_${record.nationalTeam}_${record.id}.pdf`);
+                          setIsDocumentModalOpen(true);
+                        }}
                       >
                         <FileText className="h-3 w-3" />
                         View Document
-                      </a>
+                      </Button>
                     )}
                   </div>
                   <div className="flex gap-1">
@@ -485,6 +493,20 @@ export default function PlayerInternationalRecords({ playerId, playerName }: Pla
           </div>
         )}
       </CardContent>
+
+      {selectedDocumentUrl && (
+        <DocumentPreview
+          fileUrl={selectedDocumentUrl}
+          fileName={selectedDocumentName}
+          fileType="application/pdf"
+          isOpen={isDocumentModalOpen}
+          onClose={() => {
+            setIsDocumentModalOpen(false);
+            setSelectedDocumentUrl(null);
+            setSelectedDocumentName("");
+          }}
+        />
+      )}
     </Card>
   );
 }

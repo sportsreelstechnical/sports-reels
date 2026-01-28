@@ -6,6 +6,7 @@ import PlayerProfileEditor from "@/components/PlayerProfileEditor";
 import TransferEligibilityDashboard from "@/components/TransferEligibilityDashboard";
 import PlayerDocumentManager from "@/components/PlayerDocumentManager";
 import VideoPlayer from "@/components/VideoPlayer";
+import { DocumentPreview } from "@/components/DocumentPreview";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -37,6 +38,9 @@ export default function PlayerProfile({ params, isScoutView }: PlayerProfileProp
   const isScout = isScoutView || location.pathname.startsWith("/dashboard/scout/");
   const [selectedVideo, setSelectedVideo] = useState<VideoType | null>(null);
   const [isVideoPlayerOpen, setIsVideoPlayerOpen] = useState(false);
+  const [selectedDocumentUrl, setSelectedDocumentUrl] = useState<string | null>(null);
+  const [selectedDocumentName, setSelectedDocumentName] = useState<string>("");
+  const [isDocumentModalOpen, setIsDocumentModalOpen] = useState(false);
   const { toast } = useToast();
   const { balance } = useCheckTokens();
 
@@ -582,7 +586,11 @@ export default function PlayerProfile({ params, isScoutView }: PlayerProfileProp
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => window.open(letter.issuedDocumentObjectPath!, '_blank')}
+                                  onClick={() => {
+                                    setSelectedDocumentUrl(letter.issuedDocumentObjectPath!);
+                                    setSelectedDocumentName(letter.issuedDocumentOriginalName || `Federation_Letter_${letter.requestNumber}.pdf`);
+                                    setIsDocumentModalOpen(true);
+                                  }}
                                   data-testid={`button-view-letter-${letter.id}`}
                                 >
                                   <Eye className="h-4 w-4 mr-2" />
@@ -624,6 +632,20 @@ export default function PlayerProfile({ params, isScoutView }: PlayerProfileProp
           setSelectedVideo(null);
         }}
       />
+
+      {selectedDocumentUrl && (
+        <DocumentPreview
+          fileUrl={selectedDocumentUrl}
+          fileName={selectedDocumentName}
+          fileType="application/pdf"
+          isOpen={isDocumentModalOpen}
+          onClose={() => {
+            setIsDocumentModalOpen(false);
+            setSelectedDocumentUrl(null);
+            setSelectedDocumentName("");
+          }}
+        />
+      )}
     </div>
   );
 }
