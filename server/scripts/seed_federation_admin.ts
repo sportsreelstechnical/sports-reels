@@ -10,8 +10,13 @@ async function main() {
   // Check if user exists
   let existingUser = await storage.getUserByUsername(username);
   if (existingUser) {
-    console.log("Federation Admin already exists.");
-    console.log("Federation Admin already exists.");
+    console.log("Federation Admin already exists. Updating password...");
+    // Force update password to ensure it is correct
+    const updatedUser = await storage.updateUser(existingUser.id, { password });
+    if (updatedUser) {
+      existingUser = updatedUser;
+      console.log("Federation Admin password updated.");
+    }
   } else {
     existingUser = await storage.createUser({
       username,

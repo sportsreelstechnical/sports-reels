@@ -543,6 +543,54 @@ export function registerFederationRoutes(app: Express): void {
     },
   );
 
+  // Get Request Documents (Admin)
+  app.get(
+    "/api/federation-admin/requests/:id/documents",
+    requireAuth,
+    async (req: Request, res: Response) => {
+      try {
+        const { id } = req.params;
+        const request = await storage.getFederationLetterRequest(id);
+
+        if (!request) {
+          return res.status(404).json({ error: "Request not found" });
+        }
+
+        // Fetch player documents if playerId exists
+        let playerDocuments: any[] = [];
+        if (request.playerId) {
+          const docs = await storage.getPlayerDocuments(request.playerId);
+          playerDocuments = docs.map(doc => ({
+            type: doc.documentType,
+            name: doc.originalName,
+            objectPath: doc.objectPath,
+            storageKey: doc.storageKey,
+            mimeType: doc.mimeType,
+            verificationStatus: doc.verificationStatus,
+          }));
+        }
+
+        // Fetch issued documents
+        const issuedDocs = await storage.getFederationIssuedDocuments(id);
+        const issuedDocuments = issuedDocs.map(doc => ({
+          type: "issued_document",
+          name: doc.originalName,
+          objectPath: doc.objectPath,
+          storageKey: doc.storageKey,
+          mimeType: doc.mimeType,
+          verificationStatus: "verified",
+          issuedAt: doc.createdAt,
+        }));
+
+        // Combine both document types
+        const allDocuments = [...playerDocuments, ...issuedDocuments];
+        res.json(allDocuments);
+      } catch (error) {
+        handleError(res, error);
+      }
+    },
+  );
+
   // Messages
   app.get(
     "/api/federation-requests/:id/messages",
