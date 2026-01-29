@@ -69,7 +69,7 @@ export class ObjectStorageService {
   async getObjectEntityUploadURL(): Promise<string> {
     const objectId = randomUUID();
     // Use relative path for local development, or BACKEND_URL if available
-    const baseUrl = process.env.BACKEND_URL || "http://localhost:5001";
+    const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
     return `${baseUrl}/api/uploads/${objectId}`;
   }
 
