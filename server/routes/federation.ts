@@ -556,35 +556,111 @@ export function registerFederationRoutes(app: Express): void {
           return res.status(404).json({ error: "Request not found" });
         }
 
-        // Fetch player documents if playerId exists
-        let playerDocuments: any[] = [];
+        const allDocuments: any[] = [];
+
+        // 1. Fetch passport document if passportDocumentId exists
+        if (request.passportDocumentId) {
+          try {
+            const passportDoc = await storage.getPlayerDocument(
+              request.passportDocumentId,
+            );
+            if (passportDoc) {
+              allDocuments.push({
+                type: "passport",
+                name: passportDoc.originalName,
+                objectPath: passportDoc.objectPath,
+                storageKey: passportDoc.storageKey,
+                mimeType: passportDoc.mimeType,
+                verificationStatus: passportDoc.verificationStatus,
+              });
+            }
+          } catch (err) {
+            console.error("Error fetching passport document:", err);
+          }
+        }
+
+        // 2. Add invitation letter if it exists in the request
+        if (request.invitationLetterObjectPath) {
+          allDocuments.push({
+            type: "invitation_letter",
+            name: request.invitationLetterOriginalName || "Invitation Letter",
+            objectPath: request.invitationLetterObjectPath,
+            storageKey: request.invitationLetterStorageKey,
+            mimeType: "application/pdf",
+            verificationStatus: "pending",
+          });
+        }
+
+        // 3. Fetch other player documents if playerId exists
         if (request.playerId) {
-          const docs = await storage.getPlayerDocuments(request.playerId);
-          playerDocuments = docs.map(doc => ({
-            type: doc.documentType,
+          try {
+            const docs = await storage.getPlayerDocuments(request.playerId);
+            const playerDocs = docs
+              .filter((doc) => doc.id !== request.passportDocumentId) // Avoid duplicates
+              .map((doc) => ({
+                type: doc.documentType,
+                name: doc.originalName,
+                objectPath: doc.objectPath,
+                storageKey: doc.storageKey,
+                mimeType: doc.mimeType,
+                verificationStatus: doc.verificationStatus,
+              }));
+            allDocuments.push(...playerDocs);
+          } catch (err) {
+            console.error("Error fetching player documents:", err);
+          }
+        }
+
+        // 4. Fetch issued documents
+        try {
+          const issuedDocs = await storage.getFederationIssuedDocuments(id);
+          const issuedDocuments = issuedDocs.map((doc) => ({
+            type: "issued_document",
             name: doc.originalName,
             objectPath: doc.objectPath,
             storageKey: doc.storageKey,
             mimeType: doc.mimeType,
-            verificationStatus: doc.verificationStatus,
+            verificationStatus: "verified",
+            issuedAt: doc.createdAt,
           }));
+          allDocuments.push(...issuedDocuments);
+        } catch (err) {
+          console.error("Error fetching issued documents:", err);
         }
 
-        // Fetch issued documents
-        const issuedDocs = await storage.getFederationIssuedDocuments(id);
-        const issuedDocuments = issuedDocs.map(doc => ({
-          type: "issued_document",
-          name: doc.originalName,
-          objectPath: doc.objectPath,
-          storageKey: doc.storageKey,
-          mimeType: doc.mimeType,
-          verificationStatus: "verified",
-          issuedAt: doc.createdAt,
-        }));
-
-        // Combine both document types
-        const allDocuments = [...playerDocuments, ...issuedDocuments];
         res.json(allDocuments);
+      } catch (error) {
+        handleError(res, error);
+      }
+    },
+  );
+
+  // Activities
+  app.get(
+    "/api/federation-requests/:id/activities",
+    requireAuth,
+    async (req: Request, res: Response) => {
+      try {
+        const activities = await storage.getFederationRequestActivities(
+          req.params.id,
+        );
+        res.json(activities);
+      } catch (error) {
+        handleError(res, error);
+      }
+    },
+  );
+
+  // Issued Documents
+  app.get(
+    "/api/federation-requests/:id/issued-documents",
+    requireAuth,
+    async (req: Request, res: Response) => {
+      try {
+        const issuedDocs = await storage.getFederationIssuedDocuments(
+          req.params.id,
+        );
+        res.json(issuedDocs);
       } catch (error) {
         handleError(res, error);
       }
