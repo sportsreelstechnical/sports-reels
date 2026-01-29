@@ -47,10 +47,10 @@ export default function FederationAdminPage() {
   const [isIssueDialogOpen, setIsIssueDialogOpen] = useState(false);
   const [uploadedDocument, setUploadedDocument] = useState<File | null>(null);
 
-  const { data: stats } = useQuery<{ totalRequests: number; processed: number; pending: number; totalRevenue: number }>({
-    queryKey: ["/api/federation-admin/dashboard-stats"],
-  });
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
+  const { data: stats } = useQuery<{ totalRequests: number; processed: number; pending: number; totalRevenue: number }>({
+    queryKey: [`${backendUrl}/api/federation-admin/dashboard-stats`],
+  });
   const { data: requests = [], isLoading } = useQuery<FederationLetterRequest[]>({
 
     queryKey: [`${backendUrl}/api/federation-admin/requests`, statusFilter],
@@ -75,7 +75,7 @@ export default function FederationAdminPage() {
   });
 
   const { data: requestMessages = [] } = useQuery<FederationRequestMessage[]>({
-    queryKey: ["/api/federation-requests", selectedRequest?.id, "messages"],
+    queryKey: [`${backendUrl}/api/federation-requests`, selectedRequest?.id, "messages"],
     enabled: !!selectedRequest?.id && isDetailDialogOpen,
   });
 
@@ -104,8 +104,8 @@ export default function FederationAdminPage() {
     onSuccess: () => {
       toast({ title: "Message Sent", description: "Your message has been sent to the team." });
       setNewMessage("");
-      queryClient.invalidateQueries({ queryKey: ["/api/federation-requests", selectedRequest?.id, "messages"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/federation-requests", selectedRequest?.id, "activities"] });
+      queryClient.invalidateQueries({ queryKey: [`${backendUrl}/api/federation-requests`, selectedRequest?.id, "messages"] });
+      queryClient.invalidateQueries({ queryKey: [`${backendUrl}/api/federation-requests`, selectedRequest?.id, "activities"] });
     },
     onError: (error: Error) => {
       toast({ title: "Failed to Send", description: error.message, variant: "destructive" });
@@ -117,8 +117,8 @@ export default function FederationAdminPage() {
       return apiRequest("POST", `${backendUrl}/api/federation-admin/requests/${id}/accept`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/federation-admin/requests"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/federation-admin/dashboard-stats"] });
+      queryClient.invalidateQueries({ queryKey: [`${backendUrl}/api/federation-admin/requests`] });
+      queryClient.invalidateQueries({ queryKey: [`${backendUrl}/api/federation-admin/dashboard-stats`] });
       toast({ title: "Request accepted", description: "Request is now being processed" });
       setIsDetailDialogOpen(false);
     },
@@ -161,8 +161,8 @@ export default function FederationAdminPage() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/federation-admin/requests"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/federation-admin/dashboard-stats"] });
+      queryClient.invalidateQueries({ queryKey: [`${backendUrl}/api/federation-admin/requests`] });
+      queryClient.invalidateQueries({ queryKey: [`${backendUrl}/api/federation-admin/dashboard-stats`] });
       toast({ title: "Letter issued", description: "Federation letter has been issued and sent to the team" });
       setIsDetailDialogOpen(false);
     },
@@ -176,8 +176,8 @@ export default function FederationAdminPage() {
       return apiRequest("POST", `/api/federation-admin/requests/${id}/reject`, { rejectionReason: reason });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/federation-admin/requests"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/federation-admin/dashboard-stats"] });
+      queryClient.invalidateQueries({ queryKey: [`${backendUrl}/api/federation-admin/requests`] });
+      queryClient.invalidateQueries({ queryKey: [`${backendUrl}/api/federation-admin/dashboard-stats`] });
       toast({ title: "Request rejected", description: "Request has been rejected" });
       setIsRejectDialogOpen(false);
       setIsDetailDialogOpen(false);
