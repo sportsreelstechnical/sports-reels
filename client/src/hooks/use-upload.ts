@@ -63,7 +63,7 @@ export function useUpload(options: UseUploadOptions = {}) {
   const requestUploadUrl = useCallback(
     async (file: File): Promise<UploadResponse> => {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/uploads/request-url`,
+        `${import.meta.env.VITE_BACKEND_URL}/api/uploads/request-url`,
         {
           method: "POST",
           headers: {
@@ -166,7 +166,7 @@ export function useUpload(options: UseUploadOptions = {}) {
     }> => {
       // Use the actual file properties to request a per-file presigned URL
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/uploads/request-url`,
+        `${import.meta.env.VITE_BACKEND_URL}/api/uploads/request-url`,
         {
           method: "POST",
           headers: {
