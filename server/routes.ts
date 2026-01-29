@@ -1,9 +1,6 @@
 import type { Express } from "express";
 import { type Server } from "http";
-import {
-  registerObjectStorageRoutes,
-  ObjectStorageService,
-} from "./replit_integrations/object_storage";
+import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 
 // Import modular routes
 import { registerAuthRoutes } from "./routes/auth";
@@ -32,7 +29,6 @@ export async function registerRoutes(
 ): Promise<Server> {
   // Register object storage routes
   registerObjectStorageRoutes(app);
-  const objectStorageService = new ObjectStorageService();
 
   // Register all domain-specific routes
   registerR2Routes(app);
@@ -55,30 +51,34 @@ export async function registerRoutes(
   registerInvitationLetterRoutes(app);
   registerFederationRoutes(app);
 
-  // Object storage upload URL endpoint
+  // Object storage upload URL endpoint - uses Cloudflare R2
   app.get("/api/object-storage/upload-url", requireAuth, async (req, res) => {
     try {
-      const signedUrl = await objectStorageService.getObjectEntityUploadURL();
+      const { folder, contentType } = req.query;
 
-      // Determine if it is a relative URL or absolute
-      const isRelative = signedUrl.startsWith("/");
-
-      let objectName: string;
-
-      if (isRelative) {
-        // signedUrl is like /api/uploads/UUID
-        const parts = signedUrl.split("/");
-        objectName = parts.pop() || "unknown"; // UUID
-      } else {
-        const url = new URL(signedUrl);
-        const pathParts = url.pathname.split("/");
-        objectName = pathParts.slice(2).join("/");
+      if (!contentType || typeof contentType !== "string") {
+        return res
+          .status(400)
+          .json({ error: "contentType query parameter is required" });
       }
+
+      // Import R2 service
+      const { generatePresignedPutUrl } = await import("./services/r2");
+      const { randomUUID } = await import("crypto");
+
+      // Generate a unique key for the file
+      const fileId = randomUUID();
+      const folderPath =
+        folder && typeof folder === "string" ? folder : "uploads";
+      const key = `${folderPath}/${fileId}`;
+
+      // Generate presigned URL for uploading to R2
+      const signedUrl = await generatePresignedPutUrl(key, contentType, 3600);
 
       res.json({
         signedUrl,
-        key: `uploads/${objectName}`,
-        objectPath: `/objects/uploads/${objectName}`,
+        key,
+        objectPath: key, // The path in R2 where the file will be stored
       });
     } catch (error: unknown) {
       const errorMessage =

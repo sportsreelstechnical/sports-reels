@@ -130,7 +130,7 @@ export default function FederationAdminPage() {
   const issueMutation = useMutation({
     mutationFn: async ({ id, file }: { id: string; file: File }) => {
       // Step 1: Get presigned upload URL
-      const urlResponse = await fetch("/api/uploads/request-url", {
+      const urlResponse = await fetch(`${backendUrl}/api/uploads/request-url`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
