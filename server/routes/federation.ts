@@ -714,4 +714,115 @@ export function registerFederationRoutes(app: Express): void {
       }
     },
   );
+
+  // Download Issued Document (Original)
+  app.get(
+    "/api/federation-requests/:id/issued-documents/:docId/download-original",
+    requireAuth,
+    async (req: Request, res: Response) => {
+      try {
+        const { id, docId } = req.params;
+        const { generatePresignedGetUrl } = await import("../services/r2");
+
+        const issuedDocs = await storage.getFederationIssuedDocuments(id);
+        const doc = issuedDocs.find((d) => d.id === docId);
+
+        if (!doc) {
+          return res.status(404).json({ error: "Document not found" });
+        }
+
+        // Increment download count
+        await storage.incrementIssuedDocumentDownloadCount(docId);
+
+        // Log activity
+        await logActivity(
+          id,
+          "document_downloaded",
+          `Downloaded original: ${doc.originalName}`,
+          {
+            userId: req.session.userId,
+            name: req.session.username || "User",
+            role: "team_admin",
+          },
+        );
+
+        // Generate R2 presigned URL for download
+        console.log("=== DOWNLOAD DEBUG (Original) ===");
+        console.log("Document ID:", doc.id);
+        console.log("Original Name:", doc.originalName);
+        console.log("Storage Key:", doc.storageKey);
+        console.log("Object Path:", doc.objectPath);
+
+        if (!doc.storageKey) {
+          console.log("ERROR: No storageKey found!");
+          return res
+            .status(404)
+            .json({ error: "Document file not found - no storage key" });
+        }
+
+        const downloadUrl = await generatePresignedGetUrl(doc.storageKey, 300);
+        console.log("Generated presigned URL:", downloadUrl);
+        console.log("=================================");
+        res.redirect(downloadUrl);
+      } catch (error) {
+        handleError(res, error);
+      }
+    },
+  );
+
+  // Download Issued Document (With Platform Certificate/Timestamp)
+  app.get(
+    "/api/federation-requests/:id/issued-documents/:docId/download-file",
+    requireAuth,
+    async (req: Request, res: Response) => {
+      try {
+        const { id, docId } = req.params;
+        const { generatePresignedGetUrl } = await import("../services/r2");
+
+        const issuedDocs = await storage.getFederationIssuedDocuments(id);
+        const doc = issuedDocs.find((d) => d.id === docId);
+
+        if (!doc) {
+          return res.status(404).json({ error: "Document not found" });
+        }
+
+        // Increment download count
+        await storage.incrementIssuedDocumentDownloadCount(docId);
+
+        // Log activity
+        await logActivity(
+          id,
+          "document_downloaded",
+          `Downloaded certificate: ${doc.originalName}`,
+          {
+            userId: req.session.userId,
+            name: req.session.username || "User",
+            role: "team_admin",
+          },
+        );
+
+        // Generate R2 presigned URL for download
+        // In the future, this could serve a version with platform watermark/timestamp
+        console.log("=== DOWNLOAD DEBUG (Certificate) ===");
+        console.log("Document ID:", doc.id);
+        console.log("Original Name:", doc.originalName);
+        console.log("Storage Key:", doc.storageKey);
+        console.log("Object Path:", doc.objectPath);
+
+        if (!doc.storageKey) {
+          console.log("ERROR: No storageKey found!");
+          return res
+            .status(404)
+            .json({ error: "Document file not found - no storage key" });
+        }
+
+        const downloadUrl = await generatePresignedGetUrl(doc.storageKey, 300);
+        console.log("Generated presigned URL:", downloadUrl);
+        console.log("====================================");
+        res.redirect(downloadUrl);
+      } catch (error) {
+        handleError(res, error);
+      }
+    },
+  );
 }

@@ -99,10 +99,12 @@ export default function FederationLettersPage() {
   const [isUploadingPassport, setIsUploadingPassport] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [viewTab, setViewTab] = useState<string>("details");
+  const [viewTab, setViewTab] = useState("details");
   const [newMessage, setNewMessage] = useState("");
   const [isUploadingInvitation, setIsUploadingInvitation] = useState(false);
   const [activeTab, setActiveTab] = useState("player");
+  const [isCertificateModalOpen, setIsCertificateModalOpen] = useState(false);
+  const [selectedCertificate, setSelectedCertificate] = useState<FederationIssuedDocument | null>(null);
 
   const handleNext = async () => {
     if (activeTab === "player") {
@@ -251,6 +253,8 @@ export default function FederationLettersPage() {
   );
 
   const selectedPlayer = players.find((p) => p.id === selectedPlayerId);
+
+  const latestMetrics = playerMetrics?.[0];
 
   const { data: requestActivities = [] } = useQuery<FederationRequestActivity[]>({
     queryKey: ["/api/federation-requests", selectedRequest?.id, "activities"],
@@ -528,8 +532,6 @@ export default function FederationLettersPage() {
       </Badge>
     );
   };
-
-  const latestMetrics = playerMetrics?.[0];
 
   if (playersLoading || requestsLoading) {
     return (
@@ -1478,17 +1480,14 @@ export default function FederationLettersPage() {
                                   <Button
                                     size="sm"
                                     variant="default"
-                                    data-testid={`button-download-certificate-${doc.id}`}
+                                    data-testid={`button-view-certificate-${doc.id}`}
                                     onClick={() => {
-                                      window.open(`/api/federation-requests/${selectedRequest?.id}/issued-documents/${doc.id}/download-file`, '_blank');
-                                      toast({
-                                        title: "Certificate Downloaded",
-                                        description: "Platform certificate with timestamp downloaded",
-                                      });
+                                      setSelectedCertificate(doc);
+                                      setIsCertificateModalOpen(true);
                                     }}
                                   >
-                                    <FileCheck className="h-4 w-4 mr-1" />
-                                    Certificate
+                                    <Eye className="h-4 w-4 mr-1" />
+                                    View
                                   </Button>
                                   <Button
                                     size="sm"
@@ -1503,7 +1502,7 @@ export default function FederationLettersPage() {
                                     }}
                                   >
                                     <Download className="h-4 w-4 mr-1" />
-                                    Original
+                                    Download
                                   </Button>
                                 </div>
                               </div>
@@ -1570,6 +1569,110 @@ export default function FederationLettersPage() {
                       </>
                     )}
                   </Button>
+                </DialogFooter>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Certificate Viewer Modal */}
+        <Dialog open={isCertificateModalOpen} onOpenChange={setIsCertificateModalOpen}>
+          <DialogContent className="max-w-4xl max-h-[90vh]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <FileCheck className="h-5 w-5" />
+                Certificate Preview
+              </DialogTitle>
+              <DialogDescription>
+                {selectedCertificate?.originalName}
+              </DialogDescription>
+            </DialogHeader>
+            {selectedCertificate && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">Document Type:</span>
+                    <p className="font-medium capitalize">{selectedCertificate.documentType}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Issued Date:</span>
+                    <p className="font-medium">
+                      {selectedCertificate.createdAt && new Date(selectedCertificate.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                  {selectedCertificate.documentNumber && (
+                    <div>
+                      <span className="text-muted-foreground">Document Number:</span>
+                      <p className="font-medium">{selectedCertificate.documentNumber}</p>
+                    </div>
+                  )}
+                  {selectedCertificate.downloadCount !== null && selectedCertificate.downloadCount > 0 && (
+                    <div>
+                      <span className="text-muted-foreground">Downloads:</span>
+                      <p className="font-medium">{selectedCertificate.downloadCount} times</p>
+                    </div>
+                  )}
+                </div>
+
+                <Separator />
+
+                {/* Certificate Preview */}
+                <div className="border rounded-lg overflow-hidden bg-muted/50">
+                  {selectedCertificate.mimeType?.includes('pdf') ? (
+                    <iframe
+                      src={`/api/federation-requests/${selectedRequest?.id}/issued-documents/${selectedCertificate.id}/download-original`}
+                      className="w-full h-[500px]"
+                      title="Certificate Preview"
+                    />
+                  ) : selectedCertificate.mimeType?.startsWith('image/') ? (
+                    <img
+                      src={`/api/federation-requests/${selectedRequest?.id}/issued-documents/${selectedCertificate.id}/download-original`}
+                      alt="Certificate"
+                      className="w-full h-auto max-h-[500px] object-contain"
+                    />
+                  ) : (
+                    <div className="flex flex-col items-center justify-center h-[500px] text-muted-foreground">
+                      <FileText className="h-16 w-16 mb-4 opacity-50" />
+                      <p>Preview not available for this file type</p>
+                      <p className="text-sm">Please download to view</p>
+                    </div>
+                  )}
+                </div>
+
+                <DialogFooter className="flex justify-between sm:justify-between">
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsCertificateModalOpen(false)}
+                  >
+                    Close
+                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        window.open(`/api/federation-requests/${selectedRequest?.id}/issued-documents/${selectedCertificate.id}/download-original`, '_blank');
+                        toast({
+                          title: "Download Started",
+                          description: `Downloading: ${selectedCertificate.originalName}`,
+                        });
+                      }}
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Download Original
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        window.open(`/api/federation-requests/${selectedRequest?.id}/issued-documents/${selectedCertificate.id}/download-file`, '_blank');
+                        toast({
+                          title: "Certificate Downloaded",
+                          description: "Platform certificate with timestamp downloaded",
+                        });
+                      }}
+                    >
+                      <FileCheck className="h-4 w-4 mr-2" />
+                      Download Certificate
+                    </Button>
+                  </div>
                 </DialogFooter>
               </div>
             )}

@@ -67,11 +67,19 @@ export class ObjectStorageService {
   }
 
   async getObjectEntityUploadURL(): Promise<string> {
+    // Use R2 for file storage
+    const { generatePresignedPutUrl } = await import("../../services/r2");
     const objectId = randomUUID();
-    // Use the server's own URL for upload endpoints
-    const port = process.env.PORT || 5001;
-    const baseUrl = process.env.BACKEND_URL || `http://localhost:${port}`;
-    return `${baseUrl}/api/uploads/${objectId}`;
+    const key = `uploads/${objectId}`;
+
+    // Generate a presigned PUT URL for R2 with 1 hour expiry
+    const presignedUrl = await generatePresignedPutUrl(
+      key,
+      "application/octet-stream",
+      3600,
+    );
+
+    return presignedUrl;
   }
 
   async getObjectEntityFile(

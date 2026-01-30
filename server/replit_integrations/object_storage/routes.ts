@@ -18,11 +18,27 @@ export function registerObjectStorageRoutes(app: Express): void {
 
       const uploadURL = await objectStorageService.getObjectEntityUploadURL();
 
-      const objectPath = `/objects/uploads/${uploadURL.split("/").pop()}`;
+      // Extract the storage key from the upload URL
+      // The uploadURL is a presigned URL like: https://account.r2.cloudflarestorage.com/bucket/path/to/file?signature...
+      console.log("=== UPLOAD URL DEBUG ===");
+      console.log("Upload URL:", uploadURL);
+
+      const url = new URL(uploadURL);
+      const pathParts = url.pathname.split("/");
+      console.log("Path parts:", pathParts);
+
+      // Remove empty string to get the actual key (including uploads/ prefix)
+      const storageKey = pathParts.slice(1).join("/"); // This is the actual R2 key
+      console.log("Extracted storage key:", storageKey);
+
+      const objectPath = `/objects/uploads/${uploadURL.split("/").pop()?.split("?")[0]}`;
+      console.log("Object path:", objectPath);
+      console.log("=======================");
 
       res.json({
         uploadURL,
         objectPath,
+        storageKey, // Add the actual R2 storage key
         metadata: { name, size, contentType },
       });
     } catch (error) {
@@ -62,7 +78,7 @@ export function registerObjectStorageRoutes(app: Express): void {
   app.get("/objects/:objectPath(*)", async (req, res) => {
     try {
       const objectFile = await objectStorageService.getObjectEntityFile(
-        req.path
+        req.path,
       );
       await objectStorageService.downloadObject(objectFile, res);
     } catch (error) {

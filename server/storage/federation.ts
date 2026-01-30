@@ -250,4 +250,14 @@ export const federationRepository = {
       .returning();
     return doc;
   },
+
+  async incrementIssuedDocumentDownloadCount(id: string): Promise<void> {
+    const doc = await this.getFederationIssuedDocument(id);
+    if (doc) {
+      await db
+        .update(federationIssuedDocuments)
+        .set({ downloadCount: (doc.downloadCount || 0) + 1 })
+        .where(eq(federationIssuedDocuments.id, id));
+    }
+  },
 };

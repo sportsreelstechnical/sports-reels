@@ -141,7 +141,12 @@ export default function FederationAdminPage() {
         }),
       });
       if (!urlResponse.ok) throw new Error("Failed to get upload URL");
-      const { uploadURL, objectPath } = await urlResponse.json();
+      const { uploadURL, objectPath, storageKey } = await urlResponse.json();
+
+      console.log('=== FRONTEND UPLOAD DEBUG ===');
+      console.log('Received uploadURL:', uploadURL);
+      console.log('Received objectPath:', objectPath);
+      console.log('Received storageKey:', storageKey);
 
       // Step 2: Upload file directly to storage
       const uploadResponse = await fetch(uploadURL, {
@@ -150,10 +155,18 @@ export default function FederationAdminPage() {
         body: file,
       });
       if (!uploadResponse.ok) throw new Error("Failed to upload file");
+      console.log('File uploaded successfully to R2');
 
       // Step 3: Issue the letter with the uploaded file info
+      console.log('Sending to backend:', {
+        issuedDocumentStorageKey: storageKey,
+        issuedDocumentObjectPath: objectPath,
+        issuedDocumentOriginalName: file.name,
+      });
+      console.log('=============================');
+
       return apiRequest("POST", `/api/federation-admin/requests/${id}/issue`, {
-        issuedDocumentStorageKey: `issued-${id}-${Date.now()}`,
+        issuedDocumentStorageKey: storageKey, // Use the actual R2 storage key
         issuedDocumentObjectPath: objectPath,
         issuedDocumentOriginalName: file.name,
         mimeType: file.type,
