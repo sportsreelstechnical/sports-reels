@@ -444,7 +444,8 @@ export default function PlayerDocumentManager({ playerId, playerName }: PlayerDo
 
     setUploading(true);
     try {
-      const presignRes = await fetch("/api/object-storage/presign", {
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || '';
+      const presignRes = await fetch(`${backendUrl}/api/object-storage/presign`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -699,6 +700,44 @@ export default function PlayerDocumentManager({ playerId, playerName }: PlayerDo
               <div className="mt-3 flex items-center justify-between gap-2 flex-wrap">
                 {getStatusBadge(doc.verificationStatus || "pending")}
                 <div className="flex gap-1">
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => {
+                      const path = doc.objectPath || doc.storageKey;
+                      if (path) {
+                        const backendUrl = import.meta.env.VITE_BACKEND_URL || '';
+                        // Always use /objects/ endpoint for R2 access
+                        const url = path.startsWith('http')
+                          ? path
+                          : `${backendUrl}/objects/${path.replace(/^\/objects\//, '').replace(/^\//, '')}`;
+                        window.open(url, '_blank');
+                      }
+                    }}
+                    title="View document"
+                    data-testid={`button-view-${doc.id}`}
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => {
+                      const path = doc.objectPath || doc.storageKey;
+                      if (path) {
+                        const backendUrl = import.meta.env.VITE_BACKEND_URL || '';
+                        // Always use /objects/ endpoint for R2 access
+                        const url = path.startsWith('http')
+                          ? path
+                          : `${backendUrl}/objects/${path.replace(/^\/objects\//, '').replace(/^\//, '')}`;
+                        window.location.href = url;
+                      }
+                    }}
+                    title="Download document"
+                    data-testid={`button-download-${doc.id}`}
+                  >
+                    <Download className="h-4 w-4" />
+                  </Button>
                   <Button
                     size="icon"
                     variant="ghost"

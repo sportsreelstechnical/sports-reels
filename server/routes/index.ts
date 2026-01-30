@@ -41,6 +41,44 @@ export async function registerAllRoutes(
     }
   });
 
+  // R2 Presign endpoint for document uploads
+  app.post("/api/object-storage/presign", requireAuth, async (req, res) => {
+    try {
+      const { filename, contentType, folder } = req.body;
+      const { generatePresignedPutUrl } = await import("../services/r2");
+
+      // Generate unique key
+      const { randomUUID } = await import("crypto");
+      const fileExt = filename.split(".").pop();
+      const uniqueId = randomUUID();
+      const storageKey = folder
+        ? `${folder}/${uniqueId}.${fileExt}`
+        : `uploads/${uniqueId}.${fileExt}`;
+
+      // Generate R2 presigned PUT URL
+      const url = await generatePresignedPutUrl(storageKey, contentType);
+
+      // For backwards compatibility with local storage
+      const objectPath = `/objects/${storageKey}`;
+
+      console.log("=== PRESIGN DEBUG ===");
+      console.log("Filename:", filename);
+      console.log("Content Type:", contentType);
+      console.log("Folder:", folder);
+      console.log("Storage Key:", storageKey);
+      console.log("Presigned URL:", url);
+      console.log("Object Path:", objectPath);
+      console.log("====================");
+
+      res.json({ url, objectPath, storageKey });
+    } catch (error) {
+      console.error("Error generating presigned URL:", error);
+      const message =
+        error instanceof Error ? error.message : "An unknown error occurred";
+      res.status(500).json({ error: message });
+    }
+  });
+
   registerAuthRoutes(app);
   registerPlayerRoutes(app);
   registerVideoRoutes(app);

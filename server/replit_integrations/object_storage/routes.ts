@@ -46,6 +46,47 @@ export function registerObjectStorageRoutes(app: Express): void {
     }
   });
 
+  // R2 Presign endpoint for document uploads
+  app.post("/api/object-storage/presign", async (req, res) => {
+    try {
+      const { filename, contentType, folder } = req.body;
+      const { generatePresignedPutUrl } = await import("../../services/r2");
+      const { randomUUID } = await import("crypto");
+
+      // Generate unique key
+      const fileExt = filename?.split(".").pop() || "bin";
+      const uniqueId = randomUUID();
+      const storageKey = folder
+        ? `${folder}/${uniqueId}.${fileExt}`
+        : `uploads/${uniqueId}.${fileExt}`;
+
+      // Generate R2 presigned PUT URL
+      const url = await generatePresignedPutUrl(
+        storageKey,
+        contentType || "application/octet-stream",
+      );
+
+      // For backwards compatibility with local storage
+      const objectPath = storageKey;
+
+      console.log("=== PRESIGN DEBUG ===");
+      console.log("Filename:", filename);
+      console.log("Content Type:", contentType);
+      console.log("Folder:", folder);
+      console.log("Storage Key:", storageKey);
+      console.log("Presigned URL:", url);
+      console.log("Object Path:", objectPath);
+      console.log("====================");
+
+      res.json({ url, objectPath, storageKey });
+    } catch (error) {
+      console.error("Error generating presigned URL:", error);
+      const message =
+        error instanceof Error ? error.message : "An unknown error occurred";
+      res.status(500).json({ error: message });
+    }
+  });
+
   app.put("/api/uploads/:id", async (req, res) => {
     try {
       const objectId = req.params.id;
@@ -76,12 +117,23 @@ export function registerObjectStorageRoutes(app: Express): void {
 
   app.get("/objects/:objectPath(*)", async (req, res) => {
     try {
-      const objectFile = await objectStorageService.getObjectEntityFile(
-        req.path,
-      );
-      await objectStorageService.downloadObject(objectFile, res);
+      const { generatePresignedGetUrl } = await import("../../services/r2");
+      const objectPath = req.params.objectPath;
+
+      console.log("=== OBJECT DOWNLOAD REQUEST ===");
+      console.log("Requested path:", objectPath);
+      console.log("Full path:", req.path);
+
+      // Generate R2 presigned GET URL
+      const downloadUrl = await generatePresignedGetUrl(objectPath, 300); // 5 minutes
+
+      console.log("Generated R2 URL:", downloadUrl);
+      console.log("==============================");
+
+      // Redirect to R2 presigned URL
+      res.redirect(downloadUrl);
     } catch (error) {
-      console.error("Error serving object:", error);
+      console.error("Error serving object from R2:", error);
       if (error instanceof ObjectNotFoundError) {
         return res.status(404).json({ error: "Object not found" });
       }

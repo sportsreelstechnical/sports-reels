@@ -1116,11 +1116,15 @@ export default function FederationAdminPage() {
                     const path = selectedCertificate.objectPath;
                     if (path.startsWith('http://') || path.startsWith('https://')) {
                       documentUrl = path;
+                    } else if (path.startsWith('/objects/')) {
+                      // Already has /objects/ prefix
+                      documentUrl = `${backendUrl}${path}`;
                     } else if (path.startsWith('/')) {
+                      // Absolute path without /objects/ prefix
                       documentUrl = `${backendUrl}${path}`;
                     } else {
-                      // Relative path - make it absolute
-                      documentUrl = `${backendUrl}/${path}`;
+                      // Relative path - add /objects/ prefix
+                      documentUrl = `${backendUrl}/objects/${path}`;
                     }
                   }
 

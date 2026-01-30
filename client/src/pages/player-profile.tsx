@@ -587,7 +587,13 @@ export default function PlayerProfile({ params, isScoutView }: PlayerProfileProp
                                   variant="outline"
                                   size="sm"
                                   onClick={() => {
-                                    setSelectedDocumentUrl(letter.issuedDocumentObjectPath!);
+                                    const path = letter.issuedDocumentObjectPath!;
+                                    const backendUrl = import.meta.env.VITE_BACKEND_URL || '';
+                                    // Generate R2 URL with /objects/ prefix
+                                    const url = path.startsWith('http')
+                                      ? path
+                                      : `${backendUrl}/objects/${path.replace(/^\/objects\//, '').replace(/^\//, '')}`;
+                                    setSelectedDocumentUrl(url);
                                     setSelectedDocumentName(letter.issuedDocumentOriginalName || `Federation_Letter_${letter.requestNumber}.pdf`);
                                     setIsDocumentModalOpen(true);
                                   }}
@@ -600,10 +606,13 @@ export default function PlayerProfile({ params, isScoutView }: PlayerProfileProp
                                   variant="default"
                                   size="sm"
                                   onClick={() => {
-                                    const link = document.createElement('a');
-                                    link.href = letter.issuedDocumentObjectPath!;
-                                    link.download = letter.issuedDocumentOriginalName || `Federation_Letter_${letter.requestNumber}.pdf`;
-                                    link.click();
+                                    const path = letter.issuedDocumentObjectPath!;
+                                    const backendUrl = import.meta.env.VITE_BACKEND_URL || '';
+                                    // Generate R2 URL with /objects/ prefix
+                                    const url = path.startsWith('http')
+                                      ? path
+                                      : `${backendUrl}/objects/${path.replace(/^\/objects\//, '').replace(/^\//, '')}`;
+                                    window.location.href = url;
                                   }}
                                   data-testid={`button-download-letter-${letter.id}`}
                                 >
