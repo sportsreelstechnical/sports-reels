@@ -46,6 +46,8 @@ export default function FederationAdminPage() {
   const [newMessage, setNewMessage] = useState("");
   const [isIssueDialogOpen, setIsIssueDialogOpen] = useState(false);
   const [uploadedDocument, setUploadedDocument] = useState<File | null>(null);
+  const [isCertificateModalOpen, setIsCertificateModalOpen] = useState(false);
+  const [selectedCertificate, setSelectedCertificate] = useState<RequestDocument | null>(null);
 
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
   const { data: stats } = useQuery<{ totalRequests: number; processed: number; pending: number; totalRevenue: number }>({
@@ -80,6 +82,7 @@ export default function FederationAdminPage() {
   });
 
   interface RequestDocument {
+    id?: string;
     type: string;
     name: string;
     objectPath?: string | null;
@@ -759,7 +762,10 @@ export default function FederationAdminPage() {
                                   <Button
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => window.open(doc.objectPath!, "_blank")}
+                                    onClick={() => {
+                                      setSelectedCertificate(doc);
+                                      setIsCertificateModalOpen(true);
+                                    }}
                                     data-testid={`button-view-doc-${doc.type}`}
                                   >
                                     <Eye className="h-4 w-4 mr-1" />
@@ -769,10 +775,8 @@ export default function FederationAdminPage() {
                                     variant="outline"
                                     size="sm"
                                     onClick={() => {
-                                      const link = document.createElement("a");
-                                      link.href = doc.objectPath!;
-                                      link.download = doc.name;
-                                      link.click();
+                                      // Use the proper download endpoint
+                                      window.location.href = `${backendUrl}/api/federation-requests/${selectedRequest?.id}/issued-documents/${doc.id}/download-original`;
                                     }}
                                     data-testid={`button-download-doc-${doc.type}`}
                                   >
@@ -1085,6 +1089,60 @@ export default function FederationAdminPage() {
                 )}
               </Button>
             </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Certificate Viewer Modal */}
+        <Dialog open={isCertificateModalOpen} onOpenChange={setIsCertificateModalOpen}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Certificate Viewer</DialogTitle>
+              <DialogDescription>
+                {selectedCertificate?.name}
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              {/* Certificate Preview */}
+              <div className="border rounded-lg overflow-hidden bg-muted/30">
+                {selectedCertificate?.mimeType?.includes('pdf') ? (
+                  <iframe
+                    src={`${backendUrl}/api/federation-requests/${selectedRequest?.id}/issued-documents/${selectedCertificate?.id}/download-original`}
+                    className="w-full h-[600px]"
+                    title="Certificate Preview"
+                  />
+                ) : (
+                  <img
+                    src={`${backendUrl}/api/federation-requests/${selectedRequest?.id}/issued-documents/${selectedCertificate?.id}/download-original`}
+                    alt="Certificate"
+                    className="w-full h-auto"
+                  />
+                )}
+              </div>
+
+              {/* Download Buttons */}
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => {
+                    window.location.href = `${backendUrl}/api/federation-requests/${selectedRequest?.id}/issued-documents/${selectedCertificate?.id}/download-original`;
+                  }}
+                  className="flex-1"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Download Original
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    window.location.href = `${backendUrl}/api/federation-requests/${selectedRequest?.id}/issued-documents/${selectedCertificate?.id}/download-file`;
+                  }}
+                  className="flex-1"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Download Certificate
+                </Button>
+              </div>
+            </div>
           </DialogContent>
         </Dialog>
       </div>

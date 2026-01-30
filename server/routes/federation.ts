@@ -615,6 +615,7 @@ export function registerFederationRoutes(app: Express): void {
         try {
           const issuedDocs = await storage.getFederationIssuedDocuments(id);
           const issuedDocuments = issuedDocs.map((doc) => ({
+            id: doc.id,
             type: "issued_document",
             name: doc.originalName,
             objectPath: doc.objectPath,

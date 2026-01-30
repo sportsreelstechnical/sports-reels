@@ -27,7 +27,6 @@ export function registerObjectStorageRoutes(app: Express): void {
       const pathParts = url.pathname.split("/");
       console.log("Path parts:", pathParts);
 
-      // Remove empty string to get the actual key (including uploads/ prefix)
       const storageKey = pathParts.slice(1).join("/"); // This is the actual R2 key
       console.log("Extracted storage key:", storageKey);
 
