@@ -1096,7 +1096,7 @@ export default function FederationAdminPage() {
         <Dialog open={isCertificateModalOpen} onOpenChange={setIsCertificateModalOpen}>
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Certificate Viewer</DialogTitle>
+              <DialogTitle>Document Viewer</DialogTitle>
               <DialogDescription>
                 {selectedCertificate?.name}
               </DialogDescription>
@@ -1105,42 +1105,104 @@ export default function FederationAdminPage() {
             <div className="space-y-4">
               {/* Certificate Preview */}
               <div className="border rounded-lg overflow-hidden bg-muted/30">
-                {selectedCertificate?.mimeType?.includes('pdf') ? (
-                  <iframe
-                    src={`${backendUrl}/api/federation-requests/${selectedRequest?.id}/issued-documents/${selectedCertificate?.id}/download-original`}
-                    className="w-full h-[600px]"
-                    title="Certificate Preview"
-                  />
-                ) : (
-                  <img
-                    src={`${backendUrl}/api/federation-requests/${selectedRequest?.id}/issued-documents/${selectedCertificate?.id}/download-original`}
-                    alt="Certificate"
-                    className="w-full h-auto"
-                  />
-                )}
+                {(() => {
+                  let documentUrl = '';
+
+                  if (selectedCertificate?.type === 'issued_document' && selectedCertificate?.id) {
+                    // Use API endpoint for issued documents
+                    documentUrl = `${backendUrl}/api/federation-requests/${selectedRequest?.id}/issued-documents/${selectedCertificate?.id}/download-original`;
+                  } else if (selectedCertificate?.objectPath) {
+                    // For other documents, ensure the path is absolute
+                    const path = selectedCertificate.objectPath;
+                    if (path.startsWith('http://') || path.startsWith('https://')) {
+                      documentUrl = path;
+                    } else if (path.startsWith('/')) {
+                      documentUrl = `${backendUrl}${path}`;
+                    } else {
+                      // Relative path - make it absolute
+                      documentUrl = `${backendUrl}/${path}`;
+                    }
+                  }
+
+                  console.log('=== DOCUMENT VIEWER DEBUG ===');
+                  console.log('Document type:', selectedCertificate?.type);
+                  console.log('Document ID:', selectedCertificate?.id);
+                  console.log('Object Path:', selectedCertificate?.objectPath);
+                  console.log('Generated URL:', documentUrl);
+                  console.log('============================');
+
+                  if (!documentUrl) {
+                    return (
+                      <div className="flex items-center justify-center h-[600px] text-muted-foreground">
+                        <p>No document URL available</p>
+                      </div>
+                    );
+                  }
+
+                  return selectedCertificate?.mimeType?.includes('pdf') ? (
+                    <iframe
+                      src={documentUrl}
+                      className="w-full h-[600px]"
+                      title="Document Preview"
+                    />
+                  ) : (
+                    <img
+                      src={documentUrl}
+                      alt="Document"
+                      className="w-full h-auto"
+                    />
+                  );
+                })()}
               </div>
 
               {/* Download Buttons */}
               <div className="flex gap-2">
-                <Button
-                  onClick={() => {
-                    window.location.href = `${backendUrl}/api/federation-requests/${selectedRequest?.id}/issued-documents/${selectedCertificate?.id}/download-original`;
-                  }}
-                  className="flex-1"
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Download Original
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    window.location.href = `${backendUrl}/api/federation-requests/${selectedRequest?.id}/issued-documents/${selectedCertificate?.id}/download-file`;
-                  }}
-                  className="flex-1"
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Download Certificate
-                </Button>
+                {selectedCertificate?.type === 'issued_document' && selectedCertificate?.id ? (
+                  <>
+                    <Button
+                      onClick={() => {
+                        window.location.href = `${backendUrl}/api/federation-requests/${selectedRequest?.id}/issued-documents/${selectedCertificate?.id}/download-original`;
+                      }}
+                      className="flex-1"
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Download Original
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        window.location.href = `${backendUrl}/api/federation-requests/${selectedRequest?.id}/issued-documents/${selectedCertificate?.id}/download-file`;
+                      }}
+                      className="flex-1"
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Download Certificate
+                    </Button>
+                  </>
+                ) : (
+                  <Button
+                    onClick={() => {
+                      if (selectedCertificate?.objectPath) {
+                        const path = selectedCertificate.objectPath;
+                        let downloadUrl = '';
+
+                        if (path.startsWith('http://') || path.startsWith('https://')) {
+                          downloadUrl = path;
+                        } else if (path.startsWith('/')) {
+                          downloadUrl = `${backendUrl}${path}`;
+                        } else {
+                          downloadUrl = `${backendUrl}/${path}`;
+                        }
+
+                        window.location.href = downloadUrl;
+                      }
+                    }}
+                    className="w-full"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Download Document
+                  </Button>
+                )}
               </div>
             </div>
           </DialogContent>
