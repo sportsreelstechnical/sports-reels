@@ -14,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { queryClient, apiRequest } from "@/lib/queryClient";
+import { queryClient, apiRequest, getFullUrl } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useTokenBalance, useCheckTokens } from "@/hooks/use-tokens";
 import { LoadingSpinner } from "@/components/LoadingScreen";
@@ -240,6 +240,14 @@ export default function FederationLettersPage() {
 
   const { data: playerDocuments = [] } = useQuery<PlayerDocument[]>({
     queryKey: ["/api/players", selectedPlayerId, "documents"],
+    queryFn: async () => {
+      if (!selectedPlayerId) return [];
+      const res = await fetch(getFullUrl(`/api/players/${selectedPlayerId}/documents`), {
+        credentials: "include",
+      });
+      if (!res.ok) return [];
+      return res.json();
+    },
     enabled: !!selectedPlayerId,
   });
 
@@ -268,6 +276,14 @@ export default function FederationLettersPage() {
 
   const { data: issuedDocuments = [] } = useQuery<FederationIssuedDocument[]>({
     queryKey: ["/api/federation-requests", selectedRequest?.id, "issued-documents"],
+    queryFn: async () => {
+      if (!selectedRequest?.id) return [];
+      const res = await fetch(getFullUrl(`/api/federation-requests/${selectedRequest.id}/issued-documents`), {
+        credentials: "include",
+      });
+      if (!res.ok) return [];
+      return res.json();
+    },
     enabled: !!selectedRequest?.id && isViewDialogOpen,
   });
 
@@ -1494,7 +1510,7 @@ export default function FederationLettersPage() {
                                     variant="outline"
                                     data-testid={`button-download-original-${doc.id}`}
                                     onClick={() => {
-                                      window.open(`/api/federation-requests/${selectedRequest?.id}/issued-documents/${doc.id}/download-original`, '_blank');
+                                      window.open(getFullUrl(`/api/federation-requests/${selectedRequest?.id}/issued-documents/${doc.id}/download-original`), '_blank');
                                       toast({
                                         title: "Download Started",
                                         description: `Downloading original: ${doc.originalName}`,
@@ -1620,13 +1636,13 @@ export default function FederationLettersPage() {
                 <div className="border rounded-lg overflow-hidden bg-muted/50">
                   {selectedCertificate.mimeType?.includes('pdf') ? (
                     <iframe
-                      src={`/api/federation-requests/${selectedRequest?.id}/issued-documents/${selectedCertificate.id}/download-original`}
+                      src={getFullUrl(`/api/federation-requests/${selectedRequest?.id}/issued-documents/${selectedCertificate.id}/download-original`)}
                       className="w-full h-[500px]"
                       title="Certificate Preview"
                     />
                   ) : selectedCertificate.mimeType?.startsWith('image/') ? (
                     <img
-                      src={`/api/federation-requests/${selectedRequest?.id}/issued-documents/${selectedCertificate.id}/download-original`}
+                      src={getFullUrl(`/api/federation-requests/${selectedRequest?.id}/issued-documents/${selectedCertificate.id}/download-original`)}
                       alt="Certificate"
                       className="w-full h-auto max-h-[500px] object-contain"
                     />
@@ -1650,7 +1666,7 @@ export default function FederationLettersPage() {
                     <Button
                       variant="outline"
                       onClick={() => {
-                        window.open(`/api/federation-requests/${selectedRequest?.id}/issued-documents/${selectedCertificate.id}/download-original`, '_blank');
+                        window.open(getFullUrl(`/api/federation-requests/${selectedRequest?.id}/issued-documents/${selectedCertificate.id}/download-original`), '_blank');
                         toast({
                           title: "Download Started",
                           description: `Downloading: ${selectedCertificate.originalName}`,
@@ -1662,7 +1678,7 @@ export default function FederationLettersPage() {
                     </Button>
                     <Button
                       onClick={() => {
-                        window.open(`/api/federation-requests/${selectedRequest?.id}/issued-documents/${selectedCertificate.id}/download-file`, '_blank');
+                        window.open(getFullUrl(`/api/federation-requests/${selectedRequest?.id}/issued-documents/${selectedCertificate.id}/download-file`), '_blank');
                         toast({
                           title: "Certificate Downloaded",
                           description: "Platform certificate with timestamp downloaded",
