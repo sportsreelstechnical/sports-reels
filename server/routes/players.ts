@@ -16,7 +16,11 @@ import { generatePresignedGetUrl } from "../services/r2";
 export function registerPlayerRoutes(app: Express): void {
   app.get("/api/players", requireAuth, async (req: Request, res: Response) => {
     try {
-      const players = await storage.getPlayers();
+      const teamId = req.session.teamId;
+      if (!teamId) {
+        return res.json([]);
+      }
+      const players = await storage.getPlayersForTeamOrPublished(teamId);
       res.json(players);
     } catch (error) {
       const message =
@@ -30,7 +34,11 @@ export function registerPlayerRoutes(app: Express): void {
     requireAuth,
     async (req: Request, res: Response) => {
       try {
-        const players = await storage.getPlayers();
+        const teamId = req.session.teamId;
+        if (!teamId) {
+          return res.json([]);
+        }
+        const players = await storage.getPlayersForTeamOrPublished(teamId);
         res.json(players);
       } catch (error) {
         const message =
@@ -83,6 +91,13 @@ export function registerPlayerRoutes(app: Express): void {
       try {
         const player = await storage.getPlayer(req.params.id);
         if (!player) {
+          return res.status(404).json({ error: "Player not found" });
+        }
+        const teamId = req.session.teamId;
+        const canView =
+          teamId &&
+          (player.teamId === teamId || player.isPublishedToScouts === true);
+        if (!canView) {
           return res.status(404).json({ error: "Player not found" });
         }
 

@@ -1,5 +1,5 @@
 import { db } from "../db";
-import { eq, desc, inArray } from "drizzle-orm";
+import { eq, desc, inArray, or } from "drizzle-orm";
 import {
   type Player,
   type InsertPlayer,
@@ -34,6 +34,17 @@ export const playersRepository = {
         .orderBy(desc(players.updatedAt));
     }
     return db.select().from(players).orderBy(desc(players.updatedAt));
+  },
+
+  /** Sporting Director: own team's players + all players published to scouts. */
+  async getPlayersForTeamOrPublished(teamId: string): Promise<Player[]> {
+    return db
+      .select()
+      .from(players)
+      .where(
+        or(eq(players.teamId, teamId), eq(players.isPublishedToScouts, true))
+      )
+      .orderBy(desc(players.updatedAt));
   },
 
   async getPlayer(id: string): Promise<Player | undefined> {
