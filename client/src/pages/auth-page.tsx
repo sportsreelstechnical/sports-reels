@@ -44,6 +44,9 @@ const loginSchema = z.object({
     password: z.string().min(1, "Password is required"),
 });
 
+// Roles that require team creation
+const TEAM_ROLES = ['sporting_director', 'coach', 'legal'] as const;
+
 const signupSchema = z.object({
     username: z.string().min(3, "Username must be at least 3 characters"),
     password: z.string().min(8, "Password must be at least 8 characters"),
@@ -51,7 +54,19 @@ const signupSchema = z.object({
     firstName: z.string().optional(),
     lastName: z.string().optional(),
     role: z.string(),
-    // Additional fields based on role could be added here
+    // Team fields - required for team roles
+    teamName: z.string().optional(),
+    clubName: z.string().optional(),
+    country: z.string().optional(),
+}).refine((data) => {
+    // If it's a team role, teamName and clubName are required
+    if (TEAM_ROLES.includes(data.role as typeof TEAM_ROLES[number])) {
+        return !!data.teamName && !!data.clubName;
+    }
+    return true;
+}, {
+    message: "Team name and club name are required for this role",
+    path: ["teamName"],
 });
 
 export default function AuthPage() {
@@ -102,8 +117,17 @@ export default function AuthPage() {
             firstName: "",
             lastName: "",
             role: selectedRole,
+            teamName: "",
+            clubName: "",
+            country: "",
         },
     });
+    
+    // Check if current role needs team fields
+    const needsTeamFields = TEAM_ROLES.includes(selectedRole as typeof TEAM_ROLES[number]);
+    
+    // Debug: log when this changes
+    console.log("[AuthPage] selectedRole:", selectedRole, "needsTeamFields:", needsTeamFields);
 
     // Update form role when state changes
     useEffect(() => {
@@ -325,6 +349,52 @@ export default function AuthPage() {
                                                 </FormItem>
                                             )}
                                         />
+
+                                        {needsTeamFields && (
+                                            <>
+                                                <Separator className="my-4" />
+                                                <p className="text-sm text-muted-foreground mb-2">Team Information</p>
+                                                <FormField
+                                                    control={signupForm.control}
+                                                    name="teamName"
+                                                    render={({ field }) => (
+                                                        <FormItem>
+                                                            <FormLabel>Team Name *</FormLabel>
+                                                            <FormControl>
+                                                                <Input placeholder="e.g. FC Barcelona Youth" {...field} />
+                                                            </FormControl>
+                                                            <FormMessage />
+                                                        </FormItem>
+                                                    )}
+                                                />
+                                                <FormField
+                                                    control={signupForm.control}
+                                                    name="clubName"
+                                                    render={({ field }) => (
+                                                        <FormItem>
+                                                            <FormLabel>Club Name *</FormLabel>
+                                                            <FormControl>
+                                                                <Input placeholder="e.g. FC Barcelona" {...field} />
+                                                            </FormControl>
+                                                            <FormMessage />
+                                                        </FormItem>
+                                                    )}
+                                                />
+                                                <FormField
+                                                    control={signupForm.control}
+                                                    name="country"
+                                                    render={({ field }) => (
+                                                        <FormItem>
+                                                            <FormLabel>Country</FormLabel>
+                                                            <FormControl>
+                                                                <Input placeholder="e.g. Spain" {...field} />
+                                                            </FormControl>
+                                                            <FormMessage />
+                                                        </FormItem>
+                                                    )}
+                                                />
+                                            </>
+                                        )}
 
                                         <Button type="submit" className="w-full" disabled={signupMutation.isPending}>
                                             {signupMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
