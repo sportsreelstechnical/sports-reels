@@ -12,19 +12,27 @@ import {
   insertPlayerPhotoSchema,
 } from "@shared/schema";
 import { generatePresignedGetUrl } from "../services/r2";
+import { getTeamIdForRequest } from "../utils/requestTeamId";
 
 export function registerPlayerRoutes(app: Express): void {
   app.get("/api/players", requireAuth, async (req: Request, res: Response) => {
     try {
-      const teamId = req.session.teamId;
+      const teamId = await getTeamIdForRequest(req, storage);
+      
+      // Log for debugging
+      console.log("[GET /api/players] userId:", req.session.userId, "teamId:", teamId);
+      
       if (!teamId) {
+        console.log("[GET /api/players] No teamId found for user, returning empty array");
         return res.json([]);
       }
       const players = await storage.getPlayersForTeamOrPublished(teamId);
+      console.log("[GET /api/players] Found", players.length, "players for teamId:", teamId);
       res.json(players);
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "An unknown error occurred";
+      console.error("[GET /api/players] Error:", message);
       res.status(500).json({ error: message });
     }
   });
@@ -34,7 +42,7 @@ export function registerPlayerRoutes(app: Express): void {
     requireAuth,
     async (req: Request, res: Response) => {
       try {
-        const teamId = req.session.teamId;
+        const teamId = await getTeamIdForRequest(req, storage);
         if (!teamId) {
           return res.json([]);
         }
@@ -93,7 +101,7 @@ export function registerPlayerRoutes(app: Express): void {
         if (!player) {
           return res.status(404).json({ error: "Player not found" });
         }
-        const teamId = req.session.teamId;
+        const teamId = await getTeamIdForRequest(req, storage);
         const canView =
           teamId &&
           (player.teamId === teamId || player.isPublishedToScouts === true);
@@ -159,15 +167,18 @@ export function registerPlayerRoutes(app: Express): void {
 
   app.post("/api/players", requireAuth, async (req: Request, res: Response) => {
     try {
-      // Use teamId from session if available, otherwise fallback to body or demo-team
-      // This ensures players created by logged-in users are assigned to their team
-      const teamId = req.session.teamId || req.body.teamId || "demo-team";
-
-      console.log(`Creating player for team: ${teamId}`);
+      const resolvedTeamId = await getTeamIdForRequest(req, storage);
+      
+      // Require a valid teamId - don't fall back to demo-team
+      if (!resolvedTeamId) {
+        return res.status(400).json({ 
+          error: "No team associated with your account. Please contact support or re-register with a team." 
+        });
+      }
 
       const dataToValidate = {
         ...req.body,
-        teamId,
+        teamId: resolvedTeamId,
       };
 
       const playerData = insertPlayerSchema.parse(dataToValidate);

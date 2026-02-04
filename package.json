@@ -17,6 +17,7 @@
     "lint:server": "eslint server/**/*.ts",
     "test:frontend": "cd client && npm run test || echo 'No frontend tests found'",
     "test:server": "cd server && npm run test || echo 'No server tests found'",
+    "test:players-endpoint": "tsx server/scripts/test-players-endpoint.ts",
     "build:frontend": "cd client && npm run build",
     "build:server": "tsx script/build-server.ts"
   },

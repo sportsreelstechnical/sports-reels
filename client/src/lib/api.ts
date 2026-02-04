@@ -2,12 +2,15 @@ import { queryOptions } from "@tanstack/react-query";
 
 const BASE_URL = import.meta.env.VITE_BACKEND_URL || "";
 
-// Helper to ensure URL handles both relative and absolute paths correctly
+// In dev, use relative /api URLs so the Vite proxy is used and session cookies (same origin) are sent.
 const getFullUrl = (path: string) => {
   if (path.startsWith("http")) return path;
-  if (path.startsWith("/api") && BASE_URL) {
-    return `${BASE_URL}${path}`;
-  }
+  const isDev =
+    import.meta.env.DEV &&
+    (typeof window !== "undefined" &&
+      (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"));
+  if (isDev && path.startsWith("/api")) return path;
+  if (path.startsWith("/api") && BASE_URL) return `${BASE_URL}${path}`;
   return path;
 };
 

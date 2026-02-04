@@ -2,17 +2,20 @@ import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
 const BASE_URL = import.meta.env.VITE_BACKEND_URL || "";
 
-// Helper to ensure URL handles both relative and absolute paths correctly
+// In dev, use relative /api URLs so the Vite proxy is used and session cookies (same origin) are sent.
+// Direct requests to localhost:5001 from localhost:5173 are cross-origin and may not send cookies.
 export const getFullUrl = (url: string) => {
   if (url.startsWith("http")) return url;
 
-  const isDevelopment =
-    window.location.hostname === "localhost" ||
-    window.location.hostname === "127.0.0.1";
+  const isDev =
+    import.meta.env.DEV &&
+    (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
 
-  // In development, default to port 5001 if no BASE_URL set
-  const backendUrl = BASE_URL || (isDevelopment ? "http://localhost:5001" : "");
+  if (isDev && url.startsWith("/api")) {
+    return url;
+  }
 
+  const backendUrl = BASE_URL || (window.location.hostname === "localhost" ? "http://localhost:5001" : "");
   if (url.startsWith("/api") && backendUrl) {
     return `${backendUrl}${url}`;
   }

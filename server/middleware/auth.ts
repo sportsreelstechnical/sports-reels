@@ -16,10 +16,7 @@ export const requireAuth = (
   next: NextFunction
 ) => {
   if (!req.session.userId) {
-    req.session.userId = "demo-user";
-    req.session.teamId = "demo-team";
-    req.session.userRole =
-      (req.headers["x-user-role"] as string) || "sporting_director";
+    return res.status(401).json({ error: "Unauthorized" });
   }
   next();
 };
@@ -30,9 +27,7 @@ export const requireTeamRole = (
   next: NextFunction
 ) => {
   if (!req.session.userId) {
-    req.session.userId = "demo-user";
-    req.session.teamId = "demo-team";
-    req.session.userRole = "sporting_director";
+    return res.status(401).json({ error: "Unauthorized" });
   }
   next();
 };
@@ -43,8 +38,7 @@ export const requireScoutRole = (
   next: NextFunction
 ) => {
   if (!req.session.userId) {
-    req.session.userId = "demo-scout";
-    req.session.userRole = "scout";
+    return res.status(401).json({ error: "Unauthorized" });
   }
   next();
 };
@@ -55,9 +49,7 @@ export const requireEmbassyRole = (
   next: NextFunction
 ) => {
   if (!req.session.userId) {
-    req.session.userId = "demo-embassy";
-    req.session.userRole = "embassy";
-    req.session.embassyCountry = "United Kingdom";
+    return res.status(401).json({ error: "Unauthorized" });
   }
   next();
 };
@@ -68,8 +60,7 @@ export const requireFederationAdmin = (
   next: NextFunction
 ) => {
   if (!req.session.userId) {
-    req.session.userId = "demo-federation";
-    req.session.userRole = "federation_admin";
+    return res.status(401).json({ error: "Unauthorized" });
   }
   next();
 };
@@ -80,8 +71,7 @@ export const requireAdminRole = (
   next: NextFunction
 ) => {
   if (!req.session.userId) {
-    req.session.userId = "demo-admin";
-    req.session.userRole = "admin";
+    return res.status(401).json({ error: "Unauthorized" });
   }
   next();
 };

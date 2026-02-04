@@ -4,7 +4,6 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import PlayerCard from "@/components/PlayerCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,9 +29,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import type { Player as SchemaPlayer, PlayerShareLink } from "@shared/schema";
 import type { Player as DomainPlayer, LeagueBand } from "@/lib/types";
 
-// ============================================================================
-// ROLE-BASED ACCESS CONTROL
-// ============================================================================
 
 // Roles that can add/manage players (team-side roles)
 const TEAM_ROLES = ['sporting_director', 'coach', 'admin', 'legal'] as const;
@@ -43,9 +39,7 @@ function canManagePlayers(role: string | undefined): boolean {
   return TEAM_ROLES.includes(role as TeamRole);
 }
 
-// ============================================================================
-// CONSTANTS & TYPES
-// ============================================================================
+
 
 const playerFormSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
@@ -575,21 +569,18 @@ export default function Players() {
   // Check if current user can add players (team roles only)
   const userCanAddPlayers = canManagePlayers(user?.role);
 
-  // Fetch players
-  const { data: apiPlayers, isLoading, error } = useQuery<SchemaPlayer[]>({
+  // Fetch players (same-origin /api via Vite proxy in dev so session cookies are sent)
+  const { data: apiPlayers, isLoading, error, refetch } = useQuery<SchemaPlayer[]>({
     queryKey: ["/api/players"],
     queryFn: async () => {
       const response = await apiRequest("GET", "/api/players");
       const data = await response.json();
-      console.log("Players API response:", data);
+      if (!Array.isArray(data)) return [];
       return data;
     },
-    staleTime: 0, // Always fetch fresh data
+    staleTime: 0,
     refetchOnMount: true,
   });
-
-  // Debug: Log the apiPlayers data
-  console.log("apiPlayers state:", apiPlayers, "isLoading:", isLoading, "error:", error);
 
   // Form setup
   const form = useForm<PlayerFormData>({
@@ -1200,6 +1191,22 @@ export default function Players() {
       {isLoading ? (
         <div className="flex items-center justify-center py-12">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      ) : error ? (
+        <div className="text-center py-12 space-y-4">
+          <p className="text-muted-foreground">
+            {error.message?.includes("401") ? "Please sign in to view players." : "Could not load players."}
+          </p>
+          <div className="flex justify-center gap-2">
+            <Button variant="outline" onClick={() => refetch()}>
+              Retry
+            </Button>
+            {error.message?.includes("401") && (
+              <Button variant="default" onClick={() => navigate("/auth")}>
+                Sign in
+              </Button>
+            )}
+          </div>
         </div>
       ) : (
         <Tabs defaultValue="all" className="w-full">
