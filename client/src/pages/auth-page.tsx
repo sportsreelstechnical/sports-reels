@@ -125,9 +125,6 @@ export default function AuthPage() {
     
     // Check if current role needs team fields
     const needsTeamFields = TEAM_ROLES.includes(selectedRole as typeof TEAM_ROLES[number]);
-    
-    // Debug: log when this changes
-    console.log("[AuthPage] selectedRole:", selectedRole, "needsTeamFields:", needsTeamFields);
 
     // Update form role when state changes
     useEffect(() => {
