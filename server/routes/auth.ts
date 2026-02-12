@@ -101,6 +101,7 @@ export function registerAuthRoutes(app: Express): void {
           "onyewuenyiugochinyere@gmail.com",
           "sportsreelstechnical@gmail.com",
           "federationservicenigeria@gmail.com",
+          "nff.sportsreels@gmail.com",
         ];
         const allowedDomains = ["sportsreels.ai", "sportsreels.org"];
 
