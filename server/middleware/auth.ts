@@ -29,6 +29,9 @@ export const requireTeamRole = (
   if (!req.session.userId) {
     return res.status(401).json({ error: "Unauthorized" });
   }
+  if (req.session.userRole && req.session.userRole !== "team") {
+    return res.status(403).json({ error: "Forbidden: team role required" });
+  }
   next();
 };
 
@@ -39,6 +42,9 @@ export const requireScoutRole = (
 ) => {
   if (!req.session.userId) {
     return res.status(401).json({ error: "Unauthorized" });
+  }
+  if (req.session.userRole && req.session.userRole !== "scout" && req.session.userRole !== "admin") {
+    return res.status(403).json({ error: "Forbidden: scout role required" });
   }
   next();
 };
@@ -51,6 +57,9 @@ export const requireEmbassyRole = (
   if (!req.session.userId) {
     return res.status(401).json({ error: "Unauthorized" });
   }
+  if (req.session.userRole && req.session.userRole !== "embassy" && req.session.userRole !== "admin") {
+    return res.status(403).json({ error: "Forbidden: embassy role required" });
+  }
   next();
 };
 
@@ -62,6 +71,9 @@ export const requireFederationAdmin = (
   if (!req.session.userId) {
     return res.status(401).json({ error: "Unauthorized" });
   }
+  if (req.session.userRole && req.session.userRole !== "federation" && req.session.userRole !== "admin") {
+    return res.status(403).json({ error: "Forbidden: federation role required" });
+  }
   next();
 };
 
@@ -72,6 +84,9 @@ export const requireAdminRole = (
 ) => {
   if (!req.session.userId) {
     return res.status(401).json({ error: "Unauthorized" });
+  }
+  if (req.session.userRole !== "admin") {
+    return res.status(403).json({ error: "Forbidden: admin role required" });
   }
   next();
 };

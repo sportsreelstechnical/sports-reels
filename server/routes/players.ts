@@ -18,16 +18,12 @@ export function registerPlayerRoutes(app: Express): void {
   app.get("/api/players", requireAuth, async (req: Request, res: Response) => {
     try {
       const teamId = await getTeamIdForRequest(req, storage);
-      
-      // Log for debugging
-      console.log("[GET /api/players] userId:", req.session.userId, "teamId:", teamId);
-      
+
       if (!teamId) {
-        console.log("[GET /api/players] No teamId found for user, returning empty array");
         return res.json([]);
       }
-      const players = await storage.getPlayersForTeamOrPublished(teamId);
-      console.log("[GET /api/players] Found", players.length, "players for teamId:", teamId);
+      // Only return this team's own players — scouts use /api/scout/players for published players
+      const players = await storage.getPlayers(teamId);
       res.json(players);
     } catch (error) {
       const message =
@@ -46,7 +42,8 @@ export function registerPlayerRoutes(app: Express): void {
         if (!teamId) {
           return res.json([]);
         }
-        const players = await storage.getPlayersForTeamOrPublished(teamId);
+        // Only return this team's own players — not published players from other teams
+        const players = await storage.getPlayers(teamId);
         res.json(players);
       } catch (error) {
         const message =
@@ -67,8 +64,13 @@ export function registerPlayerRoutes(app: Express): void {
           return res.status(400).json({ error: "playerIds must be an array" });
         }
 
-        const players = await storage.getPlayersByIds(playerIds);
-        res.json(players);
+        const teamId = await getTeamIdForRequest(req, storage);
+        const allPlayers = await storage.getPlayersByIds(playerIds);
+        // Only return players that belong to the user's team or are published
+        const filtered = allPlayers.filter(
+          (p) => p.teamId === teamId || p.isPublishedToScouts === true,
+        );
+        res.json(filtered);
       } catch (error) {
         const message =
           error instanceof Error ? error.message : "An unknown error occurred";
@@ -203,10 +205,17 @@ export function registerPlayerRoutes(app: Express): void {
     requireAuth,
     async (req: Request, res: Response) => {
       try {
-        const player = await storage.updatePlayer(req.params.id, req.body);
-        if (!player) {
+        const existing = await storage.getPlayer(req.params.id);
+        if (!existing) {
           return res.status(404).json({ error: "Player not found" });
         }
+        const teamId = await getTeamIdForRequest(req, storage);
+        if (existing.teamId !== teamId) {
+          return res.status(403).json({ error: "You can only edit players on your own team" });
+        }
+        // Prevent changing the player's teamId to hijack them to another team
+        const { teamId: _discard, ...safeUpdates } = req.body;
+        const player = await storage.updatePlayer(req.params.id, safeUpdates);
         res.json(player);
       } catch (error) {
         const message =
@@ -401,6 +410,14 @@ export function registerPlayerRoutes(app: Express): void {
     requireAuth,
     async (req: Request, res: Response) => {
       try {
+        const player = await storage.getPlayer(req.params.id);
+        if (!player) {
+          return res.status(404).json({ error: "Player not found" });
+        }
+        const teamId = await getTeamIdForRequest(req, storage);
+        if (player.teamId !== teamId) {
+          return res.status(403).json({ error: "You can only add photos for your own team's players" });
+        }
         const data = insertPlayerPhotoSchema.parse({
           ...req.body,
           playerId: req.params.id,
@@ -450,6 +467,14 @@ export function registerPlayerRoutes(app: Express): void {
     requireAuth,
     async (req: Request, res: Response) => {
       try {
+        const player = await storage.getPlayer(req.params.id);
+        if (!player) {
+          return res.status(404).json({ error: "Player not found" });
+        }
+        const teamId = await getTeamIdForRequest(req, storage);
+        if (player.teamId !== teamId) {
+          return res.status(403).json({ error: "You can only add metrics for your own team's players" });
+        }
         const metrics = await storage.createPlayerMetrics({
           playerId: req.params.id,
           ...req.body,
@@ -544,12 +569,17 @@ export function registerPlayerRoutes(app: Express): void {
     async (req: Request, res: Response) => {
       try {
         const playerId = req.params.id;
-        const userId = req.session.userId || "demo-user";
+        const userId = req.session.userId!;
         const { publish } = req.body;
 
         const player = await storage.getPlayer(playerId);
         if (!player) {
           return res.status(404).json({ error: "Player not found" });
+        }
+
+        const teamId = await getTeamIdForRequest(req, storage);
+        if (player.teamId !== teamId) {
+          return res.status(403).json({ error: "You can only publish your own team's players" });
         }
 
         if (publish) {
@@ -622,12 +652,20 @@ export function registerPlayerRoutes(app: Express): void {
     async (req: Request, res: Response) => {
       try {
         const playerId = req.params.id;
-        const userId = req.session.userId || "demo-user";
-        const teamId = req.session.teamId || "demo-team";
+        const userId = req.session.userId!;
+        const teamId = await getTeamIdForRequest(req, storage);
+
+        if (!teamId) {
+          return res.status(400).json({ error: "No team associated with your account" });
+        }
 
         const player = await storage.getPlayer(playerId);
         if (!player) {
           return res.status(404).json({ error: "Player not found" });
+        }
+
+        if (player.teamId !== teamId) {
+          return res.status(403).json({ error: "You can only share your own team's players" });
         }
 
         const balance = await storage.getTokenBalance(userId);
