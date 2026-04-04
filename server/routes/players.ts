@@ -110,11 +110,14 @@ export function registerPlayerRoutes(app: Express): void {
           return res.status(404).json({ error: "Player not found" });
         }
 
-        const metrics = await storage.getPlayerMetrics(player.id);
-        const eligibilityScores = await storage.getEligibilityScores(player.id);
-        const medicalRecords = await storage.getMedicalRecords(player.id);
-        const biometricData = await storage.getBiometricData(player.id);
-        const rawVideos = await storage.getProfileVideos(player.id);
+        const [metrics, eligibilityScores, medicalRecords, biometricData, rawVideos] =
+          await Promise.all([
+            storage.getPlayerMetrics(player.id),
+            storage.getEligibilityScores(player.id),
+            storage.getMedicalRecords(player.id),
+            storage.getBiometricData(player.id),
+            storage.getProfileVideos(player.id),
+          ]);
         const videos = await Promise.all(
           rawVideos.map(async (v) => {
             let fileUrl = v.fileUrl;

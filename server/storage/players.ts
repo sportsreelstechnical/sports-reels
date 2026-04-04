@@ -83,17 +83,27 @@ export const playersRepository = {
       .where(eq(players.isPublishedToScouts, true))
       .orderBy(desc(players.updatedAt));
 
-    const playersWithScores = await Promise.all(
-      publishedPlayers.map(async (player) => {
-        const scores = await db
-          .select()
-          .from(eligibilityScores)
-          .where(eq(eligibilityScores.playerId, player.id));
-        return { ...player, eligibilityScores: scores };
-      }),
-    );
+    if (publishedPlayers.length === 0) return [];
 
-    return playersWithScores;
+    // Batch fetch all eligibility scores in one query instead of N+1
+    const playerIds = publishedPlayers.map((p) => p.id);
+    const allScores = await db
+      .select()
+      .from(eligibilityScores)
+      .where(inArray(eligibilityScores.playerId, playerIds));
+
+    // Group scores by playerId
+    const scoresByPlayer = new Map<string, EligibilityScore[]>();
+    for (const score of allScores) {
+      const existing = scoresByPlayer.get(score.playerId) || [];
+      existing.push(score);
+      scoresByPlayer.set(score.playerId, existing);
+    }
+
+    return publishedPlayers.map((player) => ({
+      ...player,
+      eligibilityScores: scoresByPlayer.get(player.id) || [],
+    }));
   },
 
   // Player Metrics
