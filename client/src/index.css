@@ -8,15 +8,12 @@
 @layer base {
   :root {
     --background: 0 0% 6.7%;
-    /* #111111 */
     --foreground: 0 0% 95%;
     --card: 0 0% 10.2%;
-    /* #1a1a1a */
     --card-foreground: 0 0% 95%;
     --popover: 0 0% 10.2%;
     --popover-foreground: 0 0% 95%;
     --primary: 340 30% 65%;
-    /* rosegold */
     --primary-foreground: 0 0% 100%;
     --secondary: 0 0% 15%;
     --secondary-foreground: 0 0% 95%;
@@ -26,11 +23,10 @@
     --accent-foreground: 0 0% 95%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --border: 210 11% 20%;
-    /* Remove borders - transparent */
+    --border: 0 0% 16%;
     --input: 0 0% 10.2%;
     --ring: 340 30% 65%;
-    --radius: 0.5rem;
+    --radius: 0.75rem;
     --sidebar-background: 0 0% 10.2%;
     --sidebar-foreground: 0 0% 90%;
     --sidebar-primary: 340 30% 65%;
@@ -43,6 +39,11 @@
     /* Sports Reels Custom Colors */
     --rosegold: 340 30% 65%;
     --bright-pink: 320 100% 72%;
+
+    /* Glow + Glass tokens */
+    --glow-primary: 340 30% 65%;
+    --glass-bg: rgba(26, 26, 26, 0.6);
+    --glass-border: rgba(255, 255, 255, 0.06);
   }
 
   .dark {
@@ -62,7 +63,7 @@
     --accent-foreground: 0 0% 95%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 0%;
+    --border: 0 0% 16%;
     --input: 0 0% 10.2%;
     --ring: 340 30% 65%;
     --sidebar-background: 0 0% 10.2%;
@@ -75,20 +76,17 @@
     --sidebar-ring: 340 30% 65%;
   }
 
-  /* Force dark theme for all elements */
   * {
     color-scheme: dark;
   }
 
   html {
     color-scheme: dark;
+    scroll-behavior: smooth;
   }
 }
 
 @layer base {
-  /* * {
-    @apply border-0;
-  } */
   [class*="bg-gray-"] {
     background-color: #1a1a1a !important;
   }
@@ -103,59 +101,318 @@
     color: hsl(0 0% 95%) !important;
     overflow-x: hidden;
     max-width: 100vw;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Ensure all backgrounds are dark */
   .bg-white {
     @apply bg-background !important;
   }
 
-  /* Override any white backgrounds */
   [class*="bg-white"] {
     background-color: #1a1a1a !important;
   }
 
-  /* Ensure form elements have dark theme */
-  /* input,
-  textarea,
-  select {
-    background-color: #1a1a1a !important;
-    color: hsl(0 0% 95%) !important;
-    border: none !important;
-
-  } */
   input,
   textarea,
   select {
     color: hsl(0 0% 95%) !important;
-    border: none !important;
-  }
-
-  label {
-    color: rgba(128, 128, 128, 0.816) !important;
   }
 
   input::placeholder,
   textarea::placeholder {
-    color: hsl(0 0% 65%) !important;
+    color: hsl(0 0% 45%) !important;
   }
 
-  /* Override any light colored text */
   .text-black {
     color: hsl(0 0% 95%) !important;
   }
 
-  /* Ensure dialog and modal backgrounds are dark */
   [data-radix-popper-content-wrapper] {
     background-color: #1a1a1a !important;
   }
-
-  /* Remove all borders globally */
 
   .border-gray-700,
   .border-gray-600,
   .border-rosegold {
     border: none !important;
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: hsl(0 0% 22%);
+    border-radius: 999px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(0 0% 30%);
+  }
+
+  /* Selection color */
+  ::selection {
+    background-color: hsl(340 30% 65% / 0.3);
+    color: #fff;
+  }
+}
+
+@layer components {
+  /* ─── Premium Card Styles ─── */
+  /* All cards get a subtle border glow on hover */
+  [data-slot="card"],
+  .rounded-lg.border.bg-card {
+    border-color: hsl(0 0% 16%) !important;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease;
+  }
+
+  [data-slot="card"]:hover,
+  .rounded-lg.border.bg-card:hover {
+    border-color: hsl(0 0% 22%) !important;
+  }
+
+  /* ─── Glass Card ─── */
+  .glass-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+  }
+
+  /* ─── Stat Card Glow ─── */
+  .stat-glow {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stat-glow::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      hsl(var(--rosegold) / 0.4),
+      transparent
+    );
+  }
+
+  /* ─── Gradient text ─── */
+  .text-gradient {
+    background: linear-gradient(135deg, #f2f2f2 0%, hsl(340 30% 75%) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .text-gradient-warm {
+    background: linear-gradient(135deg, hsl(340 30% 75%) 0%, hsl(320 100% 72%) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* ─── Animated underline for links ─── */
+  .animated-underline {
+    position: relative;
+  }
+
+  .animated-underline::after {
+    content: "";
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 0;
+    height: 1px;
+    background: hsl(var(--primary));
+    transition: width 0.3s ease;
+  }
+
+  .animated-underline:hover::after {
+    width: 100%;
+  }
+
+  /* ─── Pulse dot (for status indicators) ─── */
+  .pulse-dot {
+    position: relative;
+  }
+
+  .pulse-dot::after {
+    content: "";
+    position: absolute;
+    inset: -3px;
+    border-radius: 999px;
+    background: inherit;
+    opacity: 0;
+    animation: pulse-ring 2s ease-out infinite;
+  }
+
+  @keyframes pulse-ring {
+    0% {
+      opacity: 0.6;
+      transform: scale(0.8);
+    }
+    100% {
+      opacity: 0;
+      transform: scale(2);
+    }
+  }
+
+  /* ─── Shimmer loading effect ─── */
+  .shimmer {
+    background: linear-gradient(
+      90deg,
+      hsl(0 0% 15%) 0%,
+      hsl(0 0% 18%) 50%,
+      hsl(0 0% 15%) 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s ease-in-out infinite;
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: 200% 0;
+    }
+    100% {
+      background-position: -200% 0;
+    }
+  }
+
+  /* ─── Fade-in stagger for lists ─── */
+  .stagger-fade > * {
+    opacity: 0;
+    animation: stagger-item 0.4s ease-out forwards;
+  }
+
+  .stagger-fade > *:nth-child(1) { animation-delay: 0.05s; }
+  .stagger-fade > *:nth-child(2) { animation-delay: 0.1s; }
+  .stagger-fade > *:nth-child(3) { animation-delay: 0.15s; }
+  .stagger-fade > *:nth-child(4) { animation-delay: 0.2s; }
+  .stagger-fade > *:nth-child(5) { animation-delay: 0.25s; }
+  .stagger-fade > *:nth-child(6) { animation-delay: 0.3s; }
+  .stagger-fade > *:nth-child(7) { animation-delay: 0.35s; }
+  .stagger-fade > *:nth-child(8) { animation-delay: 0.4s; }
+  .stagger-fade > *:nth-child(n+9) { animation-delay: 0.45s; }
+
+  @keyframes stagger-item {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* ─── Badge glow variants ─── */
+  .badge-glow-green {
+    box-shadow: 0 0 8px hsl(142 76% 36% / 0.3);
+  }
+
+  .badge-glow-yellow {
+    box-shadow: 0 0 8px hsl(48 96% 53% / 0.3);
+  }
+
+  .badge-glow-red {
+    box-shadow: 0 0 8px hsl(0 84% 60% / 0.3);
+  }
+
+  /* ─── Interactive row hover ─── */
+  .interactive-row {
+    transition: background-color 0.15s ease, transform 0.15s ease;
+  }
+
+  .interactive-row:hover {
+    background-color: hsl(0 0% 13%);
+  }
+
+  .interactive-row:active {
+    transform: scale(0.995);
+  }
+
+  /* ─── Noise texture overlay ─── */
+  .noise-overlay::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    pointer-events: none;
+    opacity: 0.015;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    background-size: 256px 256px;
+  }
+
+  /* ─── Table row styles ─── */
+  .table-row-hover {
+    transition: background-color 0.15s ease;
+  }
+
+  .table-row-hover:hover {
+    background-color: hsl(0 0% 12%);
+  }
+
+  /* ─── Input focus glow ─── */
+  input:focus,
+  textarea:focus,
+  [role="combobox"]:focus {
+    box-shadow: 0 0 0 2px hsl(340 30% 65% / 0.15) !important;
+    outline: none !important;
+  }
+
+  /* ─── Tab active indicator ─── */
+  [data-state="active"][role="tab"] {
+    position: relative;
+  }
+
+  [data-state="active"][role="tab"]::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 25%;
+    right: 25%;
+    height: 2px;
+    background: hsl(var(--primary));
+    border-radius: 999px;
+  }
+
+  /* ─── Dialog/modal backdrop ─── */
+  [data-state="open"][role="dialog"] {
+    animation: dialog-in 0.2s ease-out;
+  }
+
+  @keyframes dialog-in {
+    from {
+      opacity: 0;
+      transform: scale(0.96) translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+  }
+
+  /* ─── Progress bar animation ─── */
+  [role="progressbar"] > div {
+    transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  /* ─── Button hover lift ─── */
+  button[data-variant="default"],
+  button:not([data-variant]):not([role]):not(.inline) {
+    transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
   }
 }
 
@@ -193,20 +450,18 @@
   }
 
   .border-rosegold {
-    border: none !important;
+    border-color: #b76e79 !important;
   }
 
   .hover-rosegold:hover {
     background-color: #b76e79;
   }
 
-  /* Utility for ensuring dark theme */
   .dark-theme-override {
     background-color: #111111 !important;
     color: hsl(0 0% 95%) !important;
   }
 
-  /* Line clamp utilities */
   .line-clamp-2 {
     overflow: hidden;
     display: -webkit-box;
@@ -221,15 +476,7 @@
     -webkit-line-clamp: 3;
   }
 
-  /* Remove border utilities */
-  .border-0 {
-    border: none !important;
-  }
-
-  /**
-   * Using the elevate system.
-   * Automatic contrast adjustment.
-   */
+  /* ─── Elevate system ─── */
   .toggle-elevate::before,
   .toggle-elevate-2::before {
     content: "";
@@ -285,7 +532,6 @@
     inset: -1px;
   }
 
-  /* From dashboard index.css */
   input[type="search"]::-webkit-search-cancel-button {
     @apply hidden;
   }
@@ -294,5 +540,10 @@
     content: attr(data-placeholder);
     color: hsl(var(--muted-foreground));
     pointer-events: none;
+  }
+
+  /* ─── Tabular numbers for data ─── */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
   }
 }
