@@ -54,7 +54,7 @@ export function registerPlayerDocumentsRoutes(app: Express): void {
 
         const document = await storage.createPlayerDocument({
           playerId: req.params.playerId,
-          teamId: req.session.teamId || "demo-team",
+          teamId: req.session.teamId!,
           documentType,
           originalName,
           mimeType,
@@ -430,7 +430,7 @@ export function registerPlayerDocumentsRoutes(app: Express): void {
           ? parseInt(req.query.limit as string)
           : 100;
         const logs = await storage.getDocumentAuditLogsByTeam(
-          req.session.teamId || "demo-team",
+          req.session.teamId!,
           limit,
         );
         res.json(logs);

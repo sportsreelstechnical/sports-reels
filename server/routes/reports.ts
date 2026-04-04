@@ -6,9 +6,10 @@ export function registerReportRoutes(app: Express) {
   // Get all reports
   app.get("/api/reports", requireAuth, async (req: Request, res: Response) => {
     try {
-      // Filter reports by the user's team ID to ensure data isolation
-      // Fallback to "demo-team" is maintained for development consistency with other routes
-      const teamId = req.session.teamId || "demo-team";
+      const teamId = req.session.teamId;
+      if (!teamId) {
+        return res.json([]);
+      }
       const reports = await storage.getTransferReports(teamId);
 
       // Enrich reports with player details required by the frontend
@@ -68,9 +69,12 @@ export function registerReportRoutes(app: Express) {
     async (req: Request, res: Response) => {
       try {
         const { playerId, reportType } = req.body;
-        const userId = req.session.userId || "demo-user";
-        const teamId = req.session.teamId || "demo-team";
+        const userId = req.session.userId!;
+        const teamId = req.session.teamId;
 
+        if (!teamId) {
+          return res.status(400).json({ error: "No team associated with this account" });
+        }
         if (!playerId) {
           return res.status(400).json({ error: "Player ID is required" });
         }

@@ -8,7 +8,7 @@ export function registerMessagingRoutes(app: Express): void {
     requireAuth,
     async (req: Request, res: Response) => {
       try {
-        const userId = req.session.userId || "demo-user";
+        const userId = req.session.userId!;
         const conversations = await storage.getConversations(userId);
         res.json(conversations);
       } catch (error) {
@@ -24,7 +24,7 @@ export function registerMessagingRoutes(app: Express): void {
     requireAuth,
     async (req: Request, res: Response) => {
       try {
-        const userId = req.session.userId || "demo-user";
+        const userId = req.session.userId!;
         const { title, participantIds, type } = req.body;
 
         const conversation = await storage.createConversation({
@@ -86,7 +86,7 @@ export function registerMessagingRoutes(app: Express): void {
     requireAuth,
     async (req: Request, res: Response) => {
       try {
-        const userId = req.session.userId || "demo-user";
+        const userId = req.session.userId!;
         const { content, attachmentUrl } = req.body;
 
         const message = await storage.createMessage({

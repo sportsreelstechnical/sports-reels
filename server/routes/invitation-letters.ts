@@ -9,7 +9,10 @@ export function registerInvitationLetterRoutes(app: Express) {
     requireTeamRole,
     async (req: Request, res: Response) => {
       try {
-        const teamId = req.session.teamId || "demo-team";
+        const teamId = req.session.teamId;
+        if (!teamId) {
+          return res.status(400).json({ error: "No team associated with this account" });
+        }
         const letters = await storage.getAllInvitationLetters(teamId);
 
         // Enrich letters with player data for the frontend
@@ -38,11 +41,15 @@ export function registerInvitationLetterRoutes(app: Express) {
     async (req: Request, res: Response) => {
       try {
         const body = req.body;
-        const userId = req.session.userId || "demo-user";
+        const userId = req.session.userId;
+        const teamId = req.session.teamId;
+        if (!teamId) {
+          return res.status(400).json({ error: "No team associated with this account" });
+        }
 
         const newLetter = await storage.createInvitationLetter({
           ...body,
-          fromTeamId: req.session.teamId || "demo-team",
+          fromTeamId: teamId,
           uploadedBy: userId,
         });
 
@@ -167,7 +174,7 @@ export function registerInvitationLetterRoutes(app: Express) {
           return res.status(404).json({ error: "Invitation letter not found" });
         }
 
-        const userId = req.session.userId || "demo-user";
+        const userId = req.session.userId!;
         const cost = 4;
         const balance = await storage.getTokenBalance(userId);
 
