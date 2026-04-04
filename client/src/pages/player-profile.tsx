@@ -78,7 +78,7 @@ export default function PlayerProfile({ params, isScoutView }: PlayerProfileProp
       if (!res.ok) return [];
       return res.json();
     },
-    enabled: !!playerId,
+    enabled: !!playerId && !isScout,
   });
 
   const { data: issuedFederationLetters = [] } = useQuery<FederationLetterRequest[]>({
@@ -138,7 +138,6 @@ export default function PlayerProfile({ params, isScoutView }: PlayerProfileProp
   });
 
   const videos = playerData?.videos || [];
-  console.log("PlayerProfile videos:", videos);
 
   if (!playerId) {
     return (

@@ -104,10 +104,9 @@ export function registerPlayerRoutes(app: Express): void {
           return res.status(404).json({ error: "Player not found" });
         }
         const teamId = await getTeamIdForRequest(req, storage);
-        const canView =
-          teamId &&
-          (player.teamId === teamId || player.isPublishedToScouts === true);
-        if (!canView) {
+        const isOwnTeamPlayer = teamId && player.teamId === teamId;
+        const isPublished = player.isPublishedToScouts === true;
+        if (!isOwnTeamPlayer && !isPublished) {
           return res.status(404).json({ error: "Player not found" });
         }
 
