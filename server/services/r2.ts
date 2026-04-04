@@ -32,15 +32,27 @@ export const r2Client = new S3Client({
 
 export const R2_BUCKET = process.env.R2_BUCKET_NAME || "sportsreelstechnical";
 
+// Cache presigned GET URLs — they're valid for `expiresIn` seconds (default 1h),
+// so we cache for 50 minutes to avoid serving expired URLs.
+const presignedUrlCache = new Map<string, { url: string; expiresAt: number }>();
+const CACHE_TTL_MS = 50 * 60 * 1000; // 50 minutes
+
 export const generatePresignedGetUrl = async (
   key: string,
   expiresIn = 3600,
 ) => {
+  const cached = presignedUrlCache.get(key);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.url;
+  }
+
   const command = new GetObjectCommand({
     Bucket: R2_BUCKET,
     Key: key,
   });
-  return getSignedUrl(r2Client, command, { expiresIn });
+  const url = await getSignedUrl(r2Client, command, { expiresIn });
+  presignedUrlCache.set(key, { url, expiresAt: Date.now() + CACHE_TTL_MS });
+  return url;
 };
 
 export const generatePresignedPutUrl = async (

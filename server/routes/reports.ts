@@ -12,20 +12,21 @@ export function registerReportRoutes(app: Express) {
       }
       const reports = await storage.getTransferReports(teamId);
 
-      // Enrich reports with player details required by the frontend
-      // The TransferReport schema stores playerId, but the UI displays player names and positions
-      const enrichedReports = await Promise.all(
-        reports.map(async (report) => {
-          const player = await storage.getPlayer(report.playerId);
-          return {
-            ...report,
-            playerName: player
-              ? `${player.firstName} ${player.lastName}`
-              : "Unknown Player",
-            playerPosition: player?.position,
-          };
-        }),
-      );
+      // Batch fetch all players referenced by reports in one query
+      const playerIds = [...new Set(reports.map((r) => r.playerId))];
+      const playersArr = playerIds.length > 0 ? await storage.getPlayersByIds(playerIds) : [];
+      const playersMap = new Map(playersArr.map((p) => [p.id, p]));
+
+      const enrichedReports = reports.map((report) => {
+        const player = playersMap.get(report.playerId);
+        return {
+          ...report,
+          playerName: player
+            ? `${player.firstName} ${player.lastName}`
+            : "Unknown Player",
+          playerPosition: player?.position,
+        };
+      });
 
       res.json(enrichedReports);
     } catch (error) {

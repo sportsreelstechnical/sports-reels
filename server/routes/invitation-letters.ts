@@ -15,16 +15,15 @@ export function registerInvitationLetterRoutes(app: Express) {
         }
         const letters = await storage.getAllInvitationLetters(teamId);
 
-        // Enrich letters with player data for the frontend
-        const enrichedLetters = await Promise.all(
-          letters.map(async (letter) => {
-            const player = await storage.getPlayer(letter.playerId);
-            return {
-              ...letter,
-              player,
-            };
-          }),
-        );
+        // Batch fetch all players referenced by letters in one query
+        const playerIds = [...new Set(letters.map((l) => l.playerId))];
+        const playersArr = playerIds.length > 0 ? await storage.getPlayersByIds(playerIds) : [];
+        const playersMap = new Map(playersArr.map((p) => [p.id, p]));
+
+        const enrichedLetters = letters.map((letter) => ({
+          ...letter,
+          player: playersMap.get(letter.playerId),
+        }));
 
         res.json(enrichedLetters);
       } catch (error) {
