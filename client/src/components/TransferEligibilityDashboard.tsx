@@ -106,7 +106,7 @@ function VisaCard({ name, visa, icon }: { name: string; visa: VisaScore; icon: R
       <CardContent>
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-2xl font-bold">{visa.score}</span>
+            <span className="text-2xl font-bold">{Math.round(visa.score)}</span>
             <span className="text-sm text-muted-foreground">/ 100</span>
           </div>
           <Progress value={visa.score} className="h-2" />
