@@ -34,8 +34,8 @@ export default function Embassy() {
     <div className="p-6 space-y-6" data-testid="page-embassy">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold">Embassy Verification</h1>
-          <p className="text-muted-foreground">Monitor and manage consular data submissions</p>
+          <p className="text-xs font-medium tracking-widest uppercase text-muted-foreground mb-1">Consular</p>
+          <h1 className="text-3xl font-bold tracking-tight">Embassy Verification</h1>
         </div>
         <Badge variant="secondary" className="bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
           <Bell className="h-3 w-3 mr-1" />

@@ -199,7 +199,8 @@ export default function TokenBank() {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-semibold" data-testid="text-page-title">Token Bank</h1>
+          <p className="text-xs font-medium tracking-widest uppercase text-muted-foreground mb-1">Economy</p>
+          <h1 className="text-3xl font-bold tracking-tight" data-testid="text-page-title">Token Bank</h1>
           <p className="text-muted-foreground">Manage your tokens and track usage</p>
         </div>
         <Badge variant="outline" className="text-lg px-4 py-2" data-testid="badge-token-balance">

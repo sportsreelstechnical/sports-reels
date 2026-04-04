@@ -58,12 +58,10 @@ export default function EmbassyDocumentView() {
           className="h-16 w-16 object-contain rounded-md"
         />
         <div>
-          <h1 className="text-2xl font-bold" data-testid="text-document-title">
-            Compliance Document - {doc.documentType?.replace(/_/g, " ").toUpperCase()}
+          <p className="text-xs font-medium tracking-widest uppercase text-muted-foreground mb-1">Embassy</p>
+          <h1 className="text-3xl font-bold tracking-tight" data-testid="text-document-title">
+            {doc.documentType?.replace(/_/g, " ").toUpperCase()}
           </h1>
-          <p className="text-muted-foreground">
-            Official document for visa and eligibility verification
-          </p>
         </div>
       </div>
 

@@ -123,10 +123,8 @@ export default function AdminGdpr() {
     <div className="p-6 space-y-6" data-testid="admin-gdpr-page">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2" data-testid="text-gdpr-title">
-            <Shield className="h-6 w-6" />
-            GDPR Compliance
-          </h1>
+          <p className="text-xs font-medium tracking-widest uppercase text-muted-foreground mb-1">Administration</p>
+          <h1 className="text-3xl font-bold tracking-tight" data-testid="text-gdpr-title">GDPR Compliance</h1>
           <p className="text-muted-foreground">Manage data protection and privacy requests</p>
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>

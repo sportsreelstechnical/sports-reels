@@ -105,10 +105,8 @@ export default function AdminMessages() {
     <div className="p-6 space-y-6" data-testid="admin-messages-page">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2" data-testid="text-messages-title">
-            <Mail className="h-6 w-6" />
-            Message Center
-          </h1>
+          <p className="text-xs font-medium tracking-widest uppercase text-muted-foreground mb-1">Administration</p>
+          <h1 className="text-3xl font-bold tracking-tight" data-testid="text-messages-title">Message Center</h1>
           <p className="text-muted-foreground">Review scout-to-player communications</p>
         </div>
         <div className="flex items-center gap-2">

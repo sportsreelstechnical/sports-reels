@@ -75,8 +75,8 @@ export default function AdminAuditLogs() {
     <div className="p-6 space-y-6" data-testid="admin-audit-logs-page">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold" data-testid="text-audit-title">Audit Logs</h1>
-          <p className="text-muted-foreground">Track all platform activity and changes</p>
+          <p className="text-xs font-medium tracking-widest uppercase text-muted-foreground mb-1">Administration</p>
+          <h1 className="text-3xl font-bold tracking-tight" data-testid="text-audit-title">Audit Logs</h1>
         </div>
         <div className="flex items-center gap-2">
           <Select value={categoryFilter} onValueChange={setCategoryFilter}>

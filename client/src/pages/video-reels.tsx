@@ -34,13 +34,8 @@ export default function VideoReels() {
     <div className="p-6 space-y-6" data-testid="page-video-reels">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold flex items-center gap-2">
-            <Film className="h-6 w-6 text-primary" />
-            Video Reels
-          </h1>
-          <p className="text-muted-foreground">
-            Watch all uploaded player videos in continuous playback
-          </p>
+          <p className="text-xs font-medium tracking-widest uppercase text-muted-foreground mb-1">Media</p>
+          <h1 className="text-3xl font-bold tracking-tight">Video Reels</h1>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <Badge variant="secondary" className="flex items-center gap-1">

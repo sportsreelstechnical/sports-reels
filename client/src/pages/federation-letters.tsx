@@ -562,12 +562,10 @@ export default function FederationLettersPage() {
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div>
-            <h1 className="text-2xl font-bold" data-testid="text-page-title">
-              Federation Letter Requests
+            <p className="text-xs font-medium tracking-widest uppercase text-muted-foreground mb-1">Documents</p>
+            <h1 className="text-3xl font-bold tracking-tight" data-testid="text-page-title">
+              Federation Letters
             </h1>
-            <p className="text-muted-foreground">
-              Request official letters from football federations for player transfers and clearances
-            </p>
           </div>
           <Button onClick={() => setIsDialogOpen(true)} data-testid="button-new-request">
             <Plus className="h-4 w-4 mr-2" />

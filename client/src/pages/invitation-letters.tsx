@@ -575,8 +575,8 @@ export default function InvitationLettersPage() {
     <div className="p-6 space-y-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-2xl font-bold" data-testid="text-page-title">Invitation Letters</h1>
-          <p className="text-muted-foreground">Upload club invitation letters for automatic eligibility scoring and embassy verification</p>
+          <p className="text-xs font-medium tracking-widest uppercase text-muted-foreground mb-1">Documents</p>
+          <h1 className="text-3xl font-bold tracking-tight" data-testid="text-page-title">Invitation Letters</h1>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>

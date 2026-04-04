@@ -680,7 +680,8 @@ export default function Players() {
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold">Players</h1>
+          <p className="text-xs font-medium tracking-widest uppercase text-muted-foreground mb-1">Roster</p>
+          <h1 className="text-3xl font-bold tracking-tight">Players</h1>
           <p className="text-muted-foreground">Manage player profiles and compliance data</p>
         </div>
 

@@ -94,10 +94,8 @@ export default function AdminPayments() {
     <div className="p-6 space-y-6" data-testid="admin-payments-page">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2" data-testid="text-payments-title">
-            <DollarSign className="h-6 w-6" />
-            Financial Analytics
-          </h1>
+          <p className="text-xs font-medium tracking-widest uppercase text-muted-foreground mb-1">Administration</p>
+          <h1 className="text-3xl font-bold tracking-tight" data-testid="text-payments-title">Financial Analytics</h1>
           <p className="text-muted-foreground">Track federation fees and payment history</p>
         </div>
         <Button variant="outline" onClick={() => refetch()} data-testid="button-refresh">

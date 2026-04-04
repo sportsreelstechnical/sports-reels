@@ -236,12 +236,10 @@ export default function FederationAdminPage() {
     <div className="flex-1 overflow-auto p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         <div>
-          <h1 className="text-2xl font-bold" data-testid="text-federation-admin-title">
-            Federation Administration
+          <p className="text-xs font-medium tracking-widest uppercase text-muted-foreground mb-1">Federation</p>
+          <h1 className="text-3xl font-bold tracking-tight" data-testid="text-federation-admin-title">
+            Administration
           </h1>
-          <p className="text-muted-foreground">
-            Manage letter requests, process documents, and track revenue
-          </p>
         </div>
 
         <div className="grid grid-cols-4 gap-4">

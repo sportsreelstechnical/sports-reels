@@ -150,8 +150,8 @@ export default function AdminUsers() {
     <div className="p-6 space-y-6" data-testid="admin-users-page">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold" data-testid="text-users-title">User Management</h1>
-          <p className="text-muted-foreground">Create and manage user accounts</p>
+          <p className="text-xs font-medium tracking-widest uppercase text-muted-foreground mb-1">Administration</p>
+          <h1 className="text-3xl font-bold tracking-tight" data-testid="text-users-title">User Management</h1>
         </div>
         <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
           <DialogTrigger asChild>

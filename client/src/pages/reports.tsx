@@ -293,8 +293,8 @@ export default function Reports() {
     <div className="p-6 space-y-6" data-testid="page-reports">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold">Transfer Reports</h1>
-          <p className="text-muted-foreground">Generate and manage comprehensive player transfer reports</p>
+          <p className="text-xs font-medium tracking-widest uppercase text-muted-foreground mb-1">Analytics</p>
+          <h1 className="text-3xl font-bold tracking-tight">Transfer Reports</h1>
         </div>
         <Button onClick={() => setShowGenerateDialog(true)} data-testid="button-new-report">
           <Plus className="h-4 w-4 mr-2" />

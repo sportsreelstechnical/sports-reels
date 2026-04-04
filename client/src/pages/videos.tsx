@@ -353,8 +353,8 @@ export default function Videos() {
     <div className="p-6 space-y-6" data-testid="page-videos">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold">Video Management</h1>
-          <p className="text-muted-foreground">Upload videos, tag players, and analyze positional performance</p>
+          <p className="text-xs font-medium tracking-widest uppercase text-muted-foreground mb-1">Media</p>
+          <h1 className="text-3xl font-bold tracking-tight">Video Management</h1>
         </div>
       </div>
 

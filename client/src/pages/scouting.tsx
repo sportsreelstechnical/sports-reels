@@ -49,8 +49,8 @@ export default function Scouting() {
     <div className="p-6 space-y-6" data-testid="page-scouting">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold">Scouting Dashboard</h1>
-          <p className="text-muted-foreground">Connect with buying clubs and manage transfer inquiries</p>
+          <p className="text-xs font-medium tracking-widest uppercase text-muted-foreground mb-1">Transfer Hub</p>
+          <h1 className="text-3xl font-bold tracking-tight">Scouting</h1>
         </div>
         <Button data-testid="button-new-inquiry">
           <Plus className="h-4 w-4 mr-2" />

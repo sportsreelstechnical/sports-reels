@@ -44,8 +44,8 @@ export default function Access() {
     <div className="p-6 space-y-6" data-testid="page-access">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold">Access Control</h1>
-          <p className="text-muted-foreground">Manage team roles and permissions</p>
+          <p className="text-xs font-medium tracking-widest uppercase text-muted-foreground mb-1">Security</p>
+          <h1 className="text-3xl font-bold tracking-tight">Access Control</h1>
         </div>
         <Button data-testid="button-invite-member">
           <Plus className="h-4 w-4 mr-2" />

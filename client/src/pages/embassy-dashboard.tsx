@@ -394,9 +394,10 @@ export default function EmbassyDashboard() {
           className="h-12 w-12 object-contain rounded-md"
         />
         <div>
-          <h1 className="text-2xl font-bold" data-testid="text-page-title">Embassy Document Portal</h1>
-          <p className="text-muted-foreground">
-            View-only access to player compliance documents for {authData?.embassyProfile?.country || "your jurisdiction"}
+          <p className="text-xs font-medium tracking-widest uppercase text-muted-foreground mb-1">Embassy</p>
+          <h1 className="text-3xl font-bold tracking-tight" data-testid="text-page-title">Document Portal</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            View-only access for {authData?.embassyProfile?.country || "your jurisdiction"}
           </p>
         </div>
       </div>

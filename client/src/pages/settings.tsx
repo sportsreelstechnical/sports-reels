@@ -10,8 +10,8 @@ export default function SettingsPage() {
   return (
     <div className="p-6 space-y-6 max-w-4xl mx-auto">
       <div>
-        <h1 className="text-2xl font-bold" data-testid="text-page-title">Settings</h1>
-        <p className="text-muted-foreground">Manage your account and platform preferences</p>
+        <p className="text-xs font-medium tracking-widest uppercase text-muted-foreground mb-1">Account</p>
+        <h1 className="text-3xl font-bold tracking-tight" data-testid="text-page-title">Settings</h1>
       </div>
 
       <Card>
