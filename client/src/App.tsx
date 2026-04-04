@@ -40,6 +40,7 @@ import AdminPayments from "./pages/admin-payments";
 import AdminAuditLogs from "./pages/admin-audit-logs";
 import AdminGdpr from "./pages/admin-gdpr";
 import EmbassyDocumentView from "./pages/embassy-document-view";
+import SharedPlayerProfile from "./pages/shared-player-profile";
 import NotFound from "./pages/not-found";
 
 // Dev/Legacy Pages (Optional to keep)
@@ -131,6 +132,9 @@ function App() {
                     {/* Federation Admin */}
                     <Route path="/federation-admin" element={<FederationAdminPage />} />
                   </Route>
+
+                  {/* Public Shared Routes */}
+                  <Route path="/shared/player/:token" element={<SharedPlayerProfile />} />
 
                   {/* Catch All */}
                   <Route path="*" element={<NotFound />} />
