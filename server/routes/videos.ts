@@ -1,12 +1,188 @@
 import type { Express, Request, Response } from "express";
-
 import { storage } from "../storage";
-import { requireAuth } from "../middleware/auth";
+import { requireAuth, requireTeamRole } from "../middleware/auth";
 import { insertVideoSchema } from "@shared/schema";
 import { MAX_PLAYERS_PER_VIDEO } from "../constants";
 import { updatePlayerStatsFromVideos } from "../utils/helpers";
+import { asyncHandler } from "server/utils/catchAsync";
+import { axios } from "axios";
 
 export function registerVideoRoutes(app: Express): void {
+  app.post(
+    "/api/videos/initiate-upload",
+    requireAuth,
+    requireTeamRole,
+    asyncHandler(async (req: Request, res: Response) => {
+      // validate request body
+
+      /* const userId = req.session.userId;
+      when payment is back on we finalize tokenization
+      let balance = await storage.getTokenBalance(userId);
+
+      if (balance.balance < 50) {
+        return res
+          .status(400)
+          .json({ message: "You don't have enough tokens for this action" });
+      }
+     */
+      console.log("Initiating upload"); // use pino
+      // create a row in Video
+      const videoData = insertVideoSchema.parse({
+        ...req.body,
+        teamId: req.session.teamId,
+      });
+      const video = await storage.createVideo(videoData);
+
+      // send request to internal microservice
+      const response = await axios.post(
+        `${process.env.VIDEO_SERVICE_BASE_URL}/api/v1/upload/initiate`,
+        {
+          // user_id: userId,
+          job_type: req.body.job_type,
+          filename: req.body.filename,
+          total_chunks: req.body.chunks,
+          storage_data: req.body.storage_data ?? null,
+          content_type: req.body.content_type,
+        },
+        {
+          headers: {
+            "X-Internal-API-Secret": process.env.INTERNAL_API_SECRET,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      const data = {
+        ...response.data,
+        video_id: video.id,
+      };
+
+      return res.json(data);
+    })
+  );
+
+  app.post(
+    "/api/videos/:id/complete",
+    requireAuth,
+    requireTeamRole,
+    asyncHandler(async (req: Request, res: Response) => {
+      const videoId = req.params.id;
+      console.log("Completing upload"); // use pino
+
+      // validate request body
+
+      // send request to internal microservice
+      const response = await axios.post(
+        `${process.env.VIDEO_SERVICE_BASE_URL}/api/v1/upload/complete`,
+        {
+          // user_id: userId, for payment case
+          video_id: videoId,
+          job_type: req.body.job_type,
+          upload_id: req.body.upload_id,
+          video_key: req.body.video_key,
+          parts: req.body.parts,
+          storage_data: req.body.storage_data ?? null,
+        },
+        {
+          headers: {
+            "X-Internal-API-Secret": process.env.INTERNAL_API_SECRET,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      return res.json(response.data);
+    })
+  );
+
+  app.get(
+    "/api/videos/:id/event_tags",
+    requireAuth,
+    requireTeamRole,
+    async (req: Request, res: Response) => {
+      const videoId = req.params.id;
+      const { playerId, event_type, data_point_category, verified_only } =
+        req.query;
+
+      // validate request body
+
+      // send request to internal microservice
+      const response = await axios.post(
+        `${process.env.VIDEO_SERVICE_BASE_URL}/api/v1/videos/${videoId}/event_tags`,
+        {},
+        {
+          params: {
+            player_id: playerId || null,
+            event_type: event_type || null,
+            data_point_category: data_point_category || null,
+            verified_only:
+              verified_only != null && typeof verified_only === "boolean"
+                ? verified_only
+                : null,
+          },
+          headers: {
+            "X-Internal-API-Secret": process.env.INTERNAL_API_SECRET,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      return res.json(response.data);
+    }
+  );
+
+
+
+  app.post(
+    "/api/video/:id/verify_tags",
+    requireAuth,
+    requireTeamRole,
+    async (req: Request, res: Response) => {
+      const videoId = req.params.id;
+
+      // send request to internal microservice
+      const response = await axios.post(
+        `${process.env.VIDEO_SERVICE_BASE_URL}/api/v1/videos/${videoId}/verify_tags`,
+        {},
+        {
+          headers: {
+            "X-Internal-API-Secret": process.env.INTERNAL_API_SECRET,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      return res.json(response.data);
+    }
+  );
+
+  app.get(
+    "/api/video/:id/export_tags",
+    requireAuth,
+    requireTeamRole,
+    asyncHandler(async (req: Request, res: Response) => {
+      // validate request body
+      const videoId = req.params.id;
+      const { format } = req.query;
+
+      console.log("Initiating upload"); // use pino
+
+      // send request to internal microservice
+      const response = await axios.post(
+        `${process.env.VIDEO_SERVICE_BASE_URL}/api/v1/matches/${videoId}/export`,
+        {},
+        {
+          params: { format: format },
+          headers: {
+            "X-Internal-API-Secret": process.env.INTERNAL_API_SECRET,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      const data = {
+        ...response.data,
+      };
+
+      return res.json(data);
+    })
+  );
+
   app.get("/api/videos", requireAuth, async (req: Request, res: Response) => {
     try {
       const { playerId } = req.query;
@@ -36,7 +212,7 @@ export function registerVideoRoutes(app: Express): void {
 
         const videos = await storage.getVideosByTitle(
           title,
-          teamId as string | undefined,
+          teamId as string | undefined
         );
         res.json(videos);
       } catch (error) {
@@ -46,7 +222,7 @@ export function registerVideoRoutes(app: Express): void {
           res.status(500).json({ error: "Unknown error" });
         }
       }
-    },
+    }
   );
 
   app.post("/api/videos", requireAuth, async (req: Request, res: Response) => {
@@ -94,7 +270,7 @@ export function registerVideoRoutes(app: Express): void {
           res.status(400).json({ error: "Unknown error" });
         }
       }
-    },
+    }
   );
 
   app.delete(
@@ -138,7 +314,7 @@ export function registerVideoRoutes(app: Express): void {
           res.status(500).json({ error: "Unknown error" });
         }
       }
-    },
+    }
   );
 
   app.get(
@@ -155,7 +331,7 @@ export function registerVideoRoutes(app: Express): void {
           res.status(500).json({ error: "Unknown error" });
         }
       }
-    },
+    }
   );
 
   app.post(
@@ -198,7 +374,7 @@ export function registerVideoRoutes(app: Express): void {
           res.status(400).json({ error: "Unknown error" });
         }
       }
-    },
+    }
   );
 
   app.put(
@@ -223,7 +399,7 @@ export function registerVideoRoutes(app: Express): void {
           res.status(400).json({ error: "Unknown error" });
         }
       }
-    },
+    }
   );
 
   app.delete(
@@ -252,6 +428,6 @@ export function registerVideoRoutes(app: Express): void {
           res.status(500).json({ error: "Unknown error" });
         }
       }
-    },
+    }
   );
 }

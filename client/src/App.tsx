@@ -42,6 +42,7 @@ import AdminGdpr from "./pages/admin-gdpr";
 import EmbassyDocumentView from "./pages/embassy-document-view";
 import SharedPlayerProfile from "./pages/shared-player-profile";
 import NotFound from "./pages/not-found";
+import VideoAnalysis from "./pages/VideoAnalysis";
 
 // Dev/Legacy Pages (Optional to keep)
 import TranslationDemo from "./components/TranslationDemo";
@@ -105,6 +106,8 @@ function App() {
 
                     <Route path="/videos" element={<Videos />} />
                     <Route path="/video-reels" element={<VideoReels />} />
+                    <Route path="/video-analysis" element={<VideoAnalysis />} />
+                    
                     <Route path="/reports" element={<Reports />} />
                     <Route path="/scouting" element={<Scouting />} />
                     <Route path="/messages" element={<MessagesPage />} />

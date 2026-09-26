@@ -1,0 +1,52 @@
+ffmpeg_cmd = [
+            "ffmpeg", "-y", "-i", "TEST_VIDEO_ORIGINAL.mp4",
+            "-c:v", "libx265", "-crf", "26", "-preset", "fast",
+            "-vf", "scale=-2:720", fps=25,format=yuv420p",
+            "-c:a", "aac", "-b:a", "64k", "-ac", "1",
+            "-b:v", "800k",
+            "-tag:v", "hvc1", "-movflags", "+faststart",
+            compressed/take_1.mp4
+
+        ] - 17 mins = 206MB
+
+ffmpeg_cmd = [
+            "ffmpeg", "-y", "-i", "TEST_VIDEO_ORIGINAL.mp4",
+            "-c:v", "libx265", "-crf", "26", "-preset", "fast",
+            "-vf", "scale=1920:1080:force_original_aspect_ratio=decrease,fps=25,format=yuv420p",
+            "-c:a", "aac", "-b:a", "64k", "-ac", "1",
+            "-tag:v", "hvc1", "-movflags", "+faststart",
+            "compressed/take_1.mp4"
+
+        ] - 9 mins = 204MB
+        
+
+ffmpeg_cmd = [
+            "ffmpeg", "-y", "-i", TEST_VIDEO_ORIGINAL,
+            "-vf", "scale=-2:720", "-r", "15",
+            "-vcodec", "libx265", "-crf", "28",  # H.265 compression
+            "-b:v", "800k",
+            "-an",  # Strip audio unless you explicitly need whistle sound cues
+            compressed/take_2.mp4
+        ] - 19 = 207MB
+
+
+ffmpeg_cmd = [
+            "ffmpeg", "-y", "-i", "TEST_VIDEO_ORIGINAL.mp4",
+            "-c:v", "libx265", "-crf", "26", "-preset", "fast",
+            "-vf", "scale=-2:480, fps=25,format=yuv420p",
+            "-c:a", "aac", "-b:a", "64k", "-ac", "1",
+            "-b:v", "800k",
+            "-tag:v", "hvc1", "-movflags", "+faststart",
+            "compressed/take_3.mp4"
+
+        ] - 33 = 219
+        
+
+
+cmd = [
+        "ffmpeg", "-i", TEST_VIDEO_ORIGINAL,
+        "-vcodec", "libx265", "-crf", "28",
+        "-acodec", "aac", "-b:a", "128k",
+        compressed/take_3.mp4
+
+    ]
