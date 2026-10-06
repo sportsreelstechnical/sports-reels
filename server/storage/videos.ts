@@ -17,12 +17,18 @@ import {
 
 export const videosRepository = {
   // Core Video CRUD
-  async getVideos(playerId?: string): Promise<Video[]> {
+  async getVideos(playerId?: string, processed?: Boolean): Promise<Video[]> {
     if (playerId) {
       return db
         .select()
         .from(videos)
         .where(eq(videos.playerId, playerId))
+        .orderBy(desc(videos.uploadDate));
+    } else if (processed) {
+      return db
+        .select()
+        .from(videos)
+        .where(videos.processed, processed)
         .orderBy(desc(videos.uploadDate));
     }
     return db.select().from(videos).orderBy(desc(videos.uploadDate));
@@ -87,7 +93,7 @@ export const videosRepository = {
 
   async updateVideo(
     id: string,
-    updates: Partial<InsertVideo>,
+    updates: Partial<InsertVideo>
   ): Promise<Video | undefined> {
     const [video] = await db
       .update(videos)
@@ -111,7 +117,7 @@ export const videosRepository = {
   },
 
   async createVideoInsights(
-    insights: InsertVideoInsights,
+    insights: InsertVideoInsights
   ): Promise<VideoInsights> {
     const [newInsights] = await db
       .insert(videoInsights)
@@ -129,7 +135,7 @@ export const videosRepository = {
   },
 
   async getVideoPlayerTagsForPlayer(
-    playerId: string,
+    playerId: string
   ): Promise<Array<VideoPlayerTag & { video: Video | null }>> {
     const tags = await db
       .select()
@@ -142,7 +148,7 @@ export const videosRepository = {
           .from(videos)
           .where(eq(videos.id, tag.videoId));
         return { ...tag, video: video || null };
-      }),
+      })
     );
     return result;
   },
@@ -156,7 +162,7 @@ export const videosRepository = {
   },
 
   async createVideoPlayerTag(
-    tag: InsertVideoPlayerTag,
+    tag: InsertVideoPlayerTag
   ): Promise<VideoPlayerTag> {
     const [newTag] = await db.insert(videoPlayerTags).values(tag).returning();
     return newTag;
@@ -164,7 +170,7 @@ export const videosRepository = {
 
   async updateVideoPlayerTag(
     id: string,
-    updates: Partial<InsertVideoPlayerTag>,
+    updates: Partial<InsertVideoPlayerTag>
   ): Promise<VideoPlayerTag | undefined> {
     const [tag] = await db
       .update(videoPlayerTags)

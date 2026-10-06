@@ -22,7 +22,7 @@ import { registerNotificationRoutes } from "./routes/notifications";
 import { registerInvitationLetterRoutes } from "./routes/invitation-letters";
 import { registerFederationRoutes } from "./routes/federation";
 import { requireAuth } from "./middleware/auth";
-import { registerExportTagRoutes } from "./routes/export_tags";
+import { registerTagRoutes } from "./routes/event_tags";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -37,7 +37,7 @@ export async function registerRoutes(
   registerAuthRoutes(app);
   registerPlayerRoutes(app);
   registerVideoRoutes(app);
-  registerExportTagRoutes(app);
+  registerTagRoutes(app);
   registerMessagingRoutes(app);
   registerReportRoutes(app);
 

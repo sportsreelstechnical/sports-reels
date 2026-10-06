@@ -2,7 +2,7 @@ import type { Express, Request, Response } from "express";
 import { z } from "zod";
 import { storage } from "../storage";
 import { grantSignupBonus } from "../utils/helpers";
-
+import argon2 from "argon2";
 import passport from "passport";
 
 export function registerAuthRoutes(app: Express): void {
@@ -14,7 +14,7 @@ export function registerAuthRoutes(app: Express): void {
     passport.authenticate("google", { scope: ["profile", "email"] })(
       req,
       res,
-      next,
+      next
     );
   });
 
@@ -39,12 +39,12 @@ export function registerAuthRoutes(app: Express): void {
         if (err) {
           console.error("Session save error:", err);
           return res.redirect(
-            `${process.env.FRONTEND_URL || ""}/dashboard?error=session_error`,
+            `${process.env.FRONTEND_URL || ""}/dashboard?error=session_error`
           );
         }
         res.redirect(`${process.env.FRONTEND_URL || ""}/dashboard`);
       });
-    },
+    }
   );
   app.post("/api/auth/signup", async (req: Request, res: Response) => {
     try {
@@ -69,6 +69,7 @@ export function registerAuthRoutes(app: Express): void {
             .optional()
             .default("scout"),
           teamName: z.string().optional(),
+          sportType: z.string().optional(),
           clubName: z.string().optional(),
           country: z.string().optional(),
           leagueBand: z.coerce.number().min(1).max(5).optional().default(3),
@@ -95,33 +96,11 @@ export function registerAuthRoutes(app: Express): void {
 
       let teamId: string | undefined;
 
-      // Restrict restricted roles to specific email domains or addresses
-      if (data.role === "federation_admin" || data.role === "embassy") {
-        const allowedEmails = [
-          "onyewuenyiugochinyere@gmail.com",
-          "sportsreelstechnical@gmail.com",
-          "federationservicenigeria@gmail.com",
-          "nff.sportsreels@gmail.com",
-        ];
-        const allowedDomains = ["sportsreels.ai", "sportsreels.org"];
-
-        const emailDomain = data.email.split("@")[1];
-        const isAllowed =
-          allowedEmails.includes(data.email) ||
-          allowedDomains.includes(emailDomain);
-
-        if (!isAllowed) {
-          return res.status(403).json({
-            error:
-              "Signup for this role is restricted to authorized personnel only.",
-          });
-        }
-      }
-
       if (data.role === "embassy") {
+        const hashedPassword = await argon2.hash(data.password);
         const user = await storage.createUser({
           username: data.username,
-          password: data.password,
+          password: hashedPassword,
           email: data.email,
           firstName: data.firstName,
           lastName: data.lastName,
@@ -148,9 +127,11 @@ export function registerAuthRoutes(app: Express): void {
             res.json({
               success: true,
               userId: user.id,
+              email: data.email,
               role: "embassy",
               user: {
                 id: user.id,
+                email: data.email,
                 username: user.username,
                 role: "embassy",
                 embassyCountry: embassyProfile.country,
@@ -162,9 +143,10 @@ export function registerAuthRoutes(app: Express): void {
       }
 
       if (data.role === "scout" || data.role === "agent") {
+        const hashedPassword = await argon2.hash(data.password);
         const user = await storage.createUser({
           username: data.username,
-          password: data.password,
+          password: hashedPassword,
           email: data.email,
           firstName: data.firstName,
           lastName: data.lastName,
@@ -186,7 +168,12 @@ export function registerAuthRoutes(app: Express): void {
               success: true,
               userId: user.id,
               role: data.role,
-              user: { id: user.id, username: user.username, role: data.role },
+              user: {
+                id: user.id,
+                email: user.email,
+                username: user.username,
+                role: data.role,
+              },
             });
             resolve(undefined);
           });
@@ -199,13 +186,15 @@ export function registerAuthRoutes(app: Express): void {
           clubName: data.clubName,
           country: data.country,
           leagueBand: data.leagueBand,
+          sportType: data.sportType,
         });
         teamId = team.id;
       }
 
+      const hashedPassword = await argon2.hash(data.password);
       const user = await storage.createUser({
         username: data.username,
-        password: data.password,
+        password: hashedPassword,
         email: data.email,
         firstName: data.firstName,
         lastName: data.lastName,
@@ -231,6 +220,7 @@ export function registerAuthRoutes(app: Express): void {
             teamId,
             role: data.role,
             user: {
+              email: user.email,
               id: user.id,
               username: user.username,
               role: data.role,
@@ -255,9 +245,15 @@ export function registerAuthRoutes(app: Express): void {
         return res.status(401).json({ error: "Invalid credentials" });
       }
 
-      if (user.password !== password) {
+      const validatePassword = await argon2.verify(user.password, password);
+
+      if (!validatePassword) {
         return res.status(401).json({ error: "Invalid credentials" });
       }
+
+      // if (user.password !== password) {
+      //   return res.status(401).json({ error: "Invalid credentials" });
+      // }
 
       req.session.userId = user.id;
       req.session.teamId = user.teamId || undefined;
