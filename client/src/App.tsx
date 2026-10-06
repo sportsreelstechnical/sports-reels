@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -42,6 +41,8 @@ import AdminGdpr from "./pages/admin-gdpr";
 import EmbassyDocumentView from "./pages/embassy-document-view";
 import SharedPlayerProfile from "./pages/shared-player-profile";
 import NotFound from "./pages/not-found";
+import VideoAnalysis from "./pages/VideoAnalysis";
+import VideoAnalysis2 from "./pages/VideoAnalysis2";
 
 // Dev/Legacy Pages (Optional to keep)
 import TranslationDemo from "./components/TranslationDemo";
@@ -62,10 +63,10 @@ function DashboardHome() {
   const { user } = useAuth();
   if (!user) return <Navigate to="/auth" />;
 
-  if (user.role === 'admin') return <AdminDashboard />;
-  if (user.role === 'embassy') return <EmbassyDashboard />;
-  if (user.role === 'federation_admin') return <FederationAdminPage />;
-  if (user.role === 'scout' || user.role === 'agent') return <ScoutDashboard />;
+  if (user.role === "admin") return <AdminDashboard />;
+  if (user.role === "embassy") return <EmbassyDashboard />;
+  if (user.role === "federation_admin") return <FederationAdminPage />;
+  if (user.role === "scout" || user.role === "agent") return <ScoutDashboard />;
   return <Dashboard />; // Default for Team/Coach/Sporting Director
 }
 
@@ -86,9 +87,18 @@ function App() {
                   <Route path="/auth" element={<AuthPage />} />
 
                   {/* Dev Routes */}
-                  <Route path="/translation-demo" element={<TranslationDemo />} />
-                  <Route path="/language-selector-demo" element={<LanguageSelectorDemo />} />
-                  <Route path="/unified-translation-test" element={<GoogleTranslationTest />} />
+                  <Route
+                    path="/translation-demo"
+                    element={<TranslationDemo />}
+                  />
+                  <Route
+                    path="/language-selector-demo"
+                    element={<LanguageSelectorDemo />}
+                  />
+                  <Route
+                    path="/unified-translation-test"
+                    element={<GoogleTranslationTest />}
+                  />
 
                   {/* Protected Dashboard Routes */}
                   <Route element={<ProtectedRoute />}>
@@ -99,12 +109,24 @@ function App() {
                     <Route path="/players/:id" element={<PlayerProfile />} />
 
                     {/* For compatibility with both URL structures */}
-                    <Route path="/dashboard/scout/player/:id" element={<PlayerProfile />} />
-                    <Route path="/scout/player/:id" element={<PlayerProfile />} />
+                    <Route
+                      path="/dashboard/scout/player/:id"
+                      element={<PlayerProfile />}
+                    />
+                    <Route
+                      path="/scout/player/:id"
+                      element={<PlayerProfile />}
+                    />
                     <Route path="/player/:id" element={<PlayerProfile />} />
 
                     <Route path="/videos" element={<Videos />} />
                     <Route path="/video-reels" element={<VideoReels />} />
+                    <Route
+                      path="/video-analysis-2"
+                      element={<VideoAnalysis2 />}
+                    />
+                    <Route path="/video-analysis" element={<VideoAnalysis />} />
+
                     <Route path="/reports" element={<Reports />} />
                     <Route path="/scouting" element={<Scouting />} />
                     <Route path="/messages" element={<MessagesPage />} />
@@ -113,12 +135,21 @@ function App() {
 
                     {/* Team Specific */}
                     <Route path="/team-sheets" element={<TeamSheets />} />
-                    <Route path="/invitation-letters" element={<InvitationLettersPage />} />
-                    <Route path="/federation-letters" element={<FederationLettersPage />} />
+                    <Route
+                      path="/invitation-letters"
+                      element={<InvitationLettersPage />}
+                    />
+                    <Route
+                      path="/federation-letters"
+                      element={<FederationLettersPage />}
+                    />
 
                     {/* Embassy Specific */}
                     <Route path="/embassy" element={<Embassy />} />
-                    <Route path="/embassy/document/:id" element={<EmbassyDocumentView />} />
+                    <Route
+                      path="/embassy/document/:id"
+                      element={<EmbassyDocumentView />}
+                    />
 
                     {/* Admin Specific */}
                     <Route path="/access" element={<Access />} />
@@ -126,15 +157,24 @@ function App() {
                     <Route path="/admin/users/new" element={<AdminUsers />} />
                     <Route path="/admin/messages" element={<AdminMessages />} />
                     <Route path="/admin/payments" element={<AdminPayments />} />
-                    <Route path="/admin/audit-logs" element={<AdminAuditLogs />} />
+                    <Route
+                      path="/admin/audit-logs"
+                      element={<AdminAuditLogs />}
+                    />
                     <Route path="/admin/gdpr" element={<AdminGdpr />} />
 
                     {/* Federation Admin */}
-                    <Route path="/federation-admin" element={<FederationAdminPage />} />
+                    <Route
+                      path="/federation-admin"
+                      element={<FederationAdminPage />}
+                    />
                   </Route>
 
                   {/* Public Shared Routes */}
-                  <Route path="/shared/player/:token" element={<SharedPlayerProfile />} />
+                  <Route
+                    path="/shared/player/:token"
+                    element={<SharedPlayerProfile />}
+                  />
 
                   {/* Catch All */}
                   <Route path="*" element={<NotFound />} />

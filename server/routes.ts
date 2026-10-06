@@ -22,10 +22,11 @@ import { registerNotificationRoutes } from "./routes/notifications";
 import { registerInvitationLetterRoutes } from "./routes/invitation-letters";
 import { registerFederationRoutes } from "./routes/federation";
 import { requireAuth } from "./middleware/auth";
+import { registerTagRoutes } from "./routes/event_tags";
 
 export async function registerRoutes(
   httpServer: Server,
-  app: Express,
+  app: Express
 ): Promise<Server> {
   // Register object storage routes
   registerObjectStorageRoutes(app);
@@ -36,6 +37,7 @@ export async function registerRoutes(
   registerAuthRoutes(app);
   registerPlayerRoutes(app);
   registerVideoRoutes(app);
+  registerTagRoutes(app);
   registerMessagingRoutes(app);
   registerReportRoutes(app);
 

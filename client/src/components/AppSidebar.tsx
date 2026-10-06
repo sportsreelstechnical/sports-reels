@@ -56,11 +56,16 @@ export default function AppSidebar({
     { title: "Players", url: "/players", icon: Users },
     { title: "Videos", url: "/videos", icon: Video },
     { title: "Video Reels", url: "/video-reels", icon: Film },
+    { title: "Video Analysis", url: "/video-analysis", icon: Activity },
     { title: "Team Sheets", url: "/team-sheets", icon: ClipboardList },
     { title: "Reports", url: "/reports", icon: FileText },
     { title: "Scouting", url: "/scouting", icon: Search },
     { title: "Invitation Letters", url: "/invitation-letters", icon: Mail },
-    { title: "Federation Letters", url: "/federation-letters", icon: FileCheck },
+    {
+      title: "Federation Letters",
+      url: "/federation-letters",
+      icon: FileCheck,
+    },
     { title: "Messages", url: "/messages", icon: MessageSquare },
     { title: "Token Bank", url: "/token-bank", icon: Coins },
   ];
@@ -68,6 +73,7 @@ export default function AppSidebar({
   const scoutNavItems = [
     { title: "Player Search", url: "/dashboard", icon: Search }, // Dashboard for scout is player search
     { title: "Video Reels", url: "/video-reels", icon: Film },
+    { title: "Video Analysis", url: "/video-analysis", icon: Activity },
     { title: "Messages", url: "/messages", icon: MessageSquare },
     { title: "Token Bank", url: "/token-bank", icon: Coins },
   ];
