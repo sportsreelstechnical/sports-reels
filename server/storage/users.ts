@@ -20,7 +20,7 @@ export const usersRepository = {
     const [user] = await db
       .select()
       .from(users)
-      .where(eq(users.googleId, googleId));
+      // .where(eq(users.googleId, googleId));
     return user;
   },
 

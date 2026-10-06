@@ -57,7 +57,6 @@ export function setupAuth() {
               firstName: profile.name?.givenName || "",
               lastName: profile.name?.familyName || "",
               role: safeRole,
-              googleId: profile.id,
             });
           }
 

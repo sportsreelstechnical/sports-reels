@@ -25,11 +25,14 @@ export const videosRepository = {
         .where(eq(videos.playerId, playerId))
         .orderBy(desc(videos.uploadDate));
     } else if (processed) {
-      return db
-        .select()
-        .from(videos)
-        .where(videos.processed, processed)
-        .orderBy(desc(videos.uploadDate));
+      return (
+        db
+          .select()
+          .from(videos)
+          // @ts-ignore
+          .where(eq(videos.processed, processed))
+          .orderBy(desc(videos.uploadDate))
+      );
     }
     return db.select().from(videos).orderBy(desc(videos.uploadDate));
   },
