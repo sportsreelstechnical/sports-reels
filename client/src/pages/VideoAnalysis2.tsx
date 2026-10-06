@@ -53,4 +53,4 @@ const VideoAnalysis2 = () => {
   );
 };
 
-export default VideoAnalysis;
+export default VideoAnalysis2;
