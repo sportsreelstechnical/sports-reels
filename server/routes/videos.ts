@@ -177,6 +177,7 @@ export function registerVideoRoutes(app: Express): void {
       );
 
       if (response.headers["content-type"]) {
+        // @ts-ignore
         res.setHeader("Content-Type", response.headers["content-type"]);
       }
 
