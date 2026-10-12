@@ -12,7 +12,7 @@
  *   "idle" -> "connecting" -> "processing" -> "completed" (or "failed" / "timeout")
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { buildApiUrl } from "../services/uploadService";
 
 // ---------------------------------------------------------------------------
@@ -25,7 +25,9 @@ export type JobStatusState =
   | "connecting" // EventSource opened, connecting
   | "processing" // Server confirmed background worker is transcoding / analyzing
   | "completed" // Terminal: processing finished successfully
-  | "failed" // Terminal: processing failed
+  | "stream_failed" // Client stream connection closed, dropped, or timed out (1 min limit)
+  | "processing_failed" // Microservice explicitly sent a terminal { status: "failed" } frame
+  | "failed" // Generic backward-compatible failure
   | "timeout"; // Terminal: stream exceeded max client duration
 
 export interface JobStatusEvent {
@@ -47,7 +49,10 @@ export interface UseJobStatusResult {
   isQueued: boolean;
   isProcessing: boolean;
   isCompleted: boolean;
+  isStreamFailed: boolean;
+  isProcessingFailed: boolean;
   isFailed: boolean;
+  retryStream: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -55,8 +60,8 @@ export interface UseJobStatusResult {
 // ---------------------------------------------------------------------------
 
 const TERMINAL_STATUSES = new Set<string>(["completed", "failed"]);
-// const CLIENT_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes wall-clock cap
-const CLIENT_TIMEOUT_MS = 30 * 120 * 1000; // 60 minutes wall-clock cap
+const CONNECTION_TIMEOUT_MS = 60 * 1000; // 1 minute limit to establish/re-establish connection
+const CLIENT_TIMEOUT_MS = 60 * 60 * 1000; // 60 minutes wall-clock cap
 
 // ---------------------------------------------------------------------------
 // Hook Implementation
@@ -64,14 +69,22 @@ const CLIENT_TIMEOUT_MS = 30 * 120 * 1000; // 60 minutes wall-clock cap
 
 export function useJobStatus(
   jobId: string | null | undefined,
-  apiBaseUrl: string = "",
+  apiBaseUrl: string = ""
 ): UseJobStatusResult {
   const [status, setStatus] = useState<JobStatusState>("idle");
   const [event, setEvent] = useState<JobStatusEvent | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [connectKey, setConnectKey] = useState<number>(0);
 
   const esRef = useRef<EventSource | null>(null);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const connectionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const maxDurationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  );
+
+  const retryStream = useCallback(() => {
+    setConnectKey((k) => k + 1);
+  }, []);
 
   useEffect(() => {
     if (!jobId) {
@@ -86,19 +99,61 @@ export function useJobStatus(
     setEvent(null);
     setError(null);
 
+    // Clean up any existing connection & timers
+    if (esRef.current) {
+      esRef.current.close();
+      esRef.current = null;
+    }
+    if (connectionTimerRef.current) {
+      clearTimeout(connectionTimerRef.current);
+      connectionTimerRef.current = null;
+    }
+    if (maxDurationTimerRef.current) {
+      clearTimeout(maxDurationTimerRef.current);
+      maxDurationTimerRef.current = null;
+    }
+
     const es = new EventSource(url);
     esRef.current = es;
 
-    // Timeout guard
-    timeoutRef.current = setTimeout(() => {
+    // 1-minute connection limit guard:
+    // If the stream fails to connect or establish within 1 minute, explicitly close and fail as stream_failed
+    connectionTimerRef.current = setTimeout(() => {
+      if (es.readyState !== EventSource.OPEN) {
+        es.close();
+        setStatus("stream_failed");
+        setError(
+          "Real-time stream failed to establish a connection within 1 minute. Background analysis may still be running on the server."
+        );
+      }
+    }, CONNECTION_TIMEOUT_MS);
+
+    // Overall job duration cap
+    maxDurationTimerRef.current = setTimeout(() => {
       es.close();
       setStatus("timeout");
       setError(
-        `No completion event received within ${CLIENT_TIMEOUT_MS / 60000} minutes.`,
+        `No completion event received within ${
+          CLIENT_TIMEOUT_MS / 60000
+        } minutes.`
       );
     }, CLIENT_TIMEOUT_MS);
 
+    es.onopen = () => {
+      // Connection successfully opened
+      if (connectionTimerRef.current) {
+        clearTimeout(connectionTimerRef.current);
+        connectionTimerRef.current = null;
+      }
+    };
+
     es.onmessage = (messageEvent: MessageEvent) => {
+      // Any received frame confirms connection is alive
+      if (connectionTimerRef.current) {
+        clearTimeout(connectionTimerRef.current);
+        connectionTimerRef.current = null;
+      }
+
       let parsed: JobStatusEvent;
       try {
         parsed = JSON.parse(messageEvent.data) as JobStatusEvent;
@@ -131,35 +186,77 @@ export function useJobStatus(
         return;
       }
 
+      if (incomingStatus === "completed") {
+        setStatus("completed");
+        es.close();
+        if (connectionTimerRef.current)
+          clearTimeout(connectionTimerRef.current);
+        if (maxDurationTimerRef.current)
+          clearTimeout(maxDurationTimerRef.current);
+        return;
+      }
+
+      if (incomingStatus === "failed") {
+        setStatus("processing_failed");
+        setError(
+          parsed.error ??
+            "Video analysis could not be completed by the service. Please try again."
+        );
+        es.close();
+        if (connectionTimerRef.current)
+          clearTimeout(connectionTimerRef.current);
+        if (maxDurationTimerRef.current)
+          clearTimeout(maxDurationTimerRef.current);
+        return;
+      }
+
       if (TERMINAL_STATUSES.has(incomingStatus)) {
         setStatus(incomingStatus as "completed" | "failed");
-        if (incomingStatus === "failed") {
-          setError(
-            parsed.error ??
-              "Video analysis could not be completed. Please try again.",
-          );
-        }
         es.close();
-        if (timeoutRef.current) clearTimeout(timeoutRef.current);
+        if (connectionTimerRef.current)
+          clearTimeout(connectionTimerRef.current);
+        if (maxDurationTimerRef.current)
+          clearTimeout(maxDurationTimerRef.current);
       }
     };
 
     es.onerror = () => {
-      // EventSource handles transient disconnects automatically.
-      // If closed permanently, reflect in state.
+      // If permanently closed (e.g. server closed connection or network blocked)
       if (es.readyState === EventSource.CLOSED) {
-        setStatus("failed");
-        setError("Real-time connection was lost. Please check your network.");
-        if (timeoutRef.current) clearTimeout(timeoutRef.current);
+        if (connectionTimerRef.current)
+          clearTimeout(connectionTimerRef.current);
+        if (maxDurationTimerRef.current)
+          clearTimeout(maxDurationTimerRef.current);
+        setStatus("stream_failed");
+        setError(
+          "Real-time stream was closed. Background processing may still be running on the server."
+        );
+        return;
+      }
+
+      // If in CONNECTING state (browser attempting to reconnect):
+      // Enforce the 1-minute limit so it doesn't try forever
+      if (!connectionTimerRef.current) {
+        connectionTimerRef.current = setTimeout(() => {
+          if (es.readyState !== EventSource.OPEN) {
+            es.close();
+            setStatus("stream_failed");
+            setError(
+              "Real-time stream failed to establish a connection within 1 minute. Background analysis may still be running on the server."
+            );
+          }
+        }, CONNECTION_TIMEOUT_MS);
       }
     };
 
     return () => {
       es.close();
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      if (connectionTimerRef.current) clearTimeout(connectionTimerRef.current);
+      if (maxDurationTimerRef.current)
+        clearTimeout(maxDurationTimerRef.current);
       esRef.current = null;
     };
-  }, [jobId, apiBaseUrl]);
+  }, [jobId, apiBaseUrl, connectKey]);
 
   return {
     status,
@@ -169,7 +266,14 @@ export function useJobStatus(
     isQueued: status === "queued",
     isProcessing: status === "processing",
     isCompleted: status === "completed",
-    isFailed: status === "failed" || status === "timeout",
+    isStreamFailed: status === "stream_failed",
+    isProcessingFailed: status === "processing_failed",
+    isFailed:
+      status === "stream_failed" ||
+      status === "processing_failed" ||
+      status === "failed" ||
+      status === "timeout",
+    retryStream,
   };
 }
 

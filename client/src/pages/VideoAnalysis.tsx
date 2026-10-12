@@ -1,10 +1,4 @@
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import VideoUploader from "@/components/VideoUploader";
 import {
   Card,
@@ -78,14 +72,14 @@ import {
 } from "lucide-react";
 import { SignedVideoPlayer } from "@/components/SignedVideoPlayer";
 
-export default function VideoAnalysis() {
+export default function VideoAnalysis3() {
   const { toast } = useToast();
   const { user, profile } = useAuth();
 
   // Backend URL configuration (defaults to relative "" for dev proxy and session cookie propagation)
   const defaultApiBase = import.meta.env.VITE_BACKEND_URL || "";
   const serviceBase =
-    import.meta.env.VIDEO_SERVICE_BASE_URL || "http://localhost:8000";
+    import.meta.env.VITE_VIDEO_SERVICE_BASE_URL || "http://localhost:8000";
 
   // =========================================================================
   // RBAC: Client-Side Role-Based Access Control
@@ -155,7 +149,10 @@ export default function VideoAnalysis() {
     isQueued,
     isProcessing,
     isCompleted,
-  } = useJobStatus(activeJob?.job_id, );
+    isStreamFailed,
+    isProcessingFailed,
+    retryStream,
+  } = useJobStatus(activeJob?.job_id, serviceBase);
 
   // Event tags timeline state for the focused video
   const [timelineData, setTimelineData] = useState<FetchEventTagsResult | null>(
@@ -199,7 +196,6 @@ export default function VideoAnalysis() {
     !selectedVideo.file_url.startsWith("/") &&
     !selectedVideo.file_url.startsWith("blob:");
 
-
   const loadProcessedVideos = useCallback(async () => {
     setIsLoadingVideos(true);
     setVideosError(null);
@@ -220,7 +216,6 @@ export default function VideoAnalysis() {
   useEffect(() => {
     loadProcessedVideos();
   }, [loadProcessedVideos]);
-
 
   const loadEventTags = useCallback(
     async (videoId: string, appliedFilters?: EventTagFilters) => {
@@ -358,7 +353,7 @@ export default function VideoAnalysis() {
     toast,
   ]);
 
-  // SSE Transition Trigger: Inform user when worker picks up queued job and starts processing
+  // Status Transition Trigger: Inform user on status shifts
   const prevSseStatusRef = useRef<string | null>(null);
   useEffect(() => {
     if (
@@ -371,11 +366,35 @@ export default function VideoAnalysis() {
         description: `Worker picked up job #${activeJob.job_id.slice(
           0,
           8
-        )}. AI frame analysis is now running.`,
+        )}. Analysis is now running.`,
+      });
+    } else if (
+      prevSseStatusRef.current !== "stream_failed" &&
+      sseStatus === "stream_failed" &&
+      activeJob
+    ) {
+      toast({
+        title: "Stream Disconnected",
+        description:
+          sseError ||
+          "Real-time live notification was interrupted. Background analysis may still be running.",
+        variant: "default",
+      });
+    } else if (
+      prevSseStatusRef.current !== "processing_failed" &&
+      sseStatus === "processing_failed" &&
+      activeJob
+    ) {
+      toast({
+        title: "Processing Failed",
+        description:
+          sseError ||
+          "The analysis pipeline reported an error processing this video.",
+        variant: "destructive",
       });
     }
     prevSseStatusRef.current = sseStatus;
-  }, [sseStatus, activeJob, toast]);
+  }, [sseStatus, sseError, activeJob, toast]);
 
   // Handle Tag Filters
   const handleApplyFilters = useCallback(() => {
@@ -580,7 +599,7 @@ export default function VideoAnalysis() {
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
-              Video Analysis 3
+              Video Analysis
             </h1>
             <Badge
               variant="outline"
@@ -618,7 +637,7 @@ export default function VideoAnalysis() {
         </div>
       </div>
 
-      {/* Live SSE Background Analysis Banner (Only active for Team upload jobs) */}
+      {/* Live Status Background Analysis Banner (Only active for Team upload jobs) */}
       {isTeamRole &&
         activeJob &&
         (isQueued || isConnecting || isProcessing) && (
@@ -656,7 +675,7 @@ export default function VideoAnalysis() {
                 <p className="text-xs text-muted-foreground mt-0.5">
                   {isProcessing
                     ? "Transcoding video and extracting tactical event tags..."
-                    : "Video chunks assembled and awaiting analysis worker. Event stream is active..."}
+                    : "Video chunks assembled. Waiting in queue for an available analysis worker..."}
                 </p>
               </div>
             </div>
@@ -675,12 +694,81 @@ export default function VideoAnalysis() {
                     : "bg-amber-500 animate-ping"
                 }`}
               />
-              {isProcessing
-                ? "Processing • Live SSE"
-                : "Queued • Stream Active"}
+              {isProcessing ? "Processing • Live Updates" : "In Queue"}
             </Badge>
           </Card>
         )}
+
+      {/* Stream Failure Banner */}
+      {isTeamRole && activeJob && isStreamFailed && (
+        <Card className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm border-amber-500/40 bg-amber-500/5 animate-in fade-in-50 duration-200">
+          <div className="flex items-center gap-3">
+            <AlertCircle className="h-5 w-5 text-amber-500 shrink-0" />
+            <div>
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-semibold text-foreground">
+                  Live Notifications Interrupted
+                </p>
+                <Badge
+                  variant="secondary"
+                  className="text-[10px] bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                >
+                  Job #{activeJob.job_id.slice(0, 8)}
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {sseError ||
+                  "The real-time updates connection was closed. Background analysis may still be running."}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={retryStream}
+              className="text-xs h-8 border-amber-500/30 text-amber-700 dark:text-amber-300 hover:bg-amber-500/10"
+            >
+              <RefreshCw className="h-3 w-3 mr-1.5" />
+              Reconnect
+            </Button>
+          </div>
+        </Card>
+      )}
+
+      {/* Processing Failure Banner */}
+      {isTeamRole && activeJob && isProcessingFailed && (
+        <Card className="p-4 flex items-center justify-between shadow-sm border-destructive/40 bg-destructive/5 animate-in fade-in-50 duration-200">
+          <div className="flex items-center gap-3">
+            <AlertCircle className="h-5 w-5 text-destructive shrink-0" />
+            <div>
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-semibold text-foreground">
+                  Processing Failed
+                </p>
+                <Badge
+                  variant="secondary"
+                  className="text-[10px] bg-destructive/10 text-destructive"
+                >
+                  Job #{activeJob.job_id.slice(0, 8)}
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {sseError ||
+                  "The analysis pipeline reported an error processing this video."}
+              </p>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => setActiveJob(null)}
+            className="text-xs h-7 text-muted-foreground hover:text-foreground"
+          >
+            Dismiss
+          </Button>
+        </Card>
+      )}
 
       {/* =========================================================================
             VIEW 1: FOCUSED VIDEO VIEW (When user clicks a processed video)
@@ -833,7 +921,6 @@ export default function VideoAnalysis() {
                       onError={(e) => {
                         console.log("VIDEO ERROR", e.currentTarget.error);
                       }}
-                      isAnalysisVid={true}
                       className="w-full h-full rounded-md"
                       videoKey={selectedVideo.file_url}
                       data-testid="video-player"
@@ -1267,6 +1354,8 @@ export default function VideoAnalysis() {
               <VideoUploader
                 apiBaseUrl={defaultApiBase}
                 currentJobStatus={sseStatus}
+                jobError={sseError}
+                onRetryStream={retryStream}
                 onUploadComplete={(job) => {
                   setActiveJob(job);
                   // loadProcessedVideos();
