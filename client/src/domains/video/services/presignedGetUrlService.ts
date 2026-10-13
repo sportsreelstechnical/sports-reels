@@ -8,7 +8,8 @@ export class PresignedGetUrlService {
   private baseUrl: string;
 
   constructor(
-    baseUrl: string = "https://sports-reels-production-04e6.up.railway.app",
+    baseUrl: string = import.meta.env.VITE_BACKEND_URL ||
+      "http://localhost:5001"
   ) {
     this.baseUrl = baseUrl;
   }
@@ -18,7 +19,7 @@ export class PresignedGetUrlService {
    */
   async getPresignedUrl(
     key: string,
-    expiresIn: number = 3600,
+    expiresIn: number = 3600
   ): Promise<PresignedGetUrlResult> {
     try {
       const response = await fetch(`${this.baseUrl}/api/r2/presigned-get-url`, {
@@ -78,7 +79,7 @@ export class PresignedGetUrlService {
   async getSignedMediaUrls(
     videoKey?: string,
     thumbnailKey?: string,
-    expiresIn: number = 3600,
+    expiresIn: number = 3600
   ): Promise<{
     success: boolean;
     videoUrl?: string;

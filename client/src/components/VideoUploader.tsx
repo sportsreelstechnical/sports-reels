@@ -20,6 +20,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import {
   Upload,
@@ -27,7 +28,10 @@ import {
   AlertCircle,
   RefreshCw,
   Sparkles,
+  X,
+  FileVideo,
   Layers,
+  ArrowRight,
   ShieldAlert,
   Clock,
 } from "lucide-react";
@@ -43,8 +47,12 @@ export interface VideoUploaderProps {
   apiBaseUrl?: string;
   /** Optional webhook callback URL override (server uses default if omitted). */
   webhookUrl?: string;
-  /** Current real-time job status from SSE (e.g. "queued" | "processing" | "completed") */
+  /** Current real-time job status (e.g. "queued" | "processing" | "completed" | "stream_failed" | "processing_failed") */
   currentJobStatus?: string;
+  /** Detailed error message from real-time stream or processing pipeline */
+  jobError?: string | null;
+  /** Callback to reconnect to real-time stream without re-uploading */
+  onRetryStream?: () => void;
   /** Callback fired as soon as all chunks are assembled and the analysis job is queued. */
   onUploadComplete?: (job: AssemblyJobPayload) => void;
   /** Callback fired if upload fails irrecoverably. */
@@ -60,6 +68,8 @@ export interface VideoUploaderProps {
 export const VideoUploader: React.FC<VideoUploaderProps> = ({
   apiBaseUrl = "",
   currentJobStatus,
+  jobError,
+  onRetryStream,
   onUploadComplete,
   onJobReset,
   onUploadError,
@@ -91,7 +101,7 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
       !file.name.match(/\.(mp4|mov|avi|mkv|webm)$/i)
     ) {
       setErrorMessage(
-        "Please select a valid video file (.mp4, .mov, .mkv, .webm).",
+        "Please select a valid video file (.mp4, .mov, .mkv, .webm)."
       );
       setStatus("error");
       return;
@@ -116,7 +126,7 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
       const file = event.target.files?.[0] ?? null;
       if (file) handleFile(file);
     },
-    [handleFile],
+    [handleFile]
   );
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -136,7 +146,7 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
       const file = e.dataTransfer.files?.[0];
       if (file) handleFile(file);
     },
-    [handleFile],
+    [handleFile]
   );
 
   // ---- Upload Execution ----
@@ -181,7 +191,7 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
         },
         onChunkRetry: (retryState: ChunkRetryState) => {
           setRetryNotice(
-            `Connection issue on chunk ${retryState.partNumber}. Retrying (attempt ${retryState.attempt}/${retryState.maxAttempts})...`,
+            `Connection issue on chunk ${retryState.partNumber}. Retrying (attempt ${retryState.attempt}/${retryState.maxAttempts})...`
           );
         },
       });
@@ -266,111 +276,169 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
 
       <CardContent className="space-y-4 pt-5">
         {/* State 1: Assembled / Job Status View */}
-        {status === "assembled" && job ? (() => {
-          const effectiveStatus = (currentJobStatus || job.status || "queued").toLowerCase();
-          const isProcessingState =
-            effectiveStatus === "processing" ||
-            effectiveStatus === "transcoding" ||
-            effectiveStatus === "analyzing";
-          const isCompletedState = effectiveStatus === "completed";
-          const isFailedState = effectiveStatus === "failed" || effectiveStatus === "timeout";
+        {status === "assembled" && job ? (
+          (() => {
+            const effectiveStatus = (
+              currentJobStatus ||
+              job.status ||
+              "queued"
+            ).toLowerCase();
+            const isProcessingState =
+              effectiveStatus === "processing" ||
+              effectiveStatus === "transcoding" ||
+              effectiveStatus === "analyzing";
+            const isCompletedState = effectiveStatus === "completed";
+            const isStreamFailedState = effectiveStatus === "stream_failed";
+            const isProcessingFailedState =
+              effectiveStatus === "processing_failed";
+            const isGenericFailedState =
+              effectiveStatus === "failed" || effectiveStatus === "timeout";
+            const isAnyFailed =
+              isStreamFailedState ||
+              isProcessingFailedState ||
+              isGenericFailedState;
 
-          return (
-            <div
-              className={`space-y-4 p-4 rounded-lg border text-center animate-in fade-in duration-200 ${
-                isCompletedState
-                  ? "bg-emerald-500/10 border-emerald-500/20"
-                  : isProcessingState
+            return (
+              <div
+                className={`space-y-4 p-4 rounded-lg border text-center animate-in fade-in duration-200 ${
+                  isCompletedState
+                    ? "bg-emerald-500/10 border-emerald-500/20"
+                    : isProcessingState
                     ? "bg-primary/10 border-primary/20"
-                    : isFailedState
-                      ? "bg-destructive/10 border-destructive/20"
-                      : "bg-amber-500/10 border-amber-500/20"
-              }`}
-            >
-              {isCompletedState ? (
-                <CheckCircle2 className="h-10 w-10 text-emerald-500 mx-auto" />
-              ) : isProcessingState ? (
-                <RefreshCw className="h-10 w-10 text-primary mx-auto animate-spin" />
-              ) : isFailedState ? (
-                <AlertCircle className="h-10 w-10 text-destructive mx-auto" />
-              ) : (
-                <Clock className="h-10 w-10 text-amber-500 mx-auto animate-pulse" />
-              )}
-
-              <div>
-                <h4 className="text-sm font-semibold text-foreground">
-                  {isCompletedState
-                    ? "Upload & Analysis Complete!"
-                    : isProcessingState
-                      ? "AI Analysis in Progress"
-                      : isFailedState
-                        ? "Processing Failed"
-                        : "Upload Complete • Queued"}
-                </h4>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {isCompletedState
-                    ? "Video chunks were assembled and tactical match event tags have been generated."
-                    : isProcessingState
-                      ? "Microservice worker has picked up the job and is actively analyzing footage."
-                      : isFailedState
-                        ? "An error occurred during video analysis. Please try uploading again."
-                        : "Video chunks successfully assembled. Waiting in queue for an available microservice analysis worker."}
-                </p>
-              </div>
-
-              <div className="bg-background/80 p-2.5 rounded border border-border/60 text-left text-xs space-y-1.5 font-mono">
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Job ID:</span>
-                  <span className="text-foreground truncate max-w-[170px] font-semibold">
-                    {job.job_id}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Status:</span>
-                  <div className="flex items-center gap-1.5">
-                    {isProcessingState ? (
-                      <span className="flex items-center gap-1 text-primary font-medium">
-                        <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
-                        Processing
-                      </span>
-                    ) : isCompletedState ? (
-                      <span className="flex items-center gap-1 text-emerald-500 font-medium">
-                        <CheckCircle2 className="h-3 w-3" />
-                        Completed
-                      </span>
-                    ) : isFailedState ? (
-                      <span className="text-destructive font-medium capitalize">
-                        Failed
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-1 text-amber-500 font-medium">
-                        <span className="h-2 w-2 rounded-full bg-amber-500 animate-ping" />
-                        Queued
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div className="flex justify-between items-center text-[11px]">
-                  <span className="text-muted-foreground">Stream:</span>
-                  <span className="text-muted-foreground flex items-center gap-1">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                    SSE Connected
-                  </span>
-                </div>
-              </div>
-
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleReset}
-                className="w-full text-xs font-medium"
+                    : isStreamFailedState
+                    ? "bg-amber-500/10 border-amber-500/30"
+                    : isAnyFailed
+                    ? "bg-destructive/10 border-destructive/20"
+                    : "bg-amber-500/10 border-amber-500/20"
+                }`}
               >
-                <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
-                Upload Another Video
-              </Button>
-            </div>
-          );
-        })() : (
+                {isCompletedState ? (
+                  <CheckCircle2 className="h-10 w-10 text-emerald-500 mx-auto" />
+                ) : isProcessingState ? (
+                  <RefreshCw className="h-10 w-10 text-primary mx-auto animate-spin" />
+                ) : isStreamFailedState ? (
+                  <AlertCircle className="h-10 w-10 text-amber-500 mx-auto" />
+                ) : isAnyFailed ? (
+                  <AlertCircle className="h-10 w-10 text-destructive mx-auto" />
+                ) : (
+                  <Clock className="h-10 w-10 text-amber-500 mx-auto animate-pulse" />
+                )}
+
+                <div>
+                  <h4 className="text-sm font-semibold text-foreground">
+                    {isCompletedState
+                      ? "Upload & Analysis Complete!"
+                      : isProcessingState
+                      ? "AI Analysis in Progress"
+                      : isStreamFailedState
+                      ? "Stream Connection Interrupted"
+                      : isAnyFailed
+                      ? "Processing Failed"
+                      : "Upload Complete • Queued"}
+                  </h4>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {isCompletedState
+                      ? "Video chunks were assembled and tactical match event tags have been generated."
+                      : isProcessingState
+                      ? "Microservice worker has picked up the job and is actively analyzing footage."
+                      : isStreamFailedState
+                      ? jobError ||
+                        "The real-time updates connection was closed. Your video was uploaded successfully and processing may still be underway on the server."
+                      : isAnyFailed
+                      ? jobError ||
+                        "An error occurred during video analysis. Please try uploading again."
+                      : "Video chunks successfully assembled. Waiting in queue for an available microservice analysis worker."}
+                  </p>
+                </div>
+
+                <div className="bg-background/80 p-2.5 rounded border border-border/60 text-left text-xs space-y-1.5 font-mono">
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Job ID:</span>
+                    <span className="text-foreground truncate max-w-[170px] font-semibold">
+                      {job.job_id}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Status:</span>
+                    <div className="flex items-center gap-1.5">
+                      {isProcessingState ? (
+                        <span className="flex items-center gap-1 text-primary font-medium">
+                          <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+                          Processing
+                        </span>
+                      ) : isCompletedState ? (
+                        <span className="flex items-center gap-1 text-emerald-500 font-medium">
+                          <CheckCircle2 className="h-3 w-3" />
+                          Completed
+                        </span>
+                      ) : isStreamFailedState ? (
+                        <span className="flex items-center gap-1 text-amber-500 font-medium">
+                          <span className="h-2 w-2 rounded-full bg-amber-500" />
+                          Stream Disconnected
+                        </span>
+                      ) : isAnyFailed ? (
+                        <span className="text-destructive font-medium capitalize">
+                          Failed
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1 text-amber-500 font-medium">
+                          <span className="h-2 w-2 rounded-full bg-amber-500 animate-ping" />
+                          Queued
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Only display live feed connection row once processing has actively begun */}
+                  {isProcessingState && (
+                    <div className="flex justify-between items-center text-[11px]">
+                      <span className="text-muted-foreground">Live Feed:</span>
+                      <span className="text-emerald-500 flex items-center gap-1 font-medium">
+                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        Connected
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {isStreamFailedState ? (
+                  <div className="space-y-2">
+                    {onRetryStream && (
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={onRetryStream}
+                        className="w-full text-xs font-medium"
+                      >
+                        <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+                        Reconnect to Stream
+                      </Button>
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleReset}
+                      className="w-full text-xs font-medium text-muted-foreground hover:text-foreground"
+                    >
+                      <X className="h-3.5 w-3.5 mr-1.5" />
+                      Upload Another Video
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleReset}
+                    className="w-full text-xs font-medium"
+                  >
+                    <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+                    Upload Another Video
+                  </Button>
+                )}
+              </div>
+            );
+          })()
+        ) : (
           /* State 2: Normal Upload Form */
           <>
             {/* Drag and Drop Zone */}
@@ -386,10 +454,10 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
                 isDragOver
                   ? "border-primary bg-primary/5"
                   : selectedFile
-                    ? "border-emerald-500/50 bg-emerald-500/5"
-                    : isUploading
-                      ? "opacity-60 cursor-not-allowed border-border"
-                      : "border-border hover:border-muted-foreground/50 hover:bg-muted/30"
+                  ? "border-emerald-500/50 bg-emerald-500/5"
+                  : isUploading
+                  ? "opacity-60 cursor-not-allowed border-border"
+                  : "border-border hover:border-muted-foreground/50 hover:bg-muted/30"
               }`}
             >
               <input
@@ -409,7 +477,7 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
                   </div>
                   <p className="text-[11px] text-muted-foreground">
                     {(selectedFile.size / (1024 * 1024)).toFixed(1)} MB • ~
-                    {estimatedChunks} chunks (10MB)
+                    {estimatedChunks} chunks
                   </p>
                   <span className="text-[10px] text-primary underline block">
                     Click or drag to replace
@@ -510,7 +578,6 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
                       Chunk {progressInfo.completedChunks} of{" "}
                       {progressInfo.totalChunks}
                     </span>
-                    <span>10MB Chunks</span>
                   </div>
                 )}
 

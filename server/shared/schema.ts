@@ -8,6 +8,7 @@ import {
   timestamp,
   doublePrecision,
   jsonb,
+  uuid,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -167,7 +168,7 @@ export const biometricData = pgTable("biometric_data", {
 });
 
 export const videos = pgTable("videos", {
-  id: varchar("id")
+  id: uuid("id")
     .primaryKey()
     .default(sql`gen_random_uuid()`),
   playerId: varchar("player_id"),

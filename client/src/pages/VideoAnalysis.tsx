@@ -1,10 +1,4 @@
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import VideoUploader from "@/components/VideoUploader";
 import {
   Card,
@@ -78,14 +72,14 @@ import {
 } from "lucide-react";
 import { SignedVideoPlayer } from "@/components/SignedVideoPlayer";
 
-export default function VideoAnalysis() {
+export default function VideoAnalysis3() {
   const { toast } = useToast();
   const { user, profile } = useAuth();
 
   // Backend URL configuration (defaults to relative "" for dev proxy and session cookie propagation)
   const defaultApiBase = import.meta.env.VITE_BACKEND_URL || "";
   const serviceBase =
-    import.meta.env.VIDEO_SERVICE_BASE_URL || "http://localhost:8000";
+    import.meta.env.VITE_VIDEO_SERVICE_BASE_URL || "http://localhost:8000";
 
   // =========================================================================
   // RBAC: Client-Side Role-Based Access Control
@@ -155,7 +149,10 @@ export default function VideoAnalysis() {
     isQueued,
     isProcessing,
     isCompleted,
-  } = useJobStatus(activeJob?.job_id, );
+    isStreamFailed,
+    isProcessingFailed,
+    retryStream,
+  } = useJobStatus(activeJob?.job_id, serviceBase);
 
   // Event tags timeline state for the focused video
   const [timelineData, setTimelineData] = useState<FetchEventTagsResult | null>(
@@ -181,7 +178,12 @@ export default function VideoAnalysis() {
   // QA Editing modal state
   const [editingTag, setEditingTag] = useState<MatchTag | null>(null);
   const [qaEventType, setQaEventType] = useState<string>("");
-  const [qaOutcome, setQaOutcome] = useState<string>("");
+  const [qaDataPointCategory, setQaDataPointCategory] = useState<string>("");
+  const [qaPhase, setQaPhase] = useState<string>("");
+  const [qaPlayerId, setQaPlayerId] = useState<string>("");
+  const [qaInitiatorJersey, setQaInitiatorJersey] = useState<string>("");
+  const [qaReceiverJersey, setQaReceiverJersey] = useState<string>("");
+  const [qaMarkerJersey, setQaMarkerJersey] = useState<string>("");
   const [isSubmittingQA, setIsSubmittingQA] = useState<boolean>(false);
 
   // Verification state
@@ -220,7 +222,6 @@ export default function VideoAnalysis() {
   useEffect(() => {
     loadProcessedVideos();
   }, [loadProcessedVideos]);
-
 
   const loadEventTags = useCallback(
     async (videoId: string, appliedFilters?: EventTagFilters) => {
@@ -358,7 +359,7 @@ export default function VideoAnalysis() {
     toast,
   ]);
 
-  // SSE Transition Trigger: Inform user when worker picks up queued job and starts processing
+  // Status Transition Trigger: Inform user on status shifts
   const prevSseStatusRef = useRef<string | null>(null);
   useEffect(() => {
     if (
@@ -371,11 +372,35 @@ export default function VideoAnalysis() {
         description: `Worker picked up job #${activeJob.job_id.slice(
           0,
           8
-        )}. AI frame analysis is now running.`,
+        )}. Analysis is now running.`,
+      });
+    } else if (
+      prevSseStatusRef.current !== "stream_failed" &&
+      sseStatus === "stream_failed" &&
+      activeJob
+    ) {
+      toast({
+        title: "Stream Disconnected",
+        description:
+          sseError ||
+          "Real-time live notification was interrupted. Background analysis may still be running.",
+        variant: "default",
+      });
+    } else if (
+      prevSseStatusRef.current !== "processing_failed" &&
+      sseStatus === "processing_failed" &&
+      activeJob
+    ) {
+      toast({
+        title: "Processing Failed",
+        description:
+          sseError ||
+          "The analysis pipeline reported an error processing this video.",
+        variant: "destructive",
       });
     }
     prevSseStatusRef.current = sseStatus;
-  }, [sseStatus, activeJob, toast]);
+  }, [sseStatus, sseError, activeJob, toast]);
 
   // Handle Tag Filters
   const handleApplyFilters = useCallback(() => {
@@ -422,7 +447,16 @@ export default function VideoAnalysis() {
     }
     setEditingTag(tag);
     setQaEventType(tag.structured_payload?.event_type || "");
-    setQaOutcome(tag.structured_payload?.outcome || "");
+    setQaDataPointCategory(tag.data_point_category || "");
+    setQaPhase(tag.structured_payload?.phase || "");
+    setQaPlayerId(tag.player_id || "");
+    setQaInitiatorJersey(
+      String(tag.structured_payload?.initiator_jersey ?? "")
+    );
+    setQaReceiverJersey(
+      String(tag.structured_payload?.receiver_or_target_jersey ?? "")
+    );
+    setQaMarkerJersey(String(tag.structured_payload?.marker_jersey ?? ""));
   };
 
   const handleSaveQA = async () => {
@@ -439,9 +473,21 @@ export default function VideoAnalysis() {
 
     try {
       const updatedPayload = {
+        // Spread full existing structured_payload so unchanged fields are preserved
         ...(editingTag.structured_payload || {}),
+        // Apply corrections on top
         event_type: qaEventType,
-        outcome: qaOutcome,
+        phase: qaPhase,
+        ...(qaInitiatorJersey !== ""
+          ? { initiator_jersey: qaInitiatorJersey }
+          : {}),
+        ...(qaReceiverJersey !== ""
+          ? { receiver_or_target_jersey: qaReceiverJersey }
+          : {}),
+        ...(qaMarkerJersey !== "" ? { marker_jersey: qaMarkerJersey } : {}),
+        // Top-level tag fields also included in the corrected payload
+        player_id: qaPlayerId,
+        data_point_category: qaDataPointCategory,
       };
 
       await patchEventTagQA(
@@ -580,7 +626,7 @@ export default function VideoAnalysis() {
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
-              Video Analysis 3
+              Video Analysis
             </h1>
             <Badge
               variant="outline"
@@ -618,7 +664,7 @@ export default function VideoAnalysis() {
         </div>
       </div>
 
-      {/* Live SSE Background Analysis Banner (Only active for Team upload jobs) */}
+      {/* Live Status Background Analysis Banner (Only active for Team upload jobs) */}
       {isTeamRole &&
         activeJob &&
         (isQueued || isConnecting || isProcessing) && (
@@ -639,7 +685,7 @@ export default function VideoAnalysis() {
                 <div className="flex items-center gap-2">
                   <p className="text-sm font-semibold text-foreground">
                     {isProcessing
-                      ? "AI Analysis in Progress"
+                      ? "Analysis in Progress"
                       : "Video Queued for Analysis"}
                   </p>
                   <Badge
@@ -656,7 +702,7 @@ export default function VideoAnalysis() {
                 <p className="text-xs text-muted-foreground mt-0.5">
                   {isProcessing
                     ? "Transcoding video and extracting tactical event tags..."
-                    : "Video chunks assembled and awaiting analysis worker. Event stream is active..."}
+                    : "Video chunks assembled. Waiting in queue for an available analysis worker..."}
                 </p>
               </div>
             </div>
@@ -675,12 +721,81 @@ export default function VideoAnalysis() {
                     : "bg-amber-500 animate-ping"
                 }`}
               />
-              {isProcessing
-                ? "Processing • Live SSE"
-                : "Queued • Stream Active"}
+              {isProcessing ? "Processing • Live Updates" : "In Queue"}
             </Badge>
           </Card>
         )}
+
+      {/* Stream Failure Banner */}
+      {isTeamRole && activeJob && isStreamFailed && (
+        <Card className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm border-amber-500/40 bg-amber-500/5 animate-in fade-in-50 duration-200">
+          <div className="flex items-center gap-3">
+            <AlertCircle className="h-5 w-5 text-amber-500 shrink-0" />
+            <div>
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-semibold text-foreground">
+                  Live Notifications Interrupted
+                </p>
+                <Badge
+                  variant="secondary"
+                  className="text-[10px] bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                >
+                  Job #{activeJob.job_id.slice(0, 8)}
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {sseError ||
+                  "The real-time updates connection was closed. Background analysis may still be running."}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={retryStream}
+              className="text-xs h-8 border-amber-500/30 text-amber-700 dark:text-amber-300 hover:bg-amber-500/10"
+            >
+              <RefreshCw className="h-3 w-3 mr-1.5" />
+              Reconnect
+            </Button>
+          </div>
+        </Card>
+      )}
+
+      {/* Processing Failure Banner */}
+      {isTeamRole && activeJob && isProcessingFailed && (
+        <Card className="p-4 flex items-center justify-between shadow-sm border-destructive/40 bg-destructive/5 animate-in fade-in-50 duration-200">
+          <div className="flex items-center gap-3">
+            <AlertCircle className="h-5 w-5 text-destructive shrink-0" />
+            <div>
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-semibold text-foreground">
+                  Processing Failed
+                </p>
+                <Badge
+                  variant="secondary"
+                  className="text-[10px] bg-destructive/10 text-destructive"
+                >
+                  Job #{activeJob.job_id.slice(0, 8)}
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {sseError ||
+                  "The analysis pipeline reported an error processing this video."}
+              </p>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => setActiveJob(null)}
+            className="text-xs h-7 text-muted-foreground hover:text-foreground"
+          >
+            Dismiss
+          </Button>
+        </Card>
+      )}
 
       {/* =========================================================================
             VIEW 1: FOCUSED VIDEO VIEW (When user clicks a processed video)
@@ -822,36 +937,17 @@ export default function VideoAnalysis() {
                       onTimeUpdate={handleVideoTimeUpdate}
                       ref={videoPlayerRef}
                       onLoadedMetadata={(e) => {
-                        console.log("metadata loaded");
-                        console.log("videoWidth", e.currentTarget.width);
-                        console.log("videoHeight", e.currentTarget.height);
                         if (videoPlayerRef.current) {
                           setVideoDuration(videoPlayerRef.current.duration);
                         }
                       }}
-                      onCanPlay={() => console.log("can play")}
-                      onError={(e) => {
-                        console.log("VIDEO ERROR", e.currentTarget.error);
-                      }}
-                      isAnalysisVid={true}
                       className="w-full h-full rounded-md"
                       videoKey={selectedVideo.file_url}
                       data-testid="video-player"
                     >
                       Your browser does not support the video tag.
-                    </SignedVideoPlayer> // <video
+                    </SignedVideoPlayer>
                   ) : (
-                    //   ref={videoPlayerRef}
-                    //   src={activeVideoSource}
-                    //   className="w-full h-full object-contain"
-                    //   controls
-                    //   onTimeUpdate={handleVideoTimeUpdate}
-                    //   onLoadedMetadata={() => {
-                    //     if (videoPlayerRef.current) {
-                    //       setVideoDuration(videoPlayerRef.current.duration);
-                    //     }
-                    //   }}
-                    // />
                     <div className="flex flex-col items-center justify-center p-8 text-center text-muted-foreground">
                       <VideoIcon className="h-12 w-12 mb-2 text-muted-foreground/40" />
                       <p className="text-sm font-medium">
@@ -1111,7 +1207,7 @@ export default function VideoAnalysis() {
                         playerFilter ||
                         eventTypeFilter
                           ? "No tags matched current filter criteria."
-                          : "Event tags are being processed or awaiting microservice indexing."}
+                          : "Event tags are being processed."}
                       </p>
                     </div>
                   ) : (
@@ -1267,9 +1363,10 @@ export default function VideoAnalysis() {
               <VideoUploader
                 apiBaseUrl={defaultApiBase}
                 currentJobStatus={sseStatus}
+                jobError={sseError}
+                onRetryStream={retryStream}
                 onUploadComplete={(job) => {
                   setActiveJob(job);
-                  // loadProcessedVideos();
                   toast({
                     title: "Upload Successful",
                     description: `Video assembled. Analysis job #${job.job_id.slice(
@@ -1379,22 +1476,18 @@ export default function VideoAnalysis() {
                   No Analyzed Videos Found
                 </h3>
                 <p className="text-sm text-muted-foreground mt-2 max-w-md mx-auto leading-relaxed">
-                  There are currently no processed videos in the system (where{" "}
-                  <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-xs text-primary">
-                    video.processed = true
-                  </code>
-                  ).
+                  There are currently no processed videos in the system.
                 </p>
                 <p className="text-xs text-muted-foreground mt-2 max-w-sm mx-auto">
                   {isTeamRole ? (
                     <>
                       To start analyzing footage, use the{" "}
                       <strong>Upload for Analysis</strong> form on the left to
-                      submit match clips with 10MB chunking.
+                      submit match clips.
                     </>
                   ) : (
                     <>
-                      Processed match footage and AI event tags will appear here
+                      Processed match footage and event tags will appear here
                       once analyzed and published by team analysts.
                     </>
                   )}
@@ -1543,12 +1636,13 @@ export default function VideoAnalysis() {
                 Edit Event Tag (QA Correction)
               </DialogTitle>
               <DialogDescription className="text-xs">
-                Update event classification or recorded outcome. This updates
-                the QA pipeline and invalidates cached tags.
+                Correct event classification, phase, or player involvement. All
+                fields are included in the submitted payload.
               </DialogDescription>
             </DialogHeader>
 
             <div className="space-y-4 py-2 w-full min-w-0">
+              {/* Event Type */}
               <div className="space-y-1 w-full min-w-0">
                 <Label htmlFor="qa-event-type" className="text-xs font-medium">
                   Event Type
@@ -1562,17 +1656,104 @@ export default function VideoAnalysis() {
                 />
               </div>
 
+              {/* Data Point Category */}
               <div className="space-y-1 w-full min-w-0">
-                <Label htmlFor="qa-outcome" className="text-xs font-medium">
-                  Outcome
+                <Label
+                  htmlFor="qa-data-point-category"
+                  className="text-xs font-medium"
+                >
+                  Data Point Category
                 </Label>
                 <Input
-                  id="qa-outcome"
-                  value={qaOutcome}
-                  onChange={(e) => setQaOutcome(e.target.value)}
-                  placeholder="e.g. successful, off-target, blocked"
+                  id="qa-data-point-category"
+                  value={qaDataPointCategory}
+                  onChange={(e) => setQaDataPointCategory(e.target.value)}
+                  placeholder="e.g. set_piece, attacking_play, defending"
                   className="h-9 text-xs w-full"
                 />
+              </div>
+
+              {/* Phase */}
+              <div className="space-y-1 w-full min-w-0">
+                <Label htmlFor="qa-phase" className="text-xs font-medium">
+                  Phase
+                </Label>
+                <Input
+                  id="qa-phase"
+                  value={qaPhase}
+                  onChange={(e) => setQaPhase(e.target.value)}
+                  placeholder="e.g. open_play, corner, free_kick"
+                  className="h-9 text-xs w-full"
+                />
+              </div>
+
+              {/* Player ID */}
+              <div className="space-y-1 w-full min-w-0">
+                <Label htmlFor="qa-player-id" className="text-xs font-medium">
+                  Player ID
+                </Label>
+                <Input
+                  id="qa-player-id"
+                  value={qaPlayerId}
+                  onChange={(e) => setQaPlayerId(e.target.value)}
+                  placeholder="Player identifier"
+                  className="h-9 text-xs w-full"
+                />
+              </div>
+
+              {/* Jersey Numbers */}
+              <div className="grid grid-cols-3 gap-3 w-full min-w-0">
+                <div className="space-y-1 min-w-0">
+                  <Label
+                    htmlFor="qa-initiator-jersey"
+                    className="text-xs font-medium leading-tight"
+                  >
+                    Initiator #
+                  </Label>
+                  <Input
+                    id="qa-initiator-jersey"
+                    type="number"
+                    min={0}
+                    value={qaInitiatorJersey}
+                    onChange={(e) => setQaInitiatorJersey(e.target.value)}
+                    placeholder="—"
+                    className="h-9 text-xs w-full"
+                  />
+                </div>
+                <div className="space-y-1 min-w-0">
+                  <Label
+                    htmlFor="qa-receiver-jersey"
+                    className="text-xs font-medium leading-tight"
+                  >
+                    Receiver #
+                  </Label>
+                  <Input
+                    id="qa-receiver-jersey"
+                    type="number"
+                    min={0}
+                    value={qaReceiverJersey}
+                    onChange={(e) => setQaReceiverJersey(e.target.value)}
+                    placeholder="—"
+                    className="h-9 text-xs w-full"
+                  />
+                </div>
+                <div className="space-y-1 min-w-0">
+                  <Label
+                    htmlFor="qa-marker-jersey"
+                    className="text-xs font-medium leading-tight"
+                  >
+                    Marker #
+                  </Label>
+                  <Input
+                    id="qa-marker-jersey"
+                    type="number"
+                    min={0}
+                    value={qaMarkerJersey}
+                    onChange={(e) => setQaMarkerJersey(e.target.value)}
+                    placeholder="—"
+                    className="h-9 text-xs w-full"
+                  />
+                </div>
               </div>
 
               {editingTag && (

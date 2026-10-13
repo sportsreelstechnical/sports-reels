@@ -1002,24 +1002,7 @@ export interface ProcessedVideo {
   [key: string]: any;
 }
 
-// ===========================================================================
-// CORE BACKEND INTEGRATION POINT: Fetch Processed Videos
-// ===========================================================================
-/**
- * ---------------------------------------------------------------------------
- * ATTENTION DEVELOPER (CORE BACKEND):
- * ---------------------------------------------------------------------------
- * This function retrieves all processed (analysed) videos where `video.processed === true`.
- *
- * HOW TO PLUG IN YOUR CORE BACKEND:
- * 1. Modify the `endpoint` below if your Core Backend uses a different path:
- *    Default: "api/v1/videos?processed=true"
- * 2. If authentication (JWT / Bearer token / API key) is required by your
- *    Core BE, inject it into the `headers` object below.
- * 3. The parser handles both plain arrays `[ {...}, ... ]` and wrapped responses
- *    `{ videos: [...] }` or `{ data: [...] }`.
- * ---------------------------------------------------------------------------
- */
+
 export async function fetchProcessedVideos(
   coreApiBaseUrl: string = "",
 ): Promise<ProcessedVideo[]> {
@@ -1033,8 +1016,7 @@ export async function fetchProcessedVideos(
       method: "GET",
       headers: {
         Accept: "application/json",
-        // --- ADD CORE BE AUTH HEADERS HERE IF NEEDED ---
-        // "Authorization": `Bearer ${yourAuthToken}`,
+
       },
       credentials: "include",
     });

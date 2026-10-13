@@ -12,7 +12,7 @@ interface UseMediaUrlsResult {
 export const useMediaUrls = (
   videoKey?: string,
   thumbnailKey?: string,
-  expiresIn: number = 3600,
+  expiresIn: number = 3600
 ): UseMediaUrlsResult => {
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
@@ -29,19 +29,12 @@ export const useMediaUrls = (
     setLoading(true);
     setError(null);
 
-    console.log("🔄 useMediaUrls: Fetching URLs for:", {
-      videoKey,
-      thumbnailKey,
-    });
-
     try {
       const result = await presignedGetUrlService.getSignedMediaUrls(
         videoKey,
         thumbnailKey,
-        expiresIn,
+        expiresIn
       );
-
-      console.log("📡 useMediaUrls: Backend response:", result);
 
       if (result.success) {
         setVideoUrl(result.videoUrl || null);
