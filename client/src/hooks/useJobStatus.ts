@@ -61,7 +61,7 @@ export interface UseJobStatusResult {
 
 const TERMINAL_STATUSES = new Set<string>(["completed", "failed"]);
 const CONNECTION_TIMEOUT_MS = 60 * 1000; // 1 minute limit to establish/re-establish connection
-const CLIENT_TIMEOUT_MS = 60 * 60 * 1000; // 60 minutes wall-clock cap
+const CLIENT_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes wall-clock cap
 
 // ---------------------------------------------------------------------------
 // Hook Implementation
