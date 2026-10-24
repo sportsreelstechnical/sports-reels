@@ -4,26 +4,36 @@ import { rm, readFile } from "fs/promises";
 async function buildServer() {
   await rm("dist", { recursive: true, force: true });
 
-  console.log("building server...");
+  console.log("Building API and email worker...");
   const pkg = JSON.parse(await readFile("package.json", "utf-8"));
   const allDeps = [
     ...Object.keys(pkg.dependencies || {}),
     ...Object.keys(pkg.devDependencies || {}),
   ];
 
-  await esbuild({
-    entryPoints: ["server/index.ts"],
-    platform: "node",
+  const sharedOptions = {
+    platform: "node" as const,
     bundle: true,
-    format: "cjs",
-    outfile: "dist/index.cjs",
+    format: "cjs" as const,
+    external: allDeps,
     define: {
       "process.env.NODE_ENV": '"production"',
     },
-    minify: false, // Easier debugging, usually not needed for server
-    external: allDeps, // <--- EXTERNALIZE EVERYTHING
-    logLevel: "info",
-    keepNames: true, // Helps with some ORM reflection
+    minify: false,
+    logLevel: "info" as const,
+    keepNames: true,
+  };
+
+  await esbuild({
+    ...sharedOptions,
+    entryPoints: ["server/index.ts"],
+    outfile: "dist/index.cjs",
+  });
+
+  await esbuild({
+    ...sharedOptions,
+    entryPoints: ["server/queues/email.worker.ts"],
+    outfile: "dist/email-worker.cjs",
   });
 }
 

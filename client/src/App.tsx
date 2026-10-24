@@ -11,6 +11,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 // Public Pages
 import LandingPage from "./pages/LandingPage";
 import AuthPage from "./pages/auth-page";
+import ResetPassword from "./pages/ResetPassword";
 
 // Dashboard Pages
 import Dashboard from "./pages/dashboard";
@@ -85,6 +86,7 @@ function App() {
                   <Route path="/" element={<HomeRedirect />} />
                   <Route path="/landing" element={<LandingPage />} />
                   <Route path="/auth" element={<AuthPage />} />
+                  <Route path="/reset-password" element={<ResetPassword />} />
 
                   {/* Dev Routes */}
                   <Route

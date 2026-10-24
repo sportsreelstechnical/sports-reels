@@ -24,7 +24,7 @@ export const users = pgTable("users", {
   lastName: text("last_name"),
   role: text("role").notNull().default("scout"),
   teamId: varchar("team_id"),
-  // googleId: text("google_id").unique(),
+  pswdResetToken: text("password_reset_token").unique(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
