@@ -18,18 +18,22 @@ export async function sendTransactionalEmail(
   /**
    * Core engine for sending asynchronous emails via Postmark REST API.
    */
+  const senderEmail = process.env.SENDER_EMAIL;
+  const postmarkToken = process.env.POSTMARK_SERVER_TOKEN;
+
+  if (!senderEmail || !postmarkToken) {
+    throw new Error("Sender email or Postmark Token env var not set");
+  }
+  
   const headers = {
     Accept: "application/json",
     "Content-Type": "application/json",
-    // "X-Postmark-Server-Token": "490e0cd1-d4e1-4581-8df3-ab60d032fa70",
-    "X-Postmark-Server-Token": process.env.POSTMARK_SERVER_TOKEN,
+    "X-Postmark-Server-Token": postmarkToken,
   };
 
   const payload: TransactionalEmailPayload = {
-    // From: process.env.SENDER_EMAIL,
-    From: "support@sportsreels.org",
-    // To: toEmail,
-    To: "support@sportsreels.org",
+    From: senderEmail,
+    To: toEmail,
     Subject: subject,
     HtmlBody: htmlBody,
     TextBody: textBody,
