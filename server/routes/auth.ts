@@ -1,9 +1,14 @@
+import argon2 from "argon2";
 import type { Express, Request, Response } from "express";
+import { jwtVerify } from "jose";
+import passport from "passport";
 import { z } from "zod";
 import { storage } from "../storage";
+import { HttpError } from "../utils/AppError";
+import { asyncHandler } from "../utils/catchAsync";
 import { grantSignupBonus } from "../utils/helpers";
-import argon2 from "argon2";
-import passport from "passport";
+import { createResetToken } from "../utils/security";
+import { enqueuePasswordRecoveryEmail } from "../queues/email.queue";
 
 export function registerAuthRoutes(app: Express): void {
   app.get("/api/auth/google", (req, res, next) => {
@@ -251,10 +256,6 @@ export function registerAuthRoutes(app: Express): void {
         return res.status(401).json({ error: "Invalid credentials" });
       }
 
-      // if (user.password !== password) {
-      //   return res.status(401).json({ error: "Invalid credentials" });
-      // }
-
       req.session.userId = user.id;
       req.session.teamId = user.teamId || undefined;
       req.session.userRole = user.role;
@@ -336,6 +337,136 @@ export function registerAuthRoutes(app: Express): void {
       team,
       embassyProfile,
     });
+  });
+
+  app.post(
+    "/api/recover-password",
+    asyncHandler(async (req: Request, res: Response) => {
+      if (!req.body.email) {
+        return res.status(400).json({ error: "Email required" });
+      }
+
+      const genericResponse = {
+        message: "If that email is registered, a recovery link has been sent.",
+      };
+      const user = await storage.getUserByEmail(req.body.email);
+
+      if (user) {
+        const resetToken = await createResetToken(user.id);
+        await storage.updateUser(user.id, { pswdResetToken: resetToken });
+
+        try {
+          await enqueuePasswordRecoveryEmail(user.email as string, resetToken);
+
+          console.info(`Password recovery email queued for user ${user.id}`);
+        } catch (error: unknown) {
+          console.error(
+            `Failed to enqueue password recovery email for user ${user.id}: ${
+              error instanceof Error ? error.message : String(error)
+            }`
+          );
+        }
+        console.info(`Password reset triggered for user ${user.id}`);
+      }
+
+      return res.json(genericResponse);
+    })
+  );
+
+  app.post("/api/reset-password", async (req: Request, res: Response) => {
+    const { resetToken } = req.query;
+
+    let userId: string;
+
+    // Verify and decode the JWT.
+    try {
+      const secret = new TextEncoder().encode(process.env.JWT_SECRET_KEY);
+
+      const { payload } = await jwtVerify(resetToken as string, secret, {
+        algorithms: [process.env.ALGORITHM as string],
+      });
+
+      const tokenType = payload.type;
+      const subject = payload.sub;
+
+      if (typeof subject !== "string" || tokenType !== "reset-password") {
+        return res.status(400).json({ error: "Invalid token payload" });
+
+        // throw new HttpError(400, "Invalid token payload");
+      }
+
+      userId = subject;
+    } catch (error: unknown) {
+      // Preserve our own validation error.
+      // if (error instanceof HttpError) {
+      //   throw error;
+      // }
+
+      if (
+        error instanceof Error &&
+        "code" in error &&
+        error.code === "ERR_JWT_EXPIRED"
+      ) {
+        return res
+          .status(400)
+          .json({ error: "Password reset link has expired" });
+
+        // throw new HttpError(400, "Password reset link has expired.");
+      }
+
+      console.warn(
+        `Malformed JWT token submitted: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
+      return res.status(400).json({ error: "Invalid reset token JWT." });
+
+      // throw new HttpError(400, "Invalid reset token JWT.");
+    }
+
+    // Find the user and validate.
+    const user = await storage.getUser(userId);
+
+    if (!user) {
+      return res.status(404).json({ error: "User account not found" });
+
+      // throw new HttpError(404, "User account not found.");
+    }
+
+    if (user.pswdResetToken !== resetToken) {
+      return res.status(400).json({ error: "Invalid reset token" });
+
+      // throw new HttpError(400, "Invalid reset token.");
+    }
+
+    // Hash the new password and save the changes.
+    try {
+      const hashedPassword = await argon2.hash(req.body.password);
+
+      await storage.updateUser(user.id, {
+        password: hashedPassword,
+        pswdResetToken: null,
+      });
+
+      return res.json({
+        message: "Password has been reset successfully. You can now log in.",
+      });
+    } catch (error: unknown) {
+      console.error(
+        `Failed to save new password for user ${user.id}: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
+
+      return res
+        .status(500)
+        .json({ error: "An error occurred while resetting your password." });
+
+      // throw new HttpError(
+      //   500,
+      //   "An error occurred while resetting your password."
+      // );
+    }
   });
 
   app.post("/api/auth/logout", (req: Request, res: Response) => {
