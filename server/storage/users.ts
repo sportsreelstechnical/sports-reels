@@ -1,6 +1,6 @@
 import { db } from "../db";
 import { eq } from "drizzle-orm";
-import { type User, type InsertUser, users } from "@shared/schema";
+import { type User, type InsertUser, users, UpdateUserData } from "@shared/schema";
 
 export const usersRepository = {
   async getUser(id: string): Promise<User | undefined> {
@@ -36,7 +36,7 @@ export const usersRepository = {
 
   async updateUser(
     id: string,
-    updates: Partial<InsertUser>
+    updates: Partial<UpdateUserData>
   ): Promise<User | undefined> {
     const [user] = await db
       .update(users)

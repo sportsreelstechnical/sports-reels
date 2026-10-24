@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { type InferInsertModel, sql } from "drizzle-orm";
 import {
   pgTable,
   text,
@@ -1062,6 +1062,7 @@ export const insertFederationIssuedDocumentSchema = createInsertSchema(
 ).omit({ id: true, createdAt: true });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
+export type UpdateUserData = Partial<InferInsertModel<typeof users>>;
 export type User = typeof users.$inferSelect;
 export type InsertTeam = z.infer<typeof insertTeamSchema>;
 export type Team = typeof teams.$inferSelect;
