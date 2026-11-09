@@ -146,10 +146,7 @@ export interface FetchEventTagsResult {
 // ---------------------------------------------------------------------------
 
 export class UploadInitiationError extends Error {
-  constructor(
-    message: string,
-    public readonly statusCode?: number,
-  ) {
+  constructor(message: string, public readonly statusCode?: number) {
     super(message);
     this.name = "UploadInitiationError";
   }
@@ -160,7 +157,7 @@ export class ChunkUploadError extends Error {
     message: string,
     public readonly partNumber: number,
     public readonly attemptsMade: number,
-    public readonly statusCode?: number,
+    public readonly statusCode?: number
   ) {
     super(message);
     this.name = "ChunkUploadError";
@@ -168,20 +165,14 @@ export class ChunkUploadError extends Error {
 }
 
 export class UploadCompletionError extends Error {
-  constructor(
-    message: string,
-    public readonly statusCode?: number,
-  ) {
+  constructor(message: string, public readonly statusCode?: number) {
     super(message);
     this.name = "UploadCompletionError";
   }
 }
 
 export class TagRetrievalError extends Error {
-  constructor(
-    message: string,
-    public readonly statusCode?: number,
-  ) {
+  constructor(message: string, public readonly statusCode?: number) {
     super(message);
     this.name = "TagRetrievalError";
   }
@@ -215,7 +206,7 @@ export function buildApiUrl(apiBaseUrl: string, endpointPath: string): string {
  */
 export function sliceFileIntoChunks(
   file: File,
-  chunkSize: number = CHUNK_SIZE_BYTES,
+  chunkSize: number = CHUNK_SIZE_BYTES
 ): Blob[] {
   const chunks: Blob[] = [];
   let offset = 0;
@@ -238,7 +229,7 @@ function sleep(ms: number): Promise<void> {
  */
 async function runWithConcurrencyLimit<T>(
   tasks: Array<() => Promise<T>>,
-  limit: number,
+  limit: number
 ): Promise<T[]> {
   const results: T[] = new Array(tasks.length);
   let nextIndex = 0;
@@ -265,7 +256,7 @@ async function initiateUpload(
   totalChunks: number,
   contentType: string = "video/mp4",
   jobType: JobType = "analysis",
-  storageData?: Record<string, any>,
+  storageData?: Record<string, any>
 ): Promise<InitiateUploadResponse> {
   const url = buildApiUrl(apiBaseUrl, "api/videos/initiate-upload");
 
@@ -285,14 +276,14 @@ async function initiateUpload(
     });
   } catch (netErr) {
     throw new UploadInitiationError(
-      "Unable to connect to the server. Please check your network connection.",
+      "Unable to connect to the server. Please check your network connection."
     );
   }
 
   if (!response.ok) {
     throw new UploadInitiationError(
       "Failed to initiate video upload. Please try again.",
-      response.status,
+      response.status
     );
   }
 
@@ -309,7 +300,7 @@ async function uploadChunkWithRetry(
   partNumber: number,
   maxRetries: number = DEFAULT_CHUNK_MAX_RETRIES,
   baseDelayMs: number = DEFAULT_CHUNK_RETRY_DELAY_MS,
-  onRetry?: (state: ChunkRetryState) => void,
+  onRetry?: (state: ChunkRetryState) => void
 ): Promise<CompletedPart> {
   let attempt = 0;
 
@@ -332,7 +323,7 @@ async function uploadChunkWithRetry(
           `Chunk upload failed [HTTP ${response.status}].`,
           partNumber,
           attempt,
-          response.status,
+          response.status
         );
       }
 
@@ -344,7 +335,7 @@ async function uploadChunkWithRetry(
 
       if (!rawETag) {
         throw new Error(
-          `Missing upload verification header for segment ${partNumber}.`,
+          `Missing upload verification header for segment ${partNumber}.`
         );
       }
 
@@ -364,7 +355,7 @@ async function uploadChunkWithRetry(
         throw new ChunkUploadError(
           `Upload interrupted for segment ${partNumber}. Please check your connection.`,
           partNumber,
-          attempt,
+          attempt
         );
       }
 
@@ -387,7 +378,7 @@ async function uploadChunkWithRetry(
   throw new ChunkUploadError(
     `Upload interrupted for segment ${partNumber}. Please check your connection.`,
     partNumber,
-    attempt,
+    attempt
   );
 }
 
@@ -402,13 +393,12 @@ async function completeUpload(
   videoKey: string,
   parts: CompletedPart[],
   jobType: JobType = "analysis",
-  storageData?: Record<string, any>,
+  storageData?: Record<string, any>
 ): Promise<CompleteUploadResponse> {
   const sortedParts = [...parts].sort((a, b) => a.PartNumber - b.PartNumber);
-  // const url = buildApiUrl(apiBaseUrl, "api/v1/upload/complete");
   const url = buildApiUrl(
     apiBaseUrl,
-    `api/videos/${encodeURIComponent(videoId)}/complete`,
+    `api/videos/${encodeURIComponent(videoId)}/complete`
   );
 
   let response: Response;
@@ -427,14 +417,14 @@ async function completeUpload(
     });
   } catch (netErr) {
     throw new UploadCompletionError(
-      "Unable to connect to the server. Please check your network connection.",
+      "Unable to connect to the server. Please check your network connection."
     );
   }
 
   if (!response.ok) {
     throw new UploadCompletionError(
       "Failed to finalize video upload. Please try again.",
-      response.status,
+      response.status
     );
   }
 
@@ -463,15 +453,13 @@ export function formatSecondsToTimestamp(totalSec: number): string {
 export function normalizeMatchTag(
   rawTag: any,
   index: number,
-  videoId: string,
+  videoId: string
 ): MatchTag {
   if (!rawTag || typeof rawTag !== "object") {
     return {
       id: `tag-${videoId}-${index}`,
-      // match_id: videoId,
       video_id: videoId,
       timestamp_str: "00:00:00",
-      // timestamp: "00:00:00",
       match_time_sec: 0,
       video_time_sec: 0,
       data_point_category: "general",
@@ -490,42 +478,63 @@ export function normalizeMatchTag(
     typeof rawTag.video_time_sec === "number" ? rawTag.video_time_sec : 0;
 
   const timestampStr =
-    rawTag.timestamp_str ||
-    // rawTag.timestamp ||
-    formatSecondsToTimestamp(matchTimeSec);
+    rawTag.timestamp_str || formatSecondsToTimestamp(matchTimeSec);
 
-  const tagId =
-    rawTag.id != null && String(rawTag.id).trim() !== ""
-      ? String(rawTag.id)
-      : rawTag._id != null && String(rawTag._id).trim() !== ""
-        ? String(rawTag._id)
-        : `tag-${videoId}-${index}-${Math.round(matchTimeSec)}`;
+  // corrected payload / structured payload related data
+  const eventType =
+    rawTag.corrected_payload?.event_type ||
+    rawTag.structured_payload.event_type ||
+    "event";
+  const initiatorJersey =
+    rawTag.corrected_payload?.initiator_jersey ||
+    rawTag.structured_payload.initiator_jersey ||
+    "unknown";
+  const markerJersey =
+    rawTag.corrected_payload?.marker_jersey ||
+    rawTag.structured_payload.marker_jersey ||
+    "unknown";
+  const receiverJersey =
+    rawTag.corrected_payload?.receiver_or_target_jersey ||
+    rawTag.structured_payload.receiver_or_target_jersey ||
+    "unknown";
+  const outcome = rawTag.structured_payload.outcome;
+  const pitchZone = rawTag.structured_payload.pitch_zone;
+  const dataPointCategory =
+    rawTag.corrected_payload?.data_point_category ||
+    rawTag.data_point_category ||
+    "general";
+  const playerId =
+    rawTag.corrected_payload?.player_id || rawTag.player_id || "unknown";
+  const phase =
+    rawTag.corrected_payload?.phase ||
+    rawTag.structured_payload.phase ||
+    "unknown phase";
 
   const matchId = rawTag.match_id || rawTag.video_id || videoId;
 
   return {
     ...rawTag,
-    id: tagId,
-    // match_id: matchId,
+    id: rawTag.id,
     video_id: matchId,
     timestamp_str: timestampStr,
-    // timestamp: timestampStr,
     match_time_sec: matchTimeSec,
     video_time_sec: videoTimeSec,
-    player_id: rawTag.player_id ?? null,
+    player_id: playerId,
     sport_code: rawTag.sport_code ?? "FB-CODE",
-    data_point_category: rawTag.data_point_category || "general",
+    data_point_category: dataPointCategory,
     model_confidence_score:
       typeof rawTag.model_confidence_score === "number"
         ? rawTag.model_confidence_score
         : 1.0,
-    structured_payload:
-      rawTag.structured_payload && typeof rawTag.structured_payload === "object"
-        ? rawTag.structured_payload
-        : {
-            event_type: rawTag.event_type || "event",
-            outcome: rawTag.outcome || "outcome",
-          },
+    structured_payload: {
+      event_type: eventType,
+      initiator_jersey: initiatorJersey,
+      marker_jersey: markerJersey,
+      outcome: outcome,
+      pitch_zone: pitchZone,
+      receiver_or_target_jersey: receiverJersey,
+      phase: phase,
+    },
     natural_language_output: rawTag.natural_language_output || "",
     is_verified: Boolean(rawTag.is_verified),
     corrected_payload: rawTag.corrected_payload ?? null,
@@ -549,7 +558,7 @@ export async function fetchEventTags(
   options?: {
     apiBaseUrl?: string;
     filters?: EventTagFilters;
-  },
+  }
 ): Promise<FetchEventTagsResult> {
   const apiBaseUrl = options?.apiBaseUrl ?? "";
   const filters = options?.filters;
@@ -581,14 +590,14 @@ export async function fetchEventTags(
     });
   } catch (netErr) {
     throw new TagRetrievalError(
-      "Unable to connect to the server. Please check your network connection.",
+      "Unable to connect to the server. Please check your network connection."
     );
   }
 
   if (!response.ok) {
     throw new TagRetrievalError(
       "Failed to retrieve event tags. Please try again.",
-      response.status,
+      response.status
     );
   }
 
@@ -606,7 +615,7 @@ export async function fetchEventTags(
   // 2. Cache MISS / Filtered: Backend returns serialized MatchTimelineResponse object with { video_id/match_id, total_events, events }.
   if (Array.isArray(rawData)) {
     const events = rawData.map((tag: any, idx: number) =>
-      normalizeMatchTag(tag, idx, videoId),
+      normalizeMatchTag(tag, idx, videoId)
     );
     timeline = {
       // match_id: videoId,
@@ -618,11 +627,11 @@ export async function fetchEventTags(
     const rawEvents: any[] = Array.isArray(rawData.events)
       ? rawData.events
       : Array.isArray(rawData.timeline)
-        ? rawData.timeline
-        : [];
+      ? rawData.timeline
+      : [];
 
     const events = rawEvents.map((tag: any, idx: number) =>
-      normalizeMatchTag(tag, idx, videoId),
+      normalizeMatchTag(tag, idx, videoId)
     );
 
     const totalEvents =
@@ -670,11 +679,11 @@ export async function patchEventTagQA(
     corrected_payload: Record<string, any>;
     is_verified?: boolean;
   },
-  apiBaseUrl: string = "",
+  apiBaseUrl: string = ""
 ): Promise<MatchTag> {
   const url = buildApiUrl(
     apiBaseUrl,
-    `api/event_tags/${encodeURIComponent(tagId)}`,
+    `api/event_tags/${encodeURIComponent(tagId)}`
   );
 
   const response = await fetch(url, {
@@ -714,11 +723,11 @@ export interface VerifyTagsResponse {
  */
 export async function verifyVideoTags(
   videoId: string,
-  apiBaseUrl: string = "",
+  apiBaseUrl: string = ""
 ): Promise<VerifyTagsResponse> {
   const url = buildApiUrl(
     apiBaseUrl,
-    `api/videos/${encodeURIComponent(videoId)}/verify_tags`,
+    `api/videos/${encodeURIComponent(videoId)}/verify_tags`
   );
 
   let response: Response;
@@ -730,14 +739,14 @@ export async function verifyVideoTags(
     });
   } catch (netErr) {
     throw new TagRetrievalError(
-      "Unable to connect to the server. Please check your network connection.",
+      "Unable to connect to the server. Please check your network connection."
     );
   }
 
   if (!response.ok) {
     throw new TagRetrievalError(
       "Tag verification failed. Please try again.",
-      response.status,
+      response.status
     );
   }
 
@@ -762,7 +771,7 @@ export type ExportFormat = "csv" | "xlsx" | "xml";
 export async function exportMatchTags(
   videoId: string,
   format: ExportFormat,
-  apiBaseUrl: string = "",
+  apiBaseUrl: string = ""
 ): Promise<void> {
   const endpoint = `api/videos/${encodeURIComponent(videoId)}/export_tags`;
 
@@ -779,7 +788,7 @@ export async function exportMatchTags(
     });
   } catch (netErr) {
     throw new TagRetrievalError(
-      "Unable to connect to the server. Please check your network connection.",
+      "Unable to connect to the server. Please check your network connection."
     );
   }
 
@@ -787,12 +796,12 @@ export async function exportMatchTags(
     if (response.status === 403) {
       throw new TagRetrievalError(
         "Export is locked — all tags must be verified before exporting.",
-        403,
+        403
       );
     }
     throw new TagRetrievalError(
       "Export failed. Please try again.",
-      response.status,
+      response.status
     );
   }
 
@@ -837,7 +846,7 @@ export async function uploadLargeVideoToR2(
   file: File,
   webhookUrlOrOptions?: string | UploadOptions,
   onProgressLegacy?: (progress: number) => void,
-  apiBaseUrlLegacy: string = "",
+  apiBaseUrlLegacy: string = ""
 ): Promise<UploadResult> {
   // Support both legacy positional arguments and modern options object
   let options: UploadOptions = {};
@@ -882,7 +891,7 @@ export async function uploadLargeVideoToR2(
     totalChunks,
     file.type || "video/mp4",
     jobType,
-    storageData,
+    storageData
   );
 
   const {
@@ -894,7 +903,7 @@ export async function uploadLargeVideoToR2(
 
   if (presignedParts.length !== totalChunks) {
     throw new UploadInitiationError(
-      "Unable to prepare file segments for upload. Please try again.",
+      "Unable to prepare file segments for upload. Please try again."
     );
   }
 
@@ -923,7 +932,7 @@ export async function uploadLargeVideoToR2(
             retryState,
             statusText: `Connection interrupted. Retrying upload (attempt ${retryState.attempt}/${retryState.maxAttempts})...`,
           });
-        },
+        }
       );
 
       completedCount++;
@@ -940,12 +949,12 @@ export async function uploadLargeVideoToR2(
       });
 
       return result;
-    },
+    }
   );
 
   const uploadedParts = await runWithConcurrencyLimit(
     uploadTasks,
-    MAX_CONCURRENT_UPLOADS,
+    MAX_CONCURRENT_UPLOADS
   );
   completedParts.push(...uploadedParts);
 
@@ -964,7 +973,7 @@ export async function uploadLargeVideoToR2(
     videoKey,
     completedParts,
     jobType,
-    storageData,
+    storageData
   );
 
   notifyProgress({
@@ -1002,11 +1011,9 @@ export interface ProcessedVideo {
   [key: string]: any;
 }
 
-
 export async function fetchProcessedVideos(
-  coreApiBaseUrl: string = "",
+  coreApiBaseUrl: string = ""
 ): Promise<ProcessedVideo[]> {
-  // --- CORE BE ENDPOINT: Adjust path below to match your Core Backend API ---
   const endpoint = "api/videos?processed=true";
   const url = buildApiUrl(coreApiBaseUrl, endpoint);
 
@@ -1016,13 +1023,12 @@ export async function fetchProcessedVideos(
       method: "GET",
       headers: {
         Accept: "application/json",
-
       },
       credentials: "include",
     });
   } catch (netErr) {
     throw new Error(
-      "Unable to connect to the server. Please check your network connection.",
+      "Unable to connect to the server. Please check your network connection."
     );
   }
 
@@ -1046,14 +1052,12 @@ export async function fetchProcessedVideos(
     }
   }
 
-  console.log(videoList);
-
   // Ensure only processed videos are returned and format fields cleanly
   return videoList
     .filter(
       (v: any) =>
         v &&
-        (v.processed === true || v.processed === "true" || v.processed === 1),
+        (v.processed === true || v.processed === "true" || v.processed === 1)
     )
     .map((v: any) => ({
       id: String(v.id || v.video_id || v._id || ""),

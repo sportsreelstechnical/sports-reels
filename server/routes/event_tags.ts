@@ -1,6 +1,6 @@
 import type { Express, Request, Response } from "express";
 import { requireAuth, requireTeamRole } from "../middleware/auth";
-import { asyncHandler } from "server/utils/catchAsync";
+import { asyncHandler } from "../utils/catchAsync";
 import axios from "axios";
 
 export function registerTagRoutes(app: Express): void {

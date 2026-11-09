@@ -9,6 +9,7 @@ import { requireAuth } from "../middleware/auth";
 import { registerAuthRoutes } from "./auth";
 import { registerPlayerRoutes } from "./players";
 import { registerVideoRoutes } from "./videos";
+import { registerTagRoutes } from "./event_tags";
 import { registerMessagingRoutes } from "./messaging";
 import { registerDashboardRoutes } from "./dashboard";
 import { registerEligibilityRoutes } from "./eligibility";
@@ -88,6 +89,7 @@ export async function registerAllRoutes(
   registerComplianceRoutes(app);
   registerScoutingRoutes(app);
   registerFederationRoutes(app);
+  registerTagRoutes(app)
 
   return httpServer;
 }
