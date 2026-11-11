@@ -511,7 +511,7 @@ export function normalizeMatchTag(
     "unknown phase";
 
   const matchId = rawTag.match_id || rawTag.video_id || videoId;
-
+  console.log(rawTag, "checking tag");
   return {
     ...rawTag,
     id: rawTag.id,
@@ -612,7 +612,7 @@ export async function fetchEventTags(
 
   // Handle both:
   // 1. Cache HIT: Backend returns raw passthrough JSON from Redis without deserialisation wrapper (MatchTag[] array).
-  // 2. Cache MISS / Filtered: Backend returns serialized MatchTimelineResponse object with { video_id/match_id, total_events, events }.
+  // 2. Cache MISS / Filtered: Backend returns serialized MatchTimelineResponse object with { video_id, total_events, events }.
   if (Array.isArray(rawData)) {
     const events = rawData.map((tag: any, idx: number) =>
       normalizeMatchTag(tag, idx, videoId)
