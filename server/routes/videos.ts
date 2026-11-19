@@ -115,7 +115,6 @@ export function registerVideoRoutes(app: Express): void {
         // @ts-ignore
         queryParams.verified_only = verified_only;
 
-      console.log(queryParams);
       const response = await axios.get(
         `${process.env.VIDEO_SERVICE_BASE_URL}/api/v1/videos/${videoId}/event_tags`,
         {
