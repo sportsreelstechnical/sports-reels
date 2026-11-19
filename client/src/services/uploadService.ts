@@ -511,7 +511,6 @@ export function normalizeMatchTag(
     "unknown phase";
 
   const matchId = rawTag.match_id || rawTag.video_id || videoId;
-  console.log(rawTag, "checking tag");
   return {
     ...rawTag,
     id: rawTag.id,
